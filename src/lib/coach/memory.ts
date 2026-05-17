@@ -1,5 +1,5 @@
 import 'server-only'
-import { anthropic } from '@/lib/claude/client'
+import { anthropic, MEMORY_MODEL } from '@/lib/claude/client'
 import { serviceClient } from '@/lib/supabase/service'
 import { MEMORY_EXTRACTOR_PROMPT, MEMORY_SECTION_LABELS } from '@/lib/coach/prompts'
 import type Anthropic from '@anthropic-ai/sdk'
@@ -16,7 +16,6 @@ export interface MemoryEntry {
   created_at: string
 }
 
-const MEMORY_MODEL = process.env.CLAUDE_MEMORY_MODEL ?? 'claude-haiku-4-5'
 const MAX_MEMORY_ITEMS = 30 // wieviele Top-Einträge in System-Prompt
 
 /**
