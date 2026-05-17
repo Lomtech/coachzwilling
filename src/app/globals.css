@@ -1,0 +1,206 @@
+@import "tailwindcss";
+
+/* ─── Theme — helles Design, Smartphone-First ─────────────────────────────── */
+@theme {
+  --color-bg: #f8f9fb;
+  --color-surface: #ffffff;
+  --color-surface-2: #f3f4f7;
+  --color-border: #e7e8ee;
+  --color-ink: #1a1d24;
+  --color-ink-2: #4a4f5b;
+  --color-muted: #8a8f9a;
+  --color-accent: #2f6df4;
+  --color-accent-soft: #eaf0fe;
+  --color-success: #2fa55a;
+  --color-warning: #e0a300;
+  --color-danger: #d44c4c;
+
+  --radius-card: 16px;
+  --radius-pill: 999px;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+}
+
+/* Globale Resets */
+:root { color-scheme: light; }
+html, body { background: var(--color-bg); color: var(--color-ink); }
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+* { box-sizing: border-box; }
+button { cursor: pointer; }
+
+/* iOS-Safari sichere Bereiche */
+.safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 1rem); }
+.safe-top    { padding-top: max(env(safe-area-inset-top), 1rem); }
+
+/* Form-Reset für mobile */
+input, textarea, select, button {
+  font: inherit;
+  color: inherit;
+}
+input, textarea {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  width: 100%;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+input:focus, textarea:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 4px var(--color-accent-soft);
+}
+textarea { resize: vertical; min-height: 110px; }
+
+/* Buttons — utility classes */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: .5rem;
+  padding: .85rem 1.25rem;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 1px solid transparent;
+  transition: transform .05s, background .15s, border-color .15s;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  background: var(--color-ink);
+  color: white;
+}
+.btn-primary:hover { background: #000; }
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-color: var(--color-border);
+}
+.btn-secondary:hover { background: var(--color-surface-2); }
+.btn-ghost {
+  background: transparent;
+  color: var(--color-ink);
+}
+.btn-ghost:hover { background: var(--color-surface-2); }
+.btn-block { width: 100%; }
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 1.25rem;
+}
+
+.chip {
+  display: inline-flex; align-items: center; gap: .35rem;
+  font-size: .8rem; font-weight: 600;
+  padding: .25rem .6rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+/* Chat-Bubbles */
+.bubble {
+  max-width: 88%;
+  padding: .9rem 1.1rem;
+  border-radius: 18px;
+  line-height: 1.5;
+  font-size: 1rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.bubble-user {
+  background: var(--color-ink);
+  color: white;
+  border-bottom-right-radius: 6px;
+  align-self: flex-end;
+}
+.bubble-assistant {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-ink);
+  border-bottom-left-radius: 6px;
+  align-self: flex-start;
+}
+
+/* Animations */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
+.typing-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--color-muted);
+  border-radius: 50%;
+  margin: 0 1px;
+  animation: pulse-dot 1.2s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Founder-Quote Animation — staffelte Fade-In */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in-image {
+  from { opacity: 0; transform: scale(0.94); filter: blur(8px); }
+  to   { opacity: 1; transform: scale(1);    filter: blur(0); }
+}
+.anim-fade-up        { animation: fade-up 0.8s ease-out both; }
+.anim-fade-up-delay  { animation: fade-up 0.8s ease-out 0.15s both; }
+.anim-fade-up-delay2 { animation: fade-up 0.8s ease-out 0.3s both; }
+.anim-fade-up-delay3 { animation: fade-up 0.8s ease-out 0.45s both; }
+.anim-image          { animation: fade-in-image 1.1s ease-out both; }
+
+/* Float für dekorative Elemente */
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(0, -8px); }
+}
+@keyframes float-slower {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(0, -14px); }
+}
+@keyframes pulse-ring {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50%      { opacity: 0.65; transform: scale(1.06); }
+}
+@keyframes pulse-node {
+  0%, 100% { opacity: 0.5; r: 4; }
+  50%      { opacity: 1;   r: 6; }
+}
+@keyframes draw-line {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+.anim-float       { animation: float-slow 6s ease-in-out infinite; }
+.anim-float-slow  { animation: float-slower 9s ease-in-out infinite; }
+.anim-pulse-ring  { animation: pulse-ring 3s ease-in-out infinite; }
+.anim-pulse-ring-delay  { animation: pulse-ring 3s ease-in-out 1s infinite; }
+.anim-pulse-node  { animation: pulse-node 2.5s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+
+/* Aurora-Background */
+.hero-aurora {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 50% at 70% 30%, rgba(47, 109, 244, 0.10), transparent 60%),
+              radial-gradient(ellipse 50% 40% at 20% 70%, rgba(26, 29, 36, 0.06), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Markdown im Coach-Output */
+.prose-coach p { margin: 0 0 .75rem; }
+.prose-coach p:last-child { margin: 0; }
+.prose-coach strong { font-weight: 600; }
+.prose-coach em { font-style: italic; }

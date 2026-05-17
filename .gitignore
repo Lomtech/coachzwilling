@@ -1,0 +1,19 @@
+node_modules
+.next
+.env
+.env.local
+.env.production
+.env.vercel-check
+.env.*.local
+.vercel
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+.turbo
+dist
+coverage
+# Editor / OS
+.idea
+.vscode
+*.log
+*.swp

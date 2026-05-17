@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2a2d34"/>
+      <stop offset="100%" stop-color="#1a1d24"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#g)"/>
+  <!-- Stylisierte Silhouette -->
+  <circle cx="200" cy="155" r="55" fill="#3a3d44" opacity="0.6"/>
+  <path d="M 90 360 Q 90 240 200 240 Q 310 240 310 360 Z" fill="#3a3d44" opacity="0.6"/>
+  <!-- Initials Overlay -->
+  <text x="200" y="395" font-family="system-ui, -apple-system, sans-serif"
+        font-size="14" font-weight="500" fill="#8a8f9a" text-anchor="middle"
+        letter-spacing="2">FOUNDER</text>
+</svg>
