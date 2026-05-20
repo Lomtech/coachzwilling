@@ -9,6 +9,7 @@ import { MemoryView } from './MemoryView'
 import { RegenerateProfileButton } from './RegenerateProfileButton'
 import { RefineProfileButton } from './RefineProfileButton'
 import { ProfileViewer } from './ProfileViewer'
+import { isAdminEmail } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -155,6 +156,23 @@ export default async function SettingsPage() {
           </>
         )}
       </section>
+      )}
+
+      {isAdminEmail(user.email) && (
+        <section className="card mb-4 bg-[var(--color-warning)]/5 border-[var(--color-warning)]/30">
+          <SectionHeader>Admin</SectionHeader>
+          <p className="text-sm text-[var(--color-ink-2)] mb-3">
+            Du bist als Admin eingeloggt. Zugriff auf alle User-Profile und Memory-Daten.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Link href="/admin" className="btn btn-secondary text-sm flex-1 text-center">
+              🔧 Admin-Übersicht
+            </Link>
+            <Link href="/admin/compare" className="btn btn-secondary text-sm flex-1 text-center">
+              ⇆ Profile vergleichen
+            </Link>
+          </div>
+        </section>
       )}
 
       <section className="card">
