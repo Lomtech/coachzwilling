@@ -8,6 +8,7 @@ import { ManageButton } from '../billing/ManageButton'
 import { MemoryView } from './MemoryView'
 import { RegenerateProfileButton } from './RegenerateProfileButton'
 import { RefineProfileButton } from './RefineProfileButton'
+import { ProfileViewer } from './ProfileViewer'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +21,7 @@ export default async function SettingsPage() {
     supabase.from('profiles').select('full_name, email, onboarding_state, created_at, trial_until').eq('id', user.id).maybeSingle(),
     supabase.from('subscriptions').select('status, current_period_end, cancel_at_period_end').eq('user_id', user.id).maybeSingle(),
     supabase.from('coach_profiles')
-      .select('generated_at, model, version, source, memories_used_count')
+      .select('id, generated_at, model, version, source, memories_used_count, config_md')
       .eq('user_id', user.id).eq('is_active', true).maybeSingle(),
     supabase.from('coach_memory')
       .select('id, section, observation, importance, created_at')
@@ -89,6 +90,13 @@ export default async function SettingsPage() {
               />
             )}
             <div className="mt-4 pt-3 border-t border-[var(--color-border)] space-y-3">
+              <ProfileViewer profile={{
+                id: cp.id,
+                version: cp.version,
+                source: cp.source,
+                generatedAt: cp.generated_at,
+                configMd: cp.config_md,
+              }} />
               <RefineProfileButton hasMemories={(memoryCount ?? 0) > 0} />
               <RegenerateProfileButton />
             </div>
