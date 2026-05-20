@@ -260,7 +260,7 @@ export const QUESTIONS: Question[] = [
   {
     id: 27, section: SECTIONS[7], type: 'single',
     prompt: 'Wie viel Veränderung willst du aktuell wirklich?',
-    helper: 'Stell dir vor, der Coaching-GPT verändert in 6 Monaten drei zentrale Dinge in deinem Verhalten. Wie reagierst du innerlich?',
+    helper: 'Stell dir vor, dein Coach verändert in 6 Monaten drei zentrale Dinge in deinem Verhalten. Wie reagierst du innerlich?',
     options: [
       { value: 'genau_will', label: 'Das ist genau das, was ich will' },
       { value: 'umfeld', label: 'Interessant – aber ich frage mich, was das für mein Umfeld bedeutet' },
