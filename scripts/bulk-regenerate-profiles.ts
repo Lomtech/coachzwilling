@@ -35,19 +35,18 @@ const supa = createClient(SUPA_URL, SUPA_KEY, {
 const claude = new Anthropic({ apiKey: ANTHROPIC_KEY })
 
 function extractToneAndLanguage(md: string): { tone: string | null; language: string | null } {
-  let tone: string | null = null
-  let language: string | null = null
-  const sec10 = md.match(/^##\s*10\.\s*Tonprofil[\s\S]*?(?=^##\s|\Z)/m)
-  if (sec10) {
-    const body = sec10[0].replace(/^##\s*10\.[^\n]*\n/, '').replace(/^\([^)]*\)\n?/gm, '').trim()
-    if (body) tone = body
+  // Splitte an Section-Headern (JS-Regex kennt `\Z` nicht — Bug v3.3)
+  const parts = md.split(/(?=^##\s+\d+\.\s+)/m)
+  function find(prefix: string): string | null {
+    for (const part of parts) {
+      if (part.match(new RegExp(`^##\\s*${prefix}`, 'i'))) {
+        const body = part.replace(/^##[^\n]*\n/, '').replace(/^\([^)]*\)\n?/gm, '').trim()
+        return body.length > 0 ? body : null
+      }
+    }
+    return null
   }
-  const sec11 = md.match(/^##\s*11\.\s*Sprach[\s\S]*?(?=^##\s|\Z)/m)
-  if (sec11) {
-    const body = sec11[0].replace(/^##\s*11\.[^\n]*\n/, '').replace(/^\([^)]*\)\n?/gm, '').trim()
-    if (body) language = body
-  }
-  return { tone, language }
+  return { tone: find('10\\.\\s*Tonprofil'), language: find('11\\.\\s*Sprach') }
 }
 
 async function generateProfile(answers: Record<string, string>) {

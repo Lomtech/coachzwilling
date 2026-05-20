@@ -14,34 +14,32 @@ export interface ProfilerResult {
 
 /**
  * Extrahiert Sektion 10 (Tonprofil-Echo) und Sektion 11 (Sprach-Mirror) aus dem
- * generierten Profil. Tolerant gegen kleine Formatierungs-Abweichungen.
+ * generierten Profil. Splittet das Markdown an `^## `-Headern statt regex-basiert,
+ * weil JS-Regex `\Z` nicht kennt (interpretiert als literal "Z" — Bug v3.3 Phase 1).
  */
 function extractToneAndLanguage(md: string): { tone: string | null; language: string | null } {
-  const lines = md.split('\n')
-  let tone: string | null = null
-  let language: string | null = null
+  // Splitte das Markdown an Section-Headern: `^## N. <Titel>`
+  // Pattern: Newline + ## + N.
+  const sectionParts = md.split(/(?=^##\s+\d+\.\s+)/m)
 
-  // Sektion 10: alles zwischen "## 10." und nächster "## " Header
-  const sec10Match = md.match(/^##\s*10\.\s*Tonprofil[\s\S]*?(?=^##\s|\Z)/m)
-  if (sec10Match) {
-    const body = sec10Match[0]
-      .replace(/^##\s*10\.[^\n]*\n/, '') // Header weg
-      .replace(/^\([^)]*\)\n?/gm, '') // (PFLICHT, ...)-Hinweise weg falls vom LLM mitgeschrieben
-      .trim()
-    if (body.length > 0) tone = body
+  function findSection(prefix: string): string | null {
+    for (const part of sectionParts) {
+      if (part.match(new RegExp(`^##\\s*${prefix}`, 'i'))) {
+        // Header-Zeile entfernen, dann den Body trimmen
+        const body = part
+          .replace(/^##[^\n]*\n/, '')
+          .replace(/^\([^)]*\)\n?/gm, '') // (PFLICHT, ...) Hinweise weg
+          .trim()
+        return body.length > 0 ? body : null
+      }
+    }
+    return null
   }
 
-  // Sektion 11: gleiches Pattern
-  const sec11Match = md.match(/^##\s*11\.\s*Sprach[\s\S]*?(?=^##\s|\Z)/m)
-  if (sec11Match) {
-    const body = sec11Match[0]
-      .replace(/^##\s*11\.[^\n]*\n/, '')
-      .replace(/^\([^)]*\)\n?/gm, '')
-      .trim()
-    if (body.length > 0) language = body
+  return {
+    tone: findSection('10\\.\\s*Tonprofil'),
+    language: findSection('11\\.\\s*Sprach'),
   }
-
-  return { tone, language }
 }
 
 export async function generateCoachProfile(
