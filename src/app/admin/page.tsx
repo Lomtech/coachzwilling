@@ -17,7 +17,7 @@ export default async function AdminOverviewPage() {
 
   const [coachProfiles, memoryCounts, conversationCounts, messageCounts, responses] = await Promise.all([
     supa.from('coach_profiles')
-      .select('user_id, version, source, generated_at, model')
+      .select('id, user_id, version, source, generated_at, model')
       .in('user_id', userIds)
       .eq('is_active', true),
     supa.from('coach_memory')
@@ -107,9 +107,12 @@ export default async function AdminOverviewPage() {
                 </td>
                 <td className="py-3 px-2 text-right">
                   {r.coach ? (
-                    <span className="text-xs">
-                      v{r.coach.version} · {sourceLabel(r.coach.source)}
-                    </span>
+                    <Link
+                      href={`/admin/profiles/${r.coach.id}`}
+                      className="text-xs text-[var(--color-accent)] hover:underline"
+                    >
+                      v{r.coach.version} · {sourceLabel(r.coach.source)} →
+                    </Link>
                   ) : (
                     <span className="text-xs text-[var(--color-muted)]">—</span>
                   )}

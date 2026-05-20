@@ -52,8 +52,11 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                   <div className="flex items-center gap-3 text-xs text-[var(--color-muted)]">
                     <span>{cp.memories_used_count} Memories</span>
                     <span>{new Date(cp.generated_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                    <Link href={`/admin/profiles/${cp.id}`} className="text-[var(--color-accent)] hover:underline font-medium">
+                      öffnen →
+                    </Link>
                     <Link href={`/admin/compare?a=${cp.id}`} className="text-[var(--color-accent)] hover:underline">
-                      vergleichen →
+                      vergleichen
                     </Link>
                   </div>
                 </summary>
