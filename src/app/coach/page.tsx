@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ChatView } from '@/components/chat/ChatView'
 import { isAdminEmail } from '@/lib/admin-auth'
+import { AccountMenu } from '@/components/AccountMenu'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,11 +18,11 @@ export default async function CoachPage({
 
   const { c: convId } = await searchParams
 
-  // Letzte Conversations + Trial-Status (für Hint im Header)
+  // Letzte Conversations + Trial-Status + User-Profil (für Avatar)
   const [{ data: conversations }, { data: profile }, { data: sub }] = await Promise.all([
     supabase.from('conversations').select('id, title, updated_at')
       .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(20),
-    supabase.from('profiles').select('trial_until').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('trial_until, full_name').eq('id', user.id).maybeSingle(),
     supabase.from('subscriptions').select('status').eq('user_id', user.id).maybeSingle(),
   ])
 
@@ -96,32 +97,14 @@ export default async function CoachPage({
             )
           })}
         </div>
-        <div className="px-3 py-3 border-t border-[var(--color-border)] space-y-2">
-          {showTrialHint && (
-            <Link
-              href="/billing"
-              className="block text-xs text-center px-2 py-1.5 rounded-lg bg-[var(--color-accent-soft)] text-[var(--color-accent)] font-medium hover:opacity-80"
-            >
-              🎁 Noch {trialDaysLeft} {trialDaysLeft === 1 ? 'Tag' : 'Tage'} gratis
-            </Link>
-          )}
-          {isAdmin && (
-            <div className="grid grid-cols-2 gap-1.5">
-              <Link
-                href="/admin"
-                className="block text-xs text-center px-2 py-1.5 rounded-lg bg-[var(--color-warning)]/10 text-[var(--color-warning)] font-medium hover:bg-[var(--color-warning)]/15"
-              >
-                🔧 Admin
-              </Link>
-              <Link
-                href="/admin/compare"
-                className="block text-xs text-center px-2 py-1.5 rounded-lg bg-[var(--color-warning)]/10 text-[var(--color-warning)] font-medium hover:bg-[var(--color-warning)]/15"
-              >
-                ⇆ Compare
-              </Link>
-            </div>
-          )}
-          <Link href="/settings" className="btn btn-ghost btn-block">Konto</Link>
+        <div className="px-2 py-2 border-t border-[var(--color-border)]">
+          <AccountMenu
+            email={user.email ?? ''}
+            fullName={profile?.full_name ?? null}
+            isAdmin={isAdmin}
+            showTrialPill={showTrialHint}
+            trialDaysLeft={trialDaysLeft}
+          />
         </div>
       </aside>
 
