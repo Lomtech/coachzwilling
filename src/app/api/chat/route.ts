@@ -5,7 +5,9 @@ import { anthropic, COACH_MODEL } from '@/lib/claude/client'
 import { buildCoachSystem } from '@/lib/coach/system-prompt'
 import { loadMemoryForCoach, extractMemoryFromTurn } from '@/lib/coach/memory'
 import { maybeAutoRefresh } from '@/lib/coach/refine'
+import { validateFirstTurn, buildCorrectionInstruction } from '@/lib/coach/validator'
 import { ACTIVE_STATUSES } from '@/types/database'
+import type Anthropic from '@anthropic-ai/sdk'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -111,6 +113,18 @@ export async function POST(req: NextRequest) {
   // SSE-Stream zum Client + parallel im Hintergrund Persistierung
   const encoder = new TextEncoder()
   const convIdFinal = conversationId
+  // Erster Turn der Conversation? → Haiku-Validator gegen Tonprofil ist sinnvoll.
+  const isFirstTurn = (history?.length ?? 0) === 0
+
+  // Hilfsfunktion: Antwort in kleinen Chunks "fake-streamen" damit UI sich
+  // gewohnt anfühlt, obwohl wir die Antwort komplett vorher haben.
+  function fakeStream(controller: ReadableStreamDefaultController<Uint8Array>, text: string) {
+    const CHUNK = 60
+    for (let i = 0; i < text.length; i += CHUNK) {
+      const chunk = text.slice(i, i + CHUNK)
+      controller.enqueue(encoder.encode(`event: delta\ndata: ${JSON.stringify({ text: chunk })}\n\n`))
+    }
+  }
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -123,28 +137,88 @@ export async function POST(req: NextRequest) {
         // Erste SSE-Payload: conversationId mitschicken
         controller.enqueue(encoder.encode(`event: meta\ndata: ${JSON.stringify({ conversationId: convIdFinal })}\n\n`))
 
-        const stream = await anthropic().messages.stream({
-          model: COACH_MODEL,
-          max_tokens: 1024,
-          system: system.blocks,
-          messages,
-        })
+        // ─── Hebel A: First-Turn-Validator ────────────────────────────────
+        // Nur beim ersten Turn der Conversation UND nur wenn ein Tonprofil
+        // existiert. Wir generieren non-streaming, prüfen via Haiku, retryen
+        // einmal mit Korrektur-Hinweis, und "fake-streamen" das Ergebnis.
+        if (isFirstTurn && cp.tone_oneliner) {
+          const first = await anthropic().messages.create({
+            model: COACH_MODEL,
+            max_tokens: 1024,
+            system: system.blocks,
+            messages,
+          })
+          let candidate = first.content
+            .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+            .map(b => b.text)
+            .join('')
+          inputTokens = first.usage?.input_tokens ?? null
+          outputTokens = first.usage?.output_tokens ?? null
+          cacheRead = first.usage?.cache_read_input_tokens ?? null
+          cacheCreate = first.usage?.cache_creation_input_tokens ?? null
 
-        for await (const ev of stream) {
-          if (ev.type === 'content_block_delta' && ev.delta.type === 'text_delta') {
-            const chunk = ev.delta.text
-            finalText += chunk
-            controller.enqueue(encoder.encode(`event: delta\ndata: ${JSON.stringify({ text: chunk })}\n\n`))
-          } else if (ev.type === 'message_delta' && ev.usage) {
-            outputTokens = ev.usage.output_tokens ?? outputTokens
-          } else if (ev.type === 'message_start' && ev.message.usage) {
-            inputTokens = ev.message.usage.input_tokens ?? null
-            cacheRead = ev.message.usage.cache_read_input_tokens ?? null
-            cacheCreate = ev.message.usage.cache_creation_input_tokens ?? null
+          // Validate gegen Tonprofil (Haiku, ~1s)
+          const verdict = await validateFirstTurn({
+            toneProfile: cp.tone_oneliner,
+            userMessage: body.message.trim(),
+            coachReply: candidate,
+          })
+
+          if (!verdict.passes && verdict.problem) {
+            // Retry mit Korrektur — Korrektur als Suffix der letzten
+            // User-Message, sonst sieht der Coach die Anweisung nicht im
+            // richtigen Kontext (System-Prompt ist cached).
+            const retryMessages = [
+              ...messages.slice(0, -1),
+              {
+                role: 'user' as const,
+                content: body.message.trim() + buildCorrectionInstruction(verdict.problem),
+              },
+            ]
+            const retry = await anthropic().messages.create({
+              model: COACH_MODEL,
+              max_tokens: 1024,
+              system: system.blocks,
+              messages: retryMessages,
+            })
+            const retryText = retry.content
+              .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+              .map(b => b.text)
+              .join('')
+            if (retryText.trim().length > 0) {
+              candidate = retryText
+            }
+            outputTokens = (outputTokens ?? 0) + (retry.usage?.output_tokens ?? 0)
           }
-        }
 
-        controller.enqueue(encoder.encode(`event: done\ndata: {}\n\n`))
+          finalText = candidate
+          fakeStream(controller, candidate)
+          controller.enqueue(encoder.encode(`event: done\ndata: {}\n\n`))
+        } else {
+          // ─── Normalfall: echtes Streaming (Turn 2+) ────────────────────
+          const stream = await anthropic().messages.stream({
+            model: COACH_MODEL,
+            max_tokens: 1024,
+            system: system.blocks,
+            messages,
+          })
+
+          for await (const ev of stream) {
+            if (ev.type === 'content_block_delta' && ev.delta.type === 'text_delta') {
+              const chunk = ev.delta.text
+              finalText += chunk
+              controller.enqueue(encoder.encode(`event: delta\ndata: ${JSON.stringify({ text: chunk })}\n\n`))
+            } else if (ev.type === 'message_delta' && ev.usage) {
+              outputTokens = ev.usage.output_tokens ?? outputTokens
+            } else if (ev.type === 'message_start' && ev.message.usage) {
+              inputTokens = ev.message.usage.input_tokens ?? null
+              cacheRead = ev.message.usage.cache_read_input_tokens ?? null
+              cacheCreate = ev.message.usage.cache_creation_input_tokens ?? null
+            }
+          }
+
+          controller.enqueue(encoder.encode(`event: done\ndata: {}\n\n`))
+        }
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'stream error'
         controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ message: msg })}\n\n`))

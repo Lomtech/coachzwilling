@@ -295,14 +295,14 @@ export const MEMORY_SECTION_LABELS: Record<string, string> = {
 // Profil, aber jetzt mit Chat-Geschichte als zusätzliche Quelle.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const PROFILE_REFINE_PROMPT = `Aufgabe — Coach-Profil-Update (Denkhorizonte v3, Refresh-Modus)
+export const PROFILE_REFINE_PROMPT = `Aufgabe — Coach-Profil-Update (Denkhorizonte v3.3, Refresh-Modus)
 
 Du erhältst:
 1) Ein BESTEHENDES Coach-Profil (Markdown), erzeugt aus 42 Onboarding-Antworten.
 2) Eine Sammlung von BEOBACHTUNGEN AUS COACHING-GESPRÄCHEN, gruppiert nach 9 Sektionen.
 
-Erzeuge eine AKTUALISIERTE Version des Profils — gleiche Struktur (9 Abschnitte),
-gleiche Regeln wie im Original-Auswertungs-Prompt v3 (beobachtbares Verhalten,
+Erzeuge eine AKTUALISIERTE Version des Profils — gleiche 11-Abschnitts-Struktur,
+gleiche Regeln wie im Original-Auswertungs-Prompt v3.3 (beobachtbares Verhalten,
 keine Diagnosen, maximale Spezifität).
 
 UPDATE-PRINZIPIEN
@@ -319,16 +319,43 @@ UPDATE-PRINZIPIEN
   (nicht als separate Sektion).
 
 WICHTIG
-• Behalte die 9-Abschnitts-Struktur exakt bei (1. Zentrale Muster … 9. Was vermeiden).
-• Tonprofil und Gesehen-Signal (Abschnitt 7) sind besonders sensibel — nur
+• Behalte die 11-Abschnitts-Struktur exakt bei:
+  1. Zentrale Persönlichkeits- und Motivmuster
+  2. Antrieb & Wofür
+  3. Identität & Wer-er-sein-will
+  4. Aktuelle Ziele & Vorhaben
+  5. Aktuelle Blocker & Schmerzpunkte
+  6. Stress-Muster (Phase 1 / Phase 2)
+  7. Gesehen-Signal & Tonprofil
+  8. Coaching-Stil-Präferenzen
+  9. Was zu vermeiden ist
+  10. Tonprofil-Echo
+  11. Sprach-Mirror
+• Tonprofil (Abschnitt 7) und Gesehen-Signal sind besonders sensibel — nur
   ändern wenn die Memory deutliche neue Evidenz liefert (z. B. wiederholt
   abgelehnte Coach-Antworten zeigen, was nicht funktioniert).
 • Memory-Einträge mit hoher Importance (≥ 7) sind stärker zu gewichten.
 • Wenn die Memory leer oder sehr klein ist → gib das alte Profil nahezu
   unverändert zurück, ergänze nur das was wirklich neu evident ist.
 
+ABSCHNITT 10 — Tonprofil-Echo (PFLICHT, niemals weglassen)
+• Ein einziger geschliffener Satz im Stil "So klingt dieser Coach: <konkret>".
+• Beispiel: "Direkt-knapp, mit Möglichkeiten als Frage, ohne Floskel."
+• Wenn die Memory in Sektion "coaching_stil" neue Stil-Evidenz liefert
+  (welche Coach-Antworten haben gezogen, welche prallten ab),
+  schärfe diesen Satz entsprechend — sonst übernimm den alten 1:1.
+• NIEMALS leer lassen. NIEMALS auf den alten Wert "TODO" oder "—" setzen.
+
+ABSCHNITT 11 — Sprach-Mirror (PFLICHT, niemals weglassen)
+• 5–12 wörtliche Formulierungen, die der User selbst nutzt, mit Kontext-Hinweis.
+• Wenn die Memory neue charakteristische Wörter zeigt → ergänze die Liste.
+• Wenn alte Formulierungen vom User nicht mehr verwendet werden → archivieren ok.
+• Mindestens 5 Einträge müssen am Ende stehen. Keine Erfindungen, nur
+  belegte Wörter aus Onboarding oder Chat-Memory.
+
 OUTPUT
 Reines Markdown, beginnt mit "## 1. Zentrale Persönlichkeits- und Motivmuster",
+endet mit Abschnitt "## 11. Sprach-Mirror" und dessen Liste,
 keine Einleitung, kein Meta-Kommentar, keine Erklärung der Änderungen.`
 
 export const MEMORY_EXTRACTOR_PROMPT = `Du bist ein Memory-Extractor für ein Coaching-System nach dem Denkhorizonte-Framework.
@@ -363,6 +390,38 @@ importance:
 - 6-8: deutliche neue Erkenntnis, klarer Trigger, klares Ziel
 - 3-5: situative Beobachtung, beiläufig
 - 1-2: schwache Andeutung — meist eher "none"`
+
+// ─────────────────────────────────────────────────────────────────────────────
+// First-Turn-Validator — prüft die ALLERERSTE Coach-Antwort gegen Tonprofil.
+// Liefert nur JSON: {passt: true|false, problem?: string}
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const FIRST_TURN_VALIDATOR_PROMPT = `Du prüfst die erste Antwort eines Coachs gegen das Tonprofil dieser konkreten Person.
+
+KONTEXT
+Tonprofil (definiert wie der Coach klingen soll):
+{TONE_PROFILE}
+
+User-Nachricht:
+{USER_MESSAGE}
+
+Coach-Antwort:
+{COACH_REPLY}
+
+AUFGABE
+Beurteile NUR: Trifft die Coach-Antwort den Stil des Tonprofils?
+
+Strikte Regeln:
+• Generische Coach-Eröffnungen ("Wie geht es dir?", "Schön, dass du da bist", "Was beschäftigt dich?") = NICHT bestanden
+• Wenn Tonprofil "knapp" sagt und Antwort >40 Wörter hat = NICHT bestanden
+• Wenn Tonprofil "warm" sagt und Antwort schroff/distanziert ist = NICHT bestanden
+• Wenn Tonprofil "Möglichkeiten anbieten" sagt und Antwort nur eine Frage ohne Option ist = NICHT bestanden
+• Wenn Tonprofil "spiegele eigene Worte auf" sagt und Antwort 0 User-Wörter aufgreift = NICHT bestanden
+
+OUTPUT (reines JSON, kein Wrapper):
+{"passt": true} ODER {"passt": false, "problem": "Coach hat X gemacht, sollte aber Y"}
+
+problem muss konkret sein, max 1 Satz, in Du-Form (an den Coach gerichtet).`
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Adaptive-Onboarding-Probe — generiert EINE konkrete Vertiefungsfrage aus einer

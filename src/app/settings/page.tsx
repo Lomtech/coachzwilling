@@ -8,6 +8,7 @@ import { ManageButton } from '../billing/ManageButton'
 import { MemoryView } from './MemoryView'
 import { RegenerateProfileButton } from './RegenerateProfileButton'
 import { RefineProfileButton } from './RefineProfileButton'
+import { RestartOnboardingButton } from './RestartOnboardingButton'
 import { ProfileViewer } from './ProfileViewer'
 import { isAdminEmail } from '@/lib/admin-auth'
 
@@ -100,6 +101,7 @@ export default async function SettingsPage() {
               }} />
               <RefineProfileButton hasMemories={(memoryCount ?? 0) > 0} />
               <RegenerateProfileButton />
+              <RestartOnboardingButton />
             </div>
           </>
         ) : (

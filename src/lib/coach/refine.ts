@@ -24,10 +24,11 @@ export async function refineProfileForUser(args: {
 }): Promise<RefineResult | null> {
   const supa = serviceClient()
 
-  // 1) Aktives Profil holen
+  // 1) Aktives Profil holen — tone_oneliner + language_mirror als Fallback
+  //    für den Fall dass der Refine-LLM Sektion 10/11 weglässt.
   const { data: oldProfile } = await supa
     .from('coach_profiles')
-    .select('id, config_md, version, source_response_id')
+    .select('id, config_md, version, source_response_id, tone_oneliner, language_mirror')
     .eq('user_id', args.userId)
     .eq('is_active', true)
     .order('generated_at', { ascending: false })
@@ -77,14 +78,26 @@ export async function refineProfileForUser(args: {
     .eq('user_id', args.userId)
     .eq('is_active', true)
 
+  // Tonprofil-Garantie: wenn der Refine-LLM Sektion 10/11 weggelassen hat,
+  // den alten Wert behalten — niemals nullen, das würde den First-Turn-Validator
+  // und Block 4 des System-Prompts stilllegen.
+  const finalTone = result.toneOneliner ?? oldProfile.tone_oneliner ?? null
+  const finalLanguage = result.languageMirror ?? oldProfile.language_mirror ?? null
+  if (!result.toneOneliner && oldProfile.tone_oneliner) {
+    console.warn('[refine] new profile missing section 10 (Tonprofil-Echo) — fell back to previous value for user', args.userId)
+  }
+  if (!result.languageMirror && oldProfile.language_mirror) {
+    console.warn('[refine] new profile missing section 11 (Sprach-Mirror) — fell back to previous value for user', args.userId)
+  }
+
   const { data: inserted, error } = await supa
     .from('coach_profiles')
     .insert({
       user_id: args.userId,
       source_response_id: oldProfile.source_response_id,
       config_md: result.configMd,
-      tone_oneliner: result.toneOneliner,
-      language_mirror: result.languageMirror,
+      tone_oneliner: finalTone,
+      language_mirror: finalLanguage,
       model: result.model,
       is_active: true,
       version: nextVersion,
