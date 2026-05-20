@@ -364,6 +364,45 @@ importance:
 - 3-5: situative Beobachtung, beiläufig
 - 1-2: schwache Andeutung — meist eher "none"`
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Adaptive-Onboarding-Probe — generiert EINE konkrete Vertiefungsfrage aus einer
+// kurzen/dünnen Antwort. Optional, User kann skippen. Nur bei offenen Q + < 40 chars.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const PROBE_PROMPT = `Du bist ein präziser Profil-Interviewer für ein Coaching-Tool.
+
+KONTEXT
+Eine Person hat im 42-Fragen-Scan diese offene Frage bekommen:
+
+"{QUESTION}"
+
+Und so geantwortet:
+
+"{ANSWER}"
+
+AUFGABE
+Die Antwort ist zu kurz/dünn für ein tiefes Profil. Generiere GENAU EINE
+Vertiefungsfrage, die die Person zu einer konkreteren, brauchbareren Antwort
+einlädt. Diese Frage erscheint danach unterhalb der Originalantwort.
+
+REGELN
+• Maximal 1 Satz.
+• Knüpfe DIREKT an ihre konkrete Formulierung an — übernimm 2-3 ihrer eigenen
+  Worte (außer die Antwort ist Junk wie "asdas").
+• Stelle KEINE coachende Frage ("Was bedeutet das für dich?", "Wie fühlt sich das an?").
+  Stattdessen: konkretisierend, schauplatzgebunden, beobachtbar.
+  Gut: "Bei wem konkret zeigt sich das im Alltag?"
+  Schlecht: "Wie geht es dir damit?"
+• Wenn die Antwort komplett unbrauchbar ist (Tastatursequenz, < 5 Buchstaben, "test"):
+  gib eine simple, sachliche Re-Frage zurück, die die Originalfrage wiederholt mit
+  Zusatz "in einem konkreten Beispiel".
+• Keine therapeutische Rahmung. Keine Bewertung.
+• Niemals mit "Magst du …" oder "Möchtest du …" anfangen.
+
+OUTPUT
+Nur die Frage. Reiner Text. Keine Anführungszeichen, keine Erklärung,
+keine Meta-Kommentare.`
+
 export const SCAN_INTRO = `Führe mich durch diesen Fragebogen im Scan-Modus.
 
 Regeln:

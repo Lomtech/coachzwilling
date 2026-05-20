@@ -9,6 +9,9 @@ interface Props {
   initialIndex: number
 }
 
+const PROBE_MIN_CHARS = 40 // synchron mit lib/coach/probe.ts
+const MAX_PROBES_PER_SCAN = 5
+
 export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
   const router = useRouter()
   const [answers, setAnswers] = useState<Record<string, string>>(initialAnswers)
@@ -17,12 +20,22 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
   const [finalizing, setFinalizing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Probe-State pro Frage: question, supplement, loading
+  const [probeQuestion, setProbeQuestion] = useState<string | null>(null)
+  const [probeAnswer, setProbeAnswer] = useState('')
+  const [probeLoading, setProbeLoading] = useState(false)
+  const [probesUsed, setProbesUsed] = useState(0)
+  const [probeAttempted, setProbeAttempted] = useState<Set<number>>(new Set())
+
   const q: Question = QUESTIONS[index]
-  const answered = Boolean(answers[String(q.id)])
+  const rawAnswer = answers[String(q.id)] ?? ''
+  // Wenn die Antwort schon einen Probe-Supplement enthält (Format: "X | Y"), nimm nur den ersten Teil als raw
+  const rawOnly = rawAnswer.split(/\s*\|\s*/)[0]
+  const answered = Boolean(rawAnswer)
   const progress = Math.round(((index) / TOTAL_QUESTIONS) * 100)
   const isLast = index === TOTAL_QUESTIONS - 1
 
-  // Auto-save bei jedem Update (debounced via transition)
+  // Auto-save bei jedem Update
   useEffect(() => {
     if (Object.keys(answers).length === 0) return
     const t = setTimeout(() => {
@@ -35,16 +48,84 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
     return () => clearTimeout(t)
   }, [answers])
 
+  // Reset Probe-State bei Frage-Wechsel
+  useEffect(() => {
+    setProbeQuestion(null)
+    setProbeAnswer('')
+    setProbeLoading(false)
+  }, [index])
+
   function setAnswer(value: string) {
     setAnswers(prev => ({ ...prev, [String(q.id)]: value }))
   }
 
-  function next() {
-    if (!answered) return
+  function appendProbeAnswer() {
+    const supplement = probeAnswer.trim()
+    if (!supplement) return
+    const combined = `${rawOnly.trim()} | ${supplement}`
+    setAnswer(combined)
+    setProbeQuestion(null)
+    setProbeAnswer('')
+    proceedToNext()
+  }
+
+  function proceedToNext() {
+    if (isLast) return
     startTransition(() => setIndex(i => Math.min(TOTAL_QUESTIONS - 1, i + 1)))
   }
 
+  async function tryProbe() {
+    // Probe-Voraussetzungen
+    if (q.type !== 'open') { proceedToNext(); return }
+    if (rawOnly.trim().length >= PROBE_MIN_CHARS) { proceedToNext(); return }
+    if (probesUsed >= MAX_PROBES_PER_SCAN) { proceedToNext(); return }
+    if (probeAttempted.has(q.id)) { proceedToNext(); return } // pro Frage max 1 Probe
+
+    setProbeLoading(true)
+    setProbeAttempted(prev => new Set(prev).add(q.id))
+    try {
+      const res = await fetch('/api/onboarding/probe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionId: q.id, answer: rawOnly }),
+      })
+      const json = (await res.json().catch(() => null)) as { probe?: string | null } | null
+      if (json?.probe) {
+        setProbeQuestion(json.probe)
+        setProbesUsed(p => p + 1)
+      } else {
+        proceedToNext() // kein Probe verfügbar → einfach weiter
+      }
+    } catch {
+      proceedToNext() // Fehler → einfach weiter
+    } finally {
+      setProbeLoading(false)
+    }
+  }
+
+  function next() {
+    if (!answered) return
+    // Wenn Probe gerade aktiv: ergänzen oder skip
+    if (probeQuestion) {
+      if (probeAnswer.trim()) {
+        appendProbeAnswer()
+      } else {
+        // skip
+        setProbeQuestion(null)
+        proceedToNext()
+      }
+      return
+    }
+    // Sonst: ggf. Probe anfragen
+    void tryProbe()
+  }
+
   function prev() {
+    if (probeQuestion) {
+      setProbeQuestion(null)
+      setProbeAnswer('')
+      return
+    }
     startTransition(() => setIndex(i => Math.max(0, i - 1)))
   }
 
@@ -52,8 +133,6 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
     setFinalizing(true)
     setError(null)
     try {
-      // Antworten mit dem Finalize-Request mitschicken — robust gegen
-      // verlorene Auto-Saves (Race, kurze Sessions, Network-Glitches).
       const res = await fetch('/api/onboarding/finalize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -102,13 +181,44 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
 
         <div className="mt-7 space-y-2.5">
           {q.type === 'open' ? (
-            <textarea
-              autoFocus
-              value={answers[String(q.id)] ?? ''}
-              onChange={e => setAnswer(e.target.value)}
-              placeholder="In eigenen Worten …"
-              rows={5}
-            />
+            <>
+              <textarea
+                autoFocus={!probeQuestion}
+                value={rawOnly}
+                onChange={e => setAnswer(e.target.value)}
+                placeholder="In eigenen Worten …"
+                rows={5}
+                disabled={!!probeQuestion}
+                className={probeQuestion ? 'opacity-60' : ''}
+              />
+              {/* Probe-Block: erscheint nach Klick auf "Weiter" wenn Antwort zu kurz */}
+              {probeQuestion && (
+                <div className="mt-4 card border-l-4 border-l-[var(--color-accent)] bg-[var(--color-accent-soft)]/30 anim-fade-up">
+                  <div className="flex items-start gap-2 mb-3">
+                    <span className="text-[var(--color-accent)] text-lg leading-none">↳</span>
+                    <p className="text-sm font-medium text-[var(--color-ink)]">
+                      {probeQuestion}
+                    </p>
+                  </div>
+                  <textarea
+                    autoFocus
+                    value={probeAnswer}
+                    onChange={e => setProbeAnswer(e.target.value)}
+                    placeholder="Konkreter beschreiben (optional) …"
+                    rows={3}
+                  />
+                  <div className="mt-2 text-xs text-[var(--color-muted)]">
+                    Klick „Weiter" um zu ergänzen oder leer lassen + „Weiter" um zu überspringen.
+                  </div>
+                </div>
+              )}
+              {probeLoading && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-[var(--color-muted)]">
+                  <div className="w-3 h-3 rounded-full border-2 border-[var(--color-surface-2)] border-t-[var(--color-accent)] animate-spin" />
+                  <span>Generiere Vertiefungsfrage …</span>
+                </div>
+              )}
+            </>
           ) : (
             q.options!.map(opt => {
               const selected = answers[String(q.id)] === opt.value
@@ -134,21 +244,28 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
         {error && (
           <div className="mt-4 text-sm text-[var(--color-danger)]">{error}</div>
         )}
+
+        {/* Probe-Counter, klein und dezent */}
+        {probesUsed > 0 && (
+          <div className="mt-4 text-xs text-[var(--color-muted)] text-right">
+            Vertiefungsfragen genutzt: {probesUsed} / {MAX_PROBES_PER_SCAN}
+          </div>
+        )}
       </div>
 
-      {/* Sticky footer mit Buttons (mobile-first) */}
+      {/* Sticky footer mit Buttons */}
       <div className="fixed bottom-0 left-0 right-0 bg-[var(--color-bg)]/90 backdrop-blur border-t border-[var(--color-border)] safe-bottom">
         <div className="max-w-xl mx-auto px-5 py-3 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={prev}
-            disabled={index === 0 || pending}
+            disabled={(index === 0 && !probeQuestion) || pending || probeLoading}
             className="btn btn-ghost"
           >
-            Zurück
+            {probeQuestion ? 'Zurück' : 'Zurück'}
           </button>
 
-          {isLast ? (
+          {isLast && !probeQuestion ? (
             <button
               type="button"
               onClick={finalize}
@@ -161,10 +278,12 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
             <button
               type="button"
               onClick={next}
-              disabled={!answered || pending}
+              disabled={!answered || pending || probeLoading}
               className="btn btn-primary flex-1"
             >
-              Weiter
+              {probeQuestion
+                ? (probeAnswer.trim() ? 'Ergänzen & weiter →' : 'Überspringen →')
+                : 'Weiter'}
             </button>
           )}
         </div>
