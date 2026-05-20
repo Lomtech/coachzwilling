@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ChatView } from '@/components/chat/ChatView'
+import { isAdminEmail } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +31,7 @@ export default async function CoachPage({
   // Trial-Hint nur wenn Billing aktiv ist
   const billingEnabled = process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true'
   const showTrialHint = billingEnabled && !subActive && trialDaysLeft > 0 && trialDaysLeft <= 7
+  const isAdmin = isAdminEmail(user.email)
 
   // Aktive Conversation (oder leer)
   let activeId: string | null = null
@@ -103,6 +105,22 @@ export default async function CoachPage({
               🎁 Noch {trialDaysLeft} {trialDaysLeft === 1 ? 'Tag' : 'Tage'} gratis
             </Link>
           )}
+          {isAdmin && (
+            <div className="grid grid-cols-2 gap-1.5">
+              <Link
+                href="/admin"
+                className="block text-xs text-center px-2 py-1.5 rounded-lg bg-[var(--color-warning)]/10 text-[var(--color-warning)] font-medium hover:bg-[var(--color-warning)]/15"
+              >
+                🔧 Admin
+              </Link>
+              <Link
+                href="/admin/compare"
+                className="block text-xs text-center px-2 py-1.5 rounded-lg bg-[var(--color-warning)]/10 text-[var(--color-warning)] font-medium hover:bg-[var(--color-warning)]/15"
+              >
+                ⇆ Compare
+              </Link>
+            </div>
+          )}
           <Link href="/settings" className="btn btn-ghost btn-block">Konto</Link>
         </div>
       </aside>
@@ -115,6 +133,9 @@ export default async function CoachPage({
             Coaching<span className="text-[var(--color-accent)]">·</span>Zwilling
           </Link>
           <div className="flex gap-2">
+            {isAdmin && (
+              <Link href="/admin" className="btn btn-ghost px-3 py-1 text-sm text-[var(--color-warning)]">Admin</Link>
+            )}
             <Link href="/coach" className="btn btn-ghost px-3 py-1 text-sm">+ Neu</Link>
             <Link href="/settings" className="btn btn-ghost px-3 py-1 text-sm">Konto</Link>
           </div>

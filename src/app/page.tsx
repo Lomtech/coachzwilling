@@ -1,7 +1,15 @@
 import Link from 'next/link'
 import { LogoMark, LogoWatermark } from '@/components/Logo'
+import { createClient } from '@/lib/supabase/server'
+import { isAdminEmail } from '@/lib/admin-auth'
 
-export default function HomePage() {
+export const dynamic = 'force-dynamic'
+
+export default async function HomePage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const isAdmin = isAdminEmail(user?.email)
+
   return (
     <main className="min-h-dvh flex flex-col">
       {/* Sticky Header / Nav */}
@@ -17,10 +25,22 @@ export default function HomePage() {
             {process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true' && (
               <Link href="/billing"   className="px-3 py-1.5 rounded-full hover:bg-[var(--color-surface-2)] text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Preise</Link>
             )}
+            {isAdmin && (
+              <>
+                <Link href="/admin" className="px-3 py-1.5 rounded-full hover:bg-[var(--color-warning)]/15 text-[var(--color-warning)] font-medium">🔧 Admin</Link>
+                <Link href="/admin/compare" className="px-3 py-1.5 rounded-full hover:bg-[var(--color-warning)]/15 text-[var(--color-warning)] font-medium">⇆ Compare</Link>
+              </>
+            )}
           </nav>
           <div className="flex items-center gap-1.5">
-            <Link href="/login"  className="btn btn-ghost   text-sm px-3 py-1.5">Login</Link>
-            <Link href="/signup" className="btn btn-primary text-sm px-3 py-1.5">Starten</Link>
+            {user ? (
+              <Link href="/coach" className="btn btn-primary text-sm px-3 py-1.5">Zum Coach</Link>
+            ) : (
+              <>
+                <Link href="/login"  className="btn btn-ghost   text-sm px-3 py-1.5">Login</Link>
+                <Link href="/signup" className="btn btn-primary text-sm px-3 py-1.5">Starten</Link>
+              </>
+            )}
           </div>
         </div>
       </header>
