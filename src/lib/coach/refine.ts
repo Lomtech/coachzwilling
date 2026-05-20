@@ -83,6 +83,8 @@ export async function refineProfileForUser(args: {
       user_id: args.userId,
       source_response_id: oldProfile.source_response_id,
       config_md: result.configMd,
+      tone_oneliner: result.toneOneliner,
+      language_mirror: result.languageMirror,
       model: result.model,
       is_active: true,
       version: nextVersion,

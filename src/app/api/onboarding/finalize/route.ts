@@ -87,6 +87,8 @@ export async function POST(req: NextRequest) {
     .insert({
       user_id: user.id,
       source_response_id: responseId,
+      tone_oneliner: result.toneOneliner,
+      language_mirror: result.languageMirror,
       config_md: result.configMd,
       model: result.model,
       is_active: true,

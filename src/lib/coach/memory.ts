@@ -19,9 +19,16 @@ export interface MemoryEntry {
 const MAX_MEMORY_ITEMS = 30 // wieviele Top-Einträge in System-Prompt
 
 /**
- * Lädt das aktive Memory eines Users (Top-N nach Importance/Recency),
- * gruppiert nach Sektion. Format optimiert für den Coach-System-Prompt.
+ * Lädt das aktive Memory eines Users mit DIVERSITY-CONSTRAINT:
+ * - Max 5 Einträge pro Sektion (verhindert Monokultur — z.B. 80% "ausweich" bei Mareike)
+ * - Innerhalb der Sektion: Top-N nach Importance + Recency
+ * - Über alle Sektionen: max MAX_MEMORY_ITEMS total
  */
+const MAX_PER_SECTION = 5
+const PROTECTED_SECTIONS: MemorySection[] = [
+  'stressmuster', 'identitaet', 'breakthrough', 'coaching_stil',
+] // diese Sektionen sind oft underrepresentiert — bekommen Vorrang
+
 export async function loadMemoryForCoach(userId: string): Promise<string> {
   const supa = serviceClient()
   const { data, error } = await supa
@@ -31,25 +38,49 @@ export async function loadMemoryForCoach(userId: string): Promise<string> {
     .eq('is_active', true)
     .order('importance', { ascending: false })
     .order('created_at', { ascending: false })
-    .limit(MAX_MEMORY_ITEMS)
 
   if (error || !data || data.length === 0) return ''
 
-  // Gruppiert nach Sektion in der Reihenfolge des Frameworks
+  // Schritt 1: gruppiere nach Sektion, capping pro Sektion
+  const groupedRaw = new Map<MemorySection, Array<{ observation: string; importance: number }>>()
+  for (const row of data) {
+    const s = row.section as MemorySection
+    if (!groupedRaw.has(s)) groupedRaw.set(s, [])
+    groupedRaw.get(s)!.push({ observation: row.observation, importance: row.importance })
+  }
+
+  // Schritt 2: pro Sektion auf MAX_PER_SECTION cappen
+  const cappedGroups = new Map<MemorySection, Array<{ observation: string; importance: number }>>()
+  for (const [section, items] of groupedRaw) {
+    cappedGroups.set(section, items.slice(0, MAX_PER_SECTION))
+  }
+
+  // Schritt 3: total cap durchsetzen — protected sections first, dann nach Importance
   const order: MemorySection[] = [
+    ...PROTECTED_SECTIONS,
+    'motivmuster', 'ausweich', 'veraenderung', 'goal', 'blocker',
+  ]
+  const finalGrouped = new Map<MemorySection, string[]>()
+  let total = 0
+  for (const section of order) {
+    const items = cappedGroups.get(section)
+    if (!items) continue
+    const remaining = MAX_MEMORY_ITEMS - total
+    if (remaining <= 0) break
+    const take = items.slice(0, remaining)
+    if (take.length === 0) continue
+    finalGrouped.set(section, take.map(i => `- ${i.observation}`))
+    total += take.length
+  }
+
+  // Schritt 4: render in Framework-Reihenfolge
+  const renderOrder: MemorySection[] = [
     'motivmuster', 'stressmuster', 'ausweich', 'veraenderung',
     'coaching_stil', 'identitaet', 'goal', 'blocker', 'breakthrough',
   ]
-  const grouped = new Map<MemorySection, string[]>()
-  for (const row of data) {
-    const s = row.section as MemorySection
-    if (!grouped.has(s)) grouped.set(s, [])
-    grouped.get(s)!.push(`- ${row.observation}`)
-  }
-
   const lines: string[] = []
-  for (const section of order) {
-    const items = grouped.get(section)
+  for (const section of renderOrder) {
+    const items = finalGrouped.get(section)
     if (!items || items.length === 0) continue
     lines.push(`### ${MEMORY_SECTION_LABELS[section]}`)
     lines.push(...items)
@@ -57,6 +88,28 @@ export async function loadMemoryForCoach(userId: string): Promise<string> {
   }
 
   return lines.join('\n').trim()
+}
+
+/**
+ * Hilfsfunktion: zählt für den Extractor wie oft jede Sektion in den letzten
+ * N Memories vorkam. Wird im Extractor-Prompt als Hinweis an Haiku gegeben:
+ * "diese Sektionen sind aktuell unterrepräsentiert, bevorzuge sie".
+ */
+async function loadSectionCounts(userId: string): Promise<Record<string, number>> {
+  const supa = serviceClient()
+  const { data } = await supa
+    .from('coach_memory')
+    .select('section')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(20)
+
+  const counts: Record<string, number> = {}
+  for (const row of data ?? []) {
+    counts[row.section] = (counts[row.section] ?? 0) + 1
+  }
+  return counts
 }
 
 /**
@@ -79,7 +132,19 @@ export async function extractMemoryFromTurn(args: {
     .map(m => `[${m.role.toUpperCase()}] ${m.content}`)
     .join('\n\n')
 
-  const turnText = `${historyText}\n\n[USER] ${userMessage}\n\n[COACH] ${assistantReply}`
+  // Diversity-Hint: zeige dem Extractor welche Sektionen aktuell unterrepräsentiert sind
+  const counts = await loadSectionCounts(userId)
+  const allSections = ['motivmuster','stressmuster','ausweich','veraenderung','coaching_stil','breakthrough','blocker','goal','identitaet']
+  const underrep = allSections.filter(s => (counts[s] ?? 0) < 2)
+  const overrep = allSections.filter(s => (counts[s] ?? 0) >= 5)
+
+  const diversityHint = underrep.length > 0 || overrep.length > 0
+    ? `\n\nDIVERSITY-HINWEIS (für diesen User):\n` +
+      (underrep.length > 0 ? `• Aktuell UNTERREPRÄSENTIERT (bevorzuge wenn passend): ${underrep.join(', ')}\n` : '') +
+      (overrep.length > 0 ? `• Aktuell ÜBERREPRÄSENTIERT (nur wählen wenn deutlich NEUE Beobachtung): ${overrep.join(', ')}` : '')
+    : ''
+
+  const turnText = `${historyText}\n\n[USER] ${userMessage}\n\n[COACH] ${assistantReply}${diversityHint}`
 
   try {
     const res = await anthropic().messages.create({

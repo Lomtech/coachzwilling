@@ -25,6 +25,8 @@ export type Database = {
           model: string
           source_response_id: string | null
           ton_profil_md: string | null
+          tone_oneliner: string | null
+          language_mirror: string | null
           user_id: string
           version: number
           source: 'onboarding' | 'manual_refresh' | 'auto_refresh'
@@ -39,6 +41,8 @@ export type Database = {
           model: string
           source_response_id?: string | null
           ton_profil_md?: string | null
+          tone_oneliner?: string | null
+          language_mirror?: string | null
           user_id: string
           version?: number
           source?: 'onboarding' | 'manual_refresh' | 'auto_refresh'
@@ -53,6 +57,8 @@ export type Database = {
           model?: string
           source_response_id?: string | null
           ton_profil_md?: string | null
+          tone_oneliner?: string | null
+          language_mirror?: string | null
           user_id?: string
           version?: number
           source?: 'onboarding' | 'manual_refresh' | 'auto_refresh'

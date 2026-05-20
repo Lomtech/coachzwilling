@@ -56,6 +56,8 @@ export async function POST() {
       user_id: user.id,
       source_response_id: response.id,
       config_md: result.configMd,
+      tone_oneliner: result.toneOneliner,
+      language_mirror: result.languageMirror,
       model: result.model,
       is_active: true,
     })

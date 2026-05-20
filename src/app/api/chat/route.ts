@@ -40,10 +40,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Coach-Profile laden
+  // Coach-Profile laden (inkl. Tonprofil + Sprach-Mirror für 4-Block-System-Prompt)
   const { data: cp } = await supabase
     .from('coach_profiles')
-    .select('config_md')
+    .select('config_md, tone_oneliner, language_mirror')
     .eq('user_id', user.id)
     .eq('is_active', true)
     .order('generated_at', { ascending: false })
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
 
   // Living Memory laden (kann leer sein bei ersten Sessions)
   const memoryMd = await loadMemoryForCoach(user.id)
-  const system = buildCoachSystem(cp.config_md, memoryMd)
+  const system = buildCoachSystem(cp.config_md, memoryMd, cp.tone_oneliner, cp.language_mirror)
 
   // SSE-Stream zum Client + parallel im Hintergrund Persistierung
   const encoder = new TextEncoder()
