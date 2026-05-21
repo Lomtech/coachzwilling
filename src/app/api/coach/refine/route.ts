@@ -17,7 +17,7 @@ export async function POST() {
 
   if (!result) {
     return NextResponse.json(
-      { error: 'Kein Profil zum Aktualisieren oder noch keine Memory-Einträge. Führe zuerst ein paar Coach-Gespräche.' },
+      { error: 'Kein Profil zum Aktualisieren oder noch kein Coaching-Material. Führe zuerst ein paar Coach-Gespräche.' },
       { status: 400 }
     )
   }
@@ -26,6 +26,10 @@ export async function POST() {
     ok: true,
     version: result.version,
     memoriesUsed: result.memoriesUsed,
+    conversationsUsed: result.conversationsUsed,
+    messagesUsed: result.messagesUsed,
     model: result.model,
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
   })
 }

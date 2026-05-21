@@ -295,28 +295,53 @@ export const MEMORY_SECTION_LABELS: Record<string, string> = {
 // Profil, aber jetzt mit Chat-Geschichte als zusätzliche Quelle.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const PROFILE_REFINE_PROMPT = `Aufgabe — Coach-Profil-Update (Denkhorizonte v3.3, Refresh-Modus)
+export const PROFILE_REFINE_PROMPT = `Aufgabe — Coach-Profil-Tiefen-Refresh (Denkhorizonte v3.4, Deep-Refresh)
 
-Du erhältst:
-1) Ein BESTEHENDES Coach-Profil (Markdown), erzeugt aus 42 Onboarding-Antworten.
-2) Eine Sammlung von BEOBACHTUNGEN AUS COACHING-GESPRÄCHEN, gruppiert nach 9 Sektionen.
+Du erhältst vier Quellen und sollst eine vollständig neu durchdachte Version
+des Coach-Profils erzeugen. Du arbeitest mit der ROHEN Evidenz, nicht nur
+mit einer Destillation.
+
+QUELLEN
+1) BESTEHENDES PROFIL — die aktuelle Coach-Sicht auf den Klienten (Ausgangspunkt
+   und Vergleichsbasis, aber NICHT autoritativ — du darfst alles überschreiben).
+2) ROHE ONBOARDING-ANTWORTEN — die 42 Selbst-Antworten des Klienten (Selbstbild,
+   wie er sich beim Start sah; oft mit Schönfärbung und Selbsttäuschung).
+3) MEMORY-BEOBACHTUNGEN — Haiku-extrahierte Notizen aus dem Coaching, gruppiert
+   nach 9 Sektionen, mit Importance-Score (Notiz-Niveau, kompakt).
+4) VOLLSTÄNDIGER CHAT-VERLAUF — die rohen User+Coach-Messages aus allen
+   Conversations chronologisch (Verhalten in echten Gesprächen, die HÄRTESTE
+   Evidenz die du hast).
 
 Erzeuge eine AKTUALISIERTE Version des Profils — gleiche 11-Abschnitts-Struktur,
 gleiche Regeln wie im Original-Auswertungs-Prompt v3.3 (beobachtbares Verhalten,
 keine Diagnosen, maximale Spezifität).
 
+EVIDENZ-HIERARCHIE (bei Widerspruch entscheidet die höhere Stufe)
+1. Verhalten im Chat-Verlauf (was die Person TATSÄCHLICH sagt/tut)
+2. Memory-Beobachtungen (Haiku-Verdichtung des gleichen Verhaltens)
+3. Bestehendes Profil (frühere Coach-Interpretation)
+4. Onboarding-Antworten (Selbsteinschätzung, oft optimistisch verzerrt)
+
+→ Wenn der Chat-Verlauf zeigt: User redet ständig über X, vermeidet aber Y,
+  bricht beim Thema Z ab — und das Onboarding hat das nicht erwähnt → Chat gewinnt.
+→ Wenn das Profil sagt "knapp und direkt", aber der Chat-Verlauf zeigt der User
+  schreibt 200-Wort-Absätze → Profil überarbeiten.
+→ Wenn das Onboarding "wenig Zeit" sagt, aber er schreibt um 23:00 noch
+  reflektierende Texte → Profil ergänzen mit "Reflektiert spät, wenn Tag vorbei".
+
 UPDATE-PRINZIPIEN
-• Wenn die Memory ein im alten Profil dokumentiertes Muster bestätigt → schärfen,
-  konkreter machen, mit beobachtbarem Verhalten unterfüttern.
-• Wenn die Memory einem Muster widerspricht → das Muster überarbeiten oder
-  durch ein präziseres ersetzen.
-• Wenn die Memory ein NEUES Muster zeigt das im Profil fehlt → ergänzen.
-• Wenn die Memory ein im Profil dokumentiertes Muster NICHT mehr bestätigt
-  (auch nach mehreren Sessions) → abschwächen oder streichen.
-• Ausweich-/Selbsttäuschungsmuster aus Memory haben Vorrang vor denen aus
-  dem Onboarding (Verhalten in echten Gesprächen schlägt Selbsteinschätzung).
-• Goals/Blocker/Breakthroughs aus der Memory fließen in Abschnitte 2, 4, 5 ein
-  (nicht als separate Sektion).
+• Lies den vollständigen Chat-Verlauf wirklich durch. Nicht überfliegen.
+• Suche aktiv nach Mustern die im alten Profil FEHLEN und im Chat sichtbar sind.
+• Suche aktiv nach Profil-Behauptungen die der Chat NICHT bestätigt → abschwächen.
+• Wenn ein im Profil dokumentiertes Muster im Chat MEHRFACH bestätigt wird
+  (≥ 3x) → schärfen mit konkretem Beispiel-Verhalten.
+• Ausweich-/Selbsttäuschungsmuster aus dem Chat-Verlauf haben Vorrang vor
+  Onboarding-Selbsteinschätzung (Verhalten schlägt Selbstbild).
+• Goals/Blocker/Breakthroughs aus dem Chat fließen in Abschnitte 2, 4, 5 ein.
+• Memory-Einträge mit Importance ≥ 7 sind starke Hinweise, aber Chat-Verlauf
+  schlägt sie wenn er ein anderes Bild zeichnet.
+• Sprach-Mirror (Sektion 11): aktualisiere mit Wörtern die der User wirklich
+  im Chat verwendet hat — nicht nur Onboarding-Wörter.
 
 WICHTIG
 • Behalte die 11-Abschnitts-Struktur exakt bei:

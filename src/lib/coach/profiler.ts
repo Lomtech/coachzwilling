@@ -74,12 +74,24 @@ export async function generateCoachProfile(
 }
 
 /**
- * Refresh: kombiniert das bestehende Profil mit den Memory-Erkenntnissen
- * zu einer neuen, geschärften Profil-Version.
+ * Tiefen-Refresh: liest alle vier Datenquellen und baut daraus eine neue
+ * Profilversion. Im Gegensatz zur frühen Memory-only-Variante bekommt Opus
+ * jetzt den ROHEN Chat-Verlauf zu sehen — keine Destillation mehr.
+ *
+ * Quellen:
+ *   1. oldConfigMd       — aktuelles Profil (Ausgangspunkt)
+ *   2. scanRaw           — die 42 Onboarding-Antworten roh (Selbstbild)
+ *   3. memories          — Haiku-Beobachtungen aus dem Coaching (Destillat)
+ *   4. transcript        — der vollständige Roh-Chat-Verlauf (Evidenz)
+ *
+ * Token-Profil typisch: 30k-100k input → ~1-2$ pro Refresh.
+ * Latenz: ~60-120s (Opus mit grossem Kontext).
  */
 export async function refineCoachProfile(args: {
   oldConfigMd: string
+  scanRaw: string | null
   memories: Array<{ section: string; observation: string; importance: number }>
+  transcript: string
 }): Promise<ProfilerResult> {
   // Memory gruppiert nach Sektion
   const grouped = new Map<string, Array<{ observation: string; importance: number }>>()
@@ -100,9 +112,35 @@ export async function refineCoachProfile(args: {
 
   const memoryText = memBlocks.length > 0
     ? memBlocks.join('\n').trim()
-    : '(noch keine Memory-Einträge — nur Onboarding-Profil aktualisieren falls nötig)'
+    : '(noch keine Memory-Einträge)'
 
-  const userMessage = `BESTEHENDES PROFIL\n\n${args.oldConfigMd}\n\n---\n\nBEOBACHTUNGEN AUS COACHING-GESPRÄCHEN\n\n${memoryText}`
+  const scanBlock = args.scanRaw
+    ? args.scanRaw
+    : '(keine Onboarding-Antworten verfügbar — User wurde vermutlich vor dem Tracking onboarded)'
+
+  const userMessage = [
+    '## QUELLE 1 — BESTEHENDES PROFIL (aktueller Stand)',
+    '',
+    args.oldConfigMd,
+    '',
+    '---',
+    '',
+    '## QUELLE 2 — ROHE ONBOARDING-ANTWORTEN (42 Fragen, Selbstbild)',
+    '',
+    scanBlock,
+    '',
+    '---',
+    '',
+    '## QUELLE 3 — MEMORY-BEOBACHTUNGEN (Haiku-Destillat aus den Coaching-Gesprächen)',
+    '',
+    memoryText,
+    '',
+    '---',
+    '',
+    '## QUELLE 4 — VOLLSTÄNDIGER CHAT-VERLAUF (Roh-Evidenz)',
+    '',
+    args.transcript,
+  ].join('\n')
 
   const res = await anthropic().messages.create({
     model: PROFILER_MODEL,

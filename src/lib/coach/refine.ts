@@ -1,6 +1,7 @@
 import 'server-only'
 import { serviceClient } from '@/lib/supabase/service'
 import { refineCoachProfile } from '@/lib/coach/profiler'
+import { buildFullTranscript, loadOnboardingRaw } from '@/lib/coach/transcript'
 
 export const AUTO_REFRESH_THRESHOLD = 20 // alle 20 neuen Memory-Einträge
 
@@ -8,6 +9,8 @@ export interface RefineResult {
   newProfileId: string
   version: number
   memoriesUsed: number
+  conversationsUsed: number
+  messagesUsed: number
   model: string
   inputTokens: number
   outputTokens: number
@@ -40,7 +43,7 @@ export async function refineProfileForUser(args: {
     return null
   }
 
-  // 2) Alle aktiven Memories
+  // 2) Alle aktiven Memories (Haiku-Destillat)
   const { data: memories } = await supa
     .from('coach_memory')
     .select('section, observation, importance')
@@ -55,15 +58,34 @@ export async function refineProfileForUser(args: {
     importance: m.importance,
   }))
 
-  if (memList.length === 0) {
-    console.warn('[refine] keine Memories für', args.userId, '- skip')
+  // 3) Roh-Datenquellen parallel laden: Onboarding-Antworten + voller
+  //    Chat-Verlauf. Opus sieht jetzt ALLES, nicht nur das Destillat.
+  const [scanRaw, transcript] = await Promise.all([
+    loadOnboardingRaw(args.userId),
+    buildFullTranscript(args.userId),
+  ])
+
+  // Hard-Skip: wenn weder Memory noch Chat-Verlauf existiert, gibt's nichts
+  // Neues zu lernen → alter Profil bleibt.
+  if (memList.length === 0 && transcript.messageCount === 0) {
+    console.warn('[refine] keine Memories + kein Chat-Verlauf für', args.userId, '- skip')
     return null
   }
 
-  // 3) Refine-Call
+  console.log(
+    `[refine] deep-refresh für user=${args.userId}`,
+    `memories=${memList.length}`,
+    `conversations=${transcript.conversationCount}`,
+    `messages=${transcript.messageCount}`,
+    `transcriptTruncated=${transcript.truncatedConversations}`,
+  )
+
+  // 4) Refine-Call mit allen 4 Quellen
   const result = await refineCoachProfile({
     oldConfigMd: oldProfile.config_md,
+    scanRaw,
     memories: memList,
+    transcript: transcript.transcript,
   })
 
   // 4) Nächste Version berechnen (RPC not in TS-Types, daher cast)
@@ -116,6 +138,8 @@ export async function refineProfileForUser(args: {
     newProfileId: inserted.id,
     version: inserted.version,
     memoriesUsed: memList.length,
+    conversationsUsed: transcript.conversationCount,
+    messagesUsed: transcript.messageCount,
     model: result.model,
     inputTokens: result.inputTokens,
     outputTokens: result.outputTokens,
