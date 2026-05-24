@@ -1,6 +1,3 @@
-// AUTO-GENERATED via Supabase MCP (generate_typescript_types).
-// Bei Schema-Änderungen mit `npm run types:gen` regenerieren.
-
 export type Json =
   | string
   | number
@@ -15,6 +12,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      coach_memory: {
+        Row: {
+          context_excerpt: string | null
+          conversation_id: string | null
+          created_at: string
+          id: string
+          importance: number
+          is_active: boolean
+          observation: string
+          section: string
+          source_msg_id: string | null
+          user_id: string
+        }
+        Insert: {
+          context_excerpt?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          importance?: number
+          is_active?: boolean
+          observation: string
+          section: string
+          source_msg_id?: string | null
+          user_id: string
+        }
+        Update: {
+          context_excerpt?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          importance?: number
+          is_active?: boolean
+          observation?: string
+          section?: string
+          source_msg_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       coach_profiles: {
         Row: {
           config_md: string
@@ -22,15 +58,18 @@ export type Database = {
           generated_at: string
           id: string
           is_active: boolean
+          language_mirror: string | null
+          memories_used_count: number
           model: string
+          share_created_at: string | null
+          share_enabled: boolean
+          share_token: string | null
+          source: string
           source_response_id: string | null
           ton_profil_md: string | null
           tone_oneliner: string | null
-          language_mirror: string | null
           user_id: string
           version: number
-          source: 'onboarding' | 'manual_refresh' | 'auto_refresh'
-          memories_used_count: number
         }
         Insert: {
           config_md: string
@@ -38,15 +77,18 @@ export type Database = {
           generated_at?: string
           id?: string
           is_active?: boolean
+          language_mirror?: string | null
+          memories_used_count?: number
           model: string
+          share_created_at?: string | null
+          share_enabled?: boolean
+          share_token?: string | null
+          source?: string
           source_response_id?: string | null
           ton_profil_md?: string | null
           tone_oneliner?: string | null
-          language_mirror?: string | null
           user_id: string
           version?: number
-          source?: 'onboarding' | 'manual_refresh' | 'auto_refresh'
-          memories_used_count?: number
         }
         Update: {
           config_md?: string
@@ -54,46 +96,18 @@ export type Database = {
           generated_at?: string
           id?: string
           is_active?: boolean
+          language_mirror?: string | null
+          memories_used_count?: number
           model?: string
+          share_created_at?: string | null
+          share_enabled?: boolean
+          share_token?: string | null
+          source?: string
           source_response_id?: string | null
           ton_profil_md?: string | null
           tone_oneliner?: string | null
-          language_mirror?: string | null
           user_id?: string
           version?: number
-          source?: 'onboarding' | 'manual_refresh' | 'auto_refresh'
-          memories_used_count?: number
-        }
-        Relationships: []
-      }
-      coach_memory: {
-        Row: {
-          id: string
-          user_id: string
-          conversation_id: string | null
-          source_msg_id: string | null
-          section: 'motivmuster' | 'stressmuster' | 'ausweich' | 'veraenderung' | 'coaching_stil' | 'breakthrough' | 'blocker' | 'goal' | 'identitaet'
-          observation: string
-          context_excerpt: string | null
-          importance: number
-          is_active: boolean
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          conversation_id?: string | null
-          source_msg_id?: string | null
-          section: 'motivmuster' | 'stressmuster' | 'ausweich' | 'veraenderung' | 'coaching_stil' | 'breakthrough' | 'blocker' | 'goal' | 'identitaet'
-          observation: string
-          context_excerpt?: string | null
-          importance?: number
-          is_active?: boolean
-        }
-        Update: {
-          observation?: string
-          importance?: number
-          is_active?: boolean
         }
         Relationships: []
       }
@@ -117,6 +131,75 @@ export type Database = {
           id?: string
           title?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          answers: Json
+          converted_user_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          ip_country: string | null
+          name: string | null
+          short_profile: string | null
+          source: string
+          user_agent: string | null
+          utm: Json | null
+        }
+        Insert: {
+          answers?: Json
+          converted_user_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip_country?: string | null
+          name?: string | null
+          short_profile?: string | null
+          source?: string
+          user_agent?: string | null
+          utm?: Json | null
+        }
+        Update: {
+          answers?: Json
+          converted_user_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip_country?: string | null
+          name?: string | null
+          short_profile?: string | null
+          source?: string
+          user_agent?: string | null
+          utm?: Json | null
+        }
+        Relationships: []
+      }
+      message_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          message_id: string
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          message_id: string
+          rating: number
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string
+          rating?: number
           user_id?: string
         }
         Relationships: []
@@ -253,16 +336,52 @@ export type Database = {
         }
         Relationships: []
       }
+      testimonials: {
+        Row: {
+          allow_publish: boolean
+          approved_by_admin: boolean
+          context: string | null
+          created_at: string
+          decision: string
+          display_name: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          allow_publish?: boolean
+          approved_by_admin?: boolean
+          context?: string | null
+          created_at?: string
+          decision: string
+          display_name?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          allow_publish?: boolean
+          approved_by_admin?: boolean
+          context?: string | null
+          created_at?: string
+          decision?: string
+          display_name?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
-    Views: { [_ in never]: never }
-    Functions: { [_ in never]: never }
-    Enums: { [_ in never]: never }
-    CompositeTypes: { [_ in never]: never }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      next_profile_version: { Args: { p_user_id: string }; Returns: number }
+    }
+    Enums: Record<string, never>
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
 
-export type ActiveSubscriptionStatus = 'active' | 'trialing'
-export const ACTIVE_STATUSES: ReadonlySet<string> = new Set([
-  'active',
-  'trialing',
-])
+// Active subscription statuses (used by chat-route, settings, billing)
+export const ACTIVE_STATUSES = new Set(['active', 'trialing'])

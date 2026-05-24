@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSpeechInput } from './useSpeechInput'
 
 interface Message {
   id: string
@@ -23,10 +24,44 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
   const [error, setError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const taRef = useRef<HTMLTextAreaElement>(null)
+  // Speech-Input: getrennt halten von `input` damit interim-Hypothesen
+  // den finalen Text nicht überschreiben können.
+  const speechBaseRef = useRef<string>('')
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, streaming])
+
+  const speech = useSpeechInput({
+    onTranscript: (text, isFinal) => {
+      // Live-Hypothesen werden angehängt, finales Segment ersetzt die Hypothese
+      // und wird zur neuen Basis.
+      const sep = speechBaseRef.current && !speechBaseRef.current.endsWith(' ') ? ' ' : ''
+      const next = speechBaseRef.current + sep + text
+      setInput(next)
+      if (isFinal) {
+        speechBaseRef.current = next
+      }
+      // Auto-resize anstoßen
+      requestAnimationFrame(() => {
+        const ta = taRef.current
+        if (ta) {
+          ta.style.height = 'auto'
+          ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`
+        }
+      })
+    },
+  })
+
+  function toggleSpeech() {
+    if (speech.listening) {
+      speech.stop()
+    } else {
+      // Aktuelles Input als Basis übernehmen, dann starten
+      speechBaseRef.current = input
+      speech.start()
+    }
+  }
 
   async function send() {
     const text = input.trim()
@@ -144,6 +179,9 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
       {error && (
         <div className="px-4 pb-2 max-w-2xl w-full mx-auto text-sm text-[var(--color-danger)]">{error}</div>
       )}
+      {speech.error && (
+        <div className="px-4 pb-2 max-w-2xl w-full mx-auto text-xs text-[var(--color-muted)]">{speech.error}</div>
+      )}
 
       {/* Composer */}
       <div className="border-t border-[var(--color-border)] bg-[var(--color-bg)] safe-bottom">
@@ -154,11 +192,28 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
             value={input}
             onChange={e => { setInput(e.target.value); autosize() }}
             onKeyDown={onKey}
-            placeholder="Schreibe deinem Coach …"
+            placeholder={speech.listening ? 'Sprich jetzt …' : 'Schreibe oder sprich mit deinem Coach …'}
             disabled={streaming}
             className="!min-h-[48px] !py-3"
             style={{ resize: 'none' }}
           />
+          {speech.supported && (
+            <button
+              type="button"
+              onClick={toggleSpeech}
+              disabled={streaming}
+              className={
+                'btn ' +
+                (speech.listening
+                  ? 'bg-[var(--color-danger)] text-white hover:opacity-90 anim-pulse-soft'
+                  : 'btn-ghost')
+              }
+              aria-label={speech.listening ? 'Spracheingabe stoppen' : 'Spracheingabe starten'}
+              title={speech.listening ? 'Stoppen' : 'Mit dem Coach sprechen'}
+            >
+              {speech.listening ? '■' : '🎙'}
+            </button>
+          )}
           <button
             type="button"
             onClick={send}
