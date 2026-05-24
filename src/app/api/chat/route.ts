@@ -217,15 +217,17 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          controller.enqueue(encoder.encode(`event: done\ndata: {}\n\n`))
+          // (kein 'done' hier — wird unten gesendet, nachdem wir die echte
+          //  Assistant-Message-ID via SSE übertragen haben)
         }
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'stream error'
         controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ message: msg })}\n\n`))
       } finally {
-        controller.close()
-
-        // Hintergrund: Assistant-Message + Conv-Touch persistieren + Memory extrahieren
+        // Erst persistieren, dann ID via SSE übermitteln, dann close.
+        // So kann der Client die Placeholder-UUID gegen die echte Message-ID
+        // austauschen und sofortiges Feedback (👍/👎) auslösen ohne Refresh.
+        let insertedMsgId: string | null = null
         try {
           const { data: insertedMsg } = await supa.from('messages').insert({
             conversation_id: convIdFinal,
@@ -237,7 +239,25 @@ export async function POST(req: NextRequest) {
             cache_read_input_tokens: cacheRead,
             cache_creation_input_tokens: cacheCreate,
           }).select('id').single()
+          insertedMsgId = insertedMsg?.id ?? null
+        } catch (e) {
+          console.error('[chat] assistant persist failed', e)
+        }
 
+        try {
+          if (insertedMsgId) {
+            controller.enqueue(
+              encoder.encode(`event: assistantId\ndata: ${JSON.stringify({ id: insertedMsgId })}\n\n`)
+            )
+          }
+          controller.enqueue(encoder.encode(`event: done\ndata: {}\n\n`))
+        } catch {
+          // Controller könnte schon geschlossen sein wenn Client abgebrochen hat — ignorieren
+        }
+        controller.close()
+
+        // Hintergrund: Conv-Touch + Memory-Extraktion (kein await blockiert mehr den User)
+        try {
           await supa.from('conversations')
             .update({ updated_at: new Date().toISOString() })
             .eq('id', convIdFinal)
@@ -260,7 +280,7 @@ export async function POST(req: NextRequest) {
             const memEntry = await extractMemoryFromTurn({
               userId: user.id,
               conversationId: convIdFinal,
-              assistantMessageId: insertedMsg?.id ?? null,
+              assistantMessageId: insertedMsgId,
               userMessage: body.message.trim(),
               assistantReply: finalText,
               recentHistory: history?.map(m => ({

@@ -8,6 +8,7 @@ interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
+  rating?: 1 | -1 | null
 }
 
 interface Props {
@@ -130,6 +131,12 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
                 m.id === placeholderId ? { ...m, content: m.content + json.text } : m
               )
             )
+          } else if (event === 'assistantId' && typeof json.id === 'string') {
+            // Placeholder-UUID gegen echte DB-Message-ID austauschen,
+            // damit Feedback (👍/👎) sofort funktioniert ohne Refresh.
+            setMessages(prev =>
+              prev.map(m => (m.id === placeholderId ? { ...m, id: json.id } : m))
+            )
           } else if (event === 'error') {
             setError(json.message ?? 'Stream-Fehler')
           } else if (event === 'done') {
@@ -164,7 +171,36 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
         <div className="max-w-2xl mx-auto flex flex-col gap-3">
           {messages.length === 0 && <EmptyState />}
           {messages.map(m => (
-            <Bubble key={m.id} msg={m} />
+            <Bubble
+              key={m.id}
+              msg={m}
+              onRate={async (rating) => {
+                // Optimistic UI: sofort updaten, dann persistieren
+                const previousRating = m.rating ?? null
+                const newRating = previousRating === rating ? null : rating
+                setMessages(prev =>
+                  prev.map(x => (x.id === m.id ? { ...x, rating: newRating } : x))
+                )
+                try {
+                  if (newRating === null) {
+                    await fetch(`/api/feedback?messageId=${encodeURIComponent(m.id)}`, {
+                      method: 'DELETE',
+                    })
+                  } else {
+                    await fetch('/api/feedback', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ messageId: m.id, rating: newRating }),
+                    })
+                  }
+                } catch {
+                  // Rollback bei Netzwerkfehler
+                  setMessages(prev =>
+                    prev.map(x => (x.id === m.id ? { ...x, rating: previousRating } : x))
+                  )
+                }
+              }}
+            />
           ))}
           {streaming && messages.at(-1)?.role === 'assistant' && messages.at(-1)?.content === '' && (
             <div className="bubble bubble-assistant">
@@ -229,12 +265,46 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
   )
 }
 
-function Bubble({ msg }: { msg: Message }) {
+function Bubble({ msg, onRate }: { msg: Message; onRate?: (rating: 1 | -1) => void }) {
+  // Feedback nur für persistierte Assistant-Messages (UUID, nicht "streaming-…")
+  const canRate = msg.role === 'assistant' && /^[0-9a-f]{8}-/i.test(msg.id) && !!onRate
   return (
-    <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
       <div className={`bubble ${msg.role === 'user' ? 'bubble-user' : 'bubble-assistant prose-coach'}`}>
         {renderText(msg.content)}
       </div>
+      {canRate && (
+        <div className="mt-1 flex gap-1 opacity-60 hover:opacity-100 transition">
+          <button
+            type="button"
+            onClick={() => onRate?.(1)}
+            className={
+              'text-xs px-2 py-0.5 rounded-md transition ' +
+              (msg.rating === 1
+                ? 'bg-[var(--color-success)]/15 text-[var(--color-success)]'
+                : 'hover:bg-[var(--color-surface-2)] text-[var(--color-muted)]')
+            }
+            aria-label="Hilfreich"
+            title="Hilfreich"
+          >
+            👍
+          </button>
+          <button
+            type="button"
+            onClick={() => onRate?.(-1)}
+            className={
+              'text-xs px-2 py-0.5 rounded-md transition ' +
+              (msg.rating === -1
+                ? 'bg-[var(--color-danger)]/15 text-[var(--color-danger)]'
+                : 'hover:bg-[var(--color-surface-2)] text-[var(--color-muted)]')
+            }
+            aria-label="Trifft nicht"
+            title="Trifft nicht"
+          >
+            👎
+          </button>
+        </div>
+      )}
     </div>
   )
 }

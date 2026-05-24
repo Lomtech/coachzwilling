@@ -10,6 +10,8 @@ import { RegenerateProfileButton } from './RegenerateProfileButton'
 import { RefineProfileButton } from './RefineProfileButton'
 import { RestartOnboardingButton } from './RestartOnboardingButton'
 import { ProfileViewer } from './ProfileViewer'
+import { ShareProfileSection } from './ShareProfileSection'
+import { TestimonialSection } from './TestimonialSection'
 import { isAdminEmail } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
@@ -19,11 +21,11 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/settings')
 
-  const [{ data: profile }, { data: sub }, { data: cp }, { data: memoryRows }, { count: memoryCount }] = await Promise.all([
+  const [{ data: profile }, { data: sub }, { data: cp }, { data: memoryRows }, { count: memoryCount }, { count: assistantMsgCount }, { count: testimonialCount }] = await Promise.all([
     supabase.from('profiles').select('full_name, email, onboarding_state, created_at, trial_until').eq('id', user.id).maybeSingle(),
     supabase.from('subscriptions').select('status, current_period_end, cancel_at_period_end').eq('user_id', user.id).maybeSingle(),
     supabase.from('coach_profiles')
-      .select('id, generated_at, model, version, source, memories_used_count, config_md')
+      .select('id, generated_at, model, version, source, memories_used_count, config_md, share_token, share_enabled')
       .eq('user_id', user.id).eq('is_active', true).maybeSingle(),
     supabase.from('coach_memory')
       .select('id, section, observation, importance, created_at')
@@ -34,6 +36,12 @@ export default async function SettingsPage() {
     supabase.from('coach_memory')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id).eq('is_active', true),
+    supabase.from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id).eq('role', 'assistant'),
+    supabase.from('testimonials')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id),
   ])
 
   const memoriesSinceRefresh = Math.max(0, (memoryCount ?? 0) - (cp?.memories_used_count ?? 0))
@@ -110,6 +118,19 @@ export default async function SettingsPage() {
           </p>
         )}
       </section>
+
+      {cp && (
+        <ShareProfileSection
+          initialEnabled={cp.share_enabled ?? false}
+          initialToken={cp.share_token ?? null}
+        />
+      )}
+
+      <TestimonialSection
+        showPrompt={(assistantMsgCount ?? 0) >= 5}
+        alreadySubmitted={(testimonialCount ?? 0) > 0}
+        defaultName={profile?.full_name ?? null}
+      />
 
       <section className="card mb-4">
         <SectionHeader>Living Memory</SectionHeader>

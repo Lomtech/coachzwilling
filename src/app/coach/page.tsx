@@ -36,7 +36,7 @@ export default async function CoachPage({
 
   // Aktive Conversation (oder leer)
   let activeId: string | null = null
-  let initialMessages: { id: string; role: 'user' | 'assistant'; content: string }[] = []
+  let initialMessages: { id: string; role: 'user' | 'assistant'; content: string; rating?: 1 | -1 | null }[] = []
 
   if (convId) {
     const { data: conv } = await supabase
@@ -53,10 +53,28 @@ export default async function CoachPage({
         .eq('conversation_id', conv.id)
         .in('role', ['user', 'assistant'])
         .order('created_at', { ascending: true })
+
+      // Feedback für alle Assistant-Messages in dieser Conversation laden
+      const assistantIds = (msgs ?? [])
+        .filter(m => m.role === 'assistant')
+        .map(m => m.id)
+      let ratings = new Map<string, 1 | -1>()
+      if (assistantIds.length > 0) {
+        const { data: fbs } = await supabase
+          .from('message_feedback')
+          .select('message_id, rating')
+          .in('message_id', assistantIds)
+          .eq('user_id', user.id)
+        ratings = new Map(
+          (fbs ?? []).map(f => [f.message_id, (f.rating === 1 ? 1 : -1) as 1 | -1])
+        )
+      }
+
       initialMessages = (msgs ?? []).map(m => ({
         id: m.id,
         role: m.role as 'user' | 'assistant',
         content: m.content,
+        rating: m.role === 'assistant' ? (ratings.get(m.id) ?? null) : null,
       }))
     }
   }
