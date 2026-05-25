@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { IconFileText, IconEyeOff, IconCopy, IconDownload, IconCheck } from '@/components/Icons'
 
 interface ProfileItem {
   id: string
@@ -46,18 +47,20 @@ export function ProfileViewer({ profile }: { profile: ProfileItem | null }) {
         className="btn btn-secondary btn-block flex items-center justify-center gap-2"
         aria-expanded={open}
       >
-        <span aria-hidden>{open ? '👁' : '📄'}</span>
+        {open ? <IconEyeOff className="w-4 h-4" /> : <IconFileText className="w-4 h-4" />}
         <span>{open ? 'Profil ausblenden' : 'Mein Coach-Profil ansehen'}</span>
       </button>
 
       {open && (
         <div className="mt-4 anim-fade-up">
           <div className="flex gap-2 mb-3">
-            <button onClick={copy} className="btn btn-ghost text-xs px-3 py-1">
-              {copied ? '✓ Kopiert' : 'Kopieren'}
+            <button onClick={copy} className="btn btn-ghost text-xs px-3 py-1 inline-flex items-center gap-1.5">
+              {copied ? <IconCheck className="w-3.5 h-3.5" /> : <IconCopy className="w-3.5 h-3.5" />}
+              <span>{copied ? 'Kopiert' : 'Kopieren'}</span>
             </button>
-            <button onClick={download} className="btn btn-ghost text-xs px-3 py-1">
-              Als .md herunterladen
+            <button onClick={download} className="btn btn-ghost text-xs px-3 py-1 inline-flex items-center gap-1.5">
+              <IconDownload className="w-3.5 h-3.5" />
+              <span>Als .md herunterladen</span>
             </button>
           </div>
           <div className="border border-[var(--color-border)] rounded-xl bg-[var(--color-surface-2)] p-4 max-h-[600px] overflow-y-auto">

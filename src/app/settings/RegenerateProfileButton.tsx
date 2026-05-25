@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { IconRefresh } from '@/components/Icons'
 
 export function RegenerateProfileButton() {
   const router = useRouter()
@@ -68,7 +69,7 @@ export function RegenerateProfileButton() {
         className="btn btn-ghost btn-block flex items-center justify-center gap-2 text-sm"
         aria-label="Profil aus 42 Onboarding-Antworten komplett neu generieren"
       >
-        <span aria-hidden>🔄</span>
+        <IconRefresh className="w-4 h-4" />
         <span>Profil neu aus Antworten generieren</span>
       </button>
       {error && <div className="mt-2 text-sm text-[var(--color-danger)]">{error}</div>}

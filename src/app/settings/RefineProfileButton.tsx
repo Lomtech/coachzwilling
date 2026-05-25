@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { IconSparkles, IconCheck } from '@/components/Icons'
 
 export function RefineProfileButton({ hasMemories }: { hasMemories: boolean }) {
   const router = useRouter()
@@ -58,13 +59,16 @@ export function RefineProfileButton({ hasMemories }: { hasMemories: boolean }) {
 
   if (step === 'done') {
     return (
-      <div className="text-sm text-[var(--color-success)]">
-        ✓ Profil-Version {version ? `v${version}` : 'aktualisiert'} aktiv.
-        {stats && (
-          <span className="block text-xs text-[var(--color-ink-2)] mt-1">
-            Verarbeitet: {stats.memories} Memories, {stats.conversations} Gespräche, {stats.messages} Nachrichten
-          </span>
-        )}
+      <div className="text-sm text-[var(--color-success)] flex items-start gap-2">
+        <IconCheck className="w-4 h-4 mt-0.5 shrink-0" />
+        <div>
+          <span>Profil-Version {version ? `v${version}` : 'aktualisiert'} aktiv.</span>
+          {stats && (
+            <span className="block text-xs text-[var(--color-ink-2)] mt-1">
+              Verarbeitet: {stats.memories} Memories, {stats.conversations} Gespräche, {stats.messages} Nachrichten
+            </span>
+          )}
+        </div>
       </div>
     )
   }
@@ -98,7 +102,7 @@ export function RefineProfileButton({ hasMemories }: { hasMemories: boolean }) {
         className="btn btn-primary btn-block flex items-center justify-center gap-2"
         aria-label="Tiefen-Analyse starten — Profil aus allen Quellen neu aufbauen"
       >
-        <span aria-hidden>↻</span>
+        <IconSparkles className="w-4 h-4" />
         <span>Tiefen-Analyse: Profil aus allen Quellen schärfen</span>
       </button>
       {error && <div className="mt-2 text-sm text-[var(--color-danger)]">{error}</div>}

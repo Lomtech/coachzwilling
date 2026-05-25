@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { IconCopy, IconCheck } from '@/components/Icons'
 
 interface Props {
   initialEnabled: boolean
@@ -100,9 +101,10 @@ export function ShareProfileSection({ initialEnabled, initialToken }: Props) {
             <button
               type="button"
               onClick={copyLink}
-              className="btn btn-secondary text-sm px-3 py-2"
+              className="btn btn-secondary text-sm px-3 py-2 inline-flex items-center gap-1.5"
             >
-              {copied ? '✓' : 'Kopieren'}
+              {copied ? <IconCheck className="w-4 h-4" /> : <IconCopy className="w-4 h-4" />}
+              <span>{copied ? 'Kopiert' : 'Kopieren'}</span>
             </button>
           </div>
           <div className="flex flex-wrap gap-2 text-sm">

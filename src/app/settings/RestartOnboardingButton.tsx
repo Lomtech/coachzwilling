@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { IconPencil } from '@/components/Icons'
 
 /**
  * "Fragebogen neu machen" — verwirft Drafts, schaltet Onboarding wieder
@@ -68,7 +69,7 @@ export function RestartOnboardingButton() {
         className="btn btn-ghost btn-block flex items-center justify-center gap-2 text-sm"
         aria-label="Den 42-Fragen-Scan komplett neu durchgehen"
       >
-        <span aria-hidden>📝</span>
+        <IconPencil className="w-4 h-4" />
         <span>Fragebogen komplett neu machen</span>
       </button>
       {error && <div className="mt-2 text-sm text-[var(--color-danger)]">{error}</div>}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSpeechInput } from './useSpeechInput'
+import { IconMic, IconStop } from '@/components/Icons'
 
 interface Message {
   id: string
@@ -261,7 +262,7 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
               onClick={toggleSpeech}
               disabled={streaming}
               className={
-                'btn ' +
+                'btn inline-flex items-center justify-center ' +
                 (speech.listening
                   ? 'bg-[var(--color-danger)] text-white hover:opacity-90 anim-pulse-soft'
                   : 'btn-ghost')
@@ -269,17 +270,17 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
               aria-label={speech.listening ? 'Spracheingabe stoppen' : 'Spracheingabe starten'}
               title={speech.listening ? 'Stoppen' : 'Mit dem Coach sprechen'}
             >
-              {speech.listening ? '■' : '🎙'}
+              {speech.listening ? <IconStop className="w-5 h-5" /> : <IconMic className="w-5 h-5" />}
             </button>
           ) : speech.unsupportedReason ? (
             <button
               type="button"
               disabled
-              className="btn btn-ghost opacity-40 cursor-not-allowed"
+              className="btn btn-ghost opacity-40 cursor-not-allowed inline-flex items-center justify-center"
               aria-label="Spracheingabe nicht verfügbar"
               title={speech.unsupportedReason}
             >
-              🎙
+              <IconMic className="w-5 h-5" />
             </button>
           ) : null}
           <button

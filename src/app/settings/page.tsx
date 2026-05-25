@@ -12,6 +12,7 @@ import { RestartOnboardingButton } from './RestartOnboardingButton'
 import { ProfileViewer } from './ProfileViewer'
 import { ShareProfileSection } from './ShareProfileSection'
 import { TestimonialSection } from './TestimonialSection'
+import { IconChevronDown, IconSettings, IconCompare } from '@/components/Icons'
 import { isAdminEmail } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
@@ -116,7 +117,7 @@ export default async function SettingsPage() {
             <details className="mt-4 pt-4 border-t border-[var(--color-border)] group">
               <summary className="cursor-pointer list-none flex items-center justify-between text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wider hover:text-[var(--color-ink)]">
                 <span>Erweitert — Profil zurücksetzen</span>
-                <span aria-hidden className="transition-transform group-open:rotate-180">▾</span>
+                <IconChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
               </summary>
               <div className="mt-3 space-y-2">
                 <RegenerateProfileButton />
@@ -206,11 +207,13 @@ export default async function SettingsPage() {
             Du bist als Admin eingeloggt. Zugriff auf alle User-Profile und Memory-Daten.
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
-            <Link href="/admin" className="btn btn-secondary text-sm flex-1 text-center">
-              🔧 Admin-Übersicht
+            <Link href="/admin" className="btn btn-secondary text-sm flex-1 inline-flex items-center justify-center gap-2">
+              <IconSettings className="w-4 h-4" />
+              <span>Admin-Übersicht</span>
             </Link>
-            <Link href="/admin/compare" className="btn btn-secondary text-sm flex-1 text-center">
-              ⇆ Profile vergleichen
+            <Link href="/admin/compare" className="btn btn-secondary text-sm flex-1 inline-flex items-center justify-center gap-2">
+              <IconCompare className="w-4 h-4" />
+              <span>Profile vergleichen</span>
             </Link>
           </div>
         </section>
