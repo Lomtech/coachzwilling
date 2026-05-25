@@ -174,7 +174,48 @@ export function useSpeechInput(args: {
     return rec
   }
 
-  function start() {
+  async function ensureMicPermission(): Promise<'granted' | 'denied' | 'unknown'> {
+    if (typeof navigator === 'undefined') return 'unknown'
+
+    // Permissions API: liefert "granted" / "prompt" / "denied" wenn unterstützt
+    type PermState = 'granted' | 'prompt' | 'denied' | 'unknown'
+    let perm: PermState = 'unknown'
+    try {
+      const navWithPerm = navigator as Navigator & {
+        permissions?: { query: (q: { name: string }) => Promise<{ state: string }> }
+      }
+      if (navWithPerm.permissions?.query) {
+        const r = await navWithPerm.permissions.query({ name: 'microphone' as PermissionName })
+        perm = r.state as PermState
+      }
+    } catch {/* manche Browser kennen 'microphone' nicht — egal */}
+
+    if (perm === 'denied') return 'denied'
+
+    // Wenn perm === 'prompt' ODER 'unknown' → explizit per getUserMedia anfragen,
+    // damit Chrome den nativen Permission-Popup öffnet (wie bei ChatGPT/Claude).
+    // webkitSpeechRecognition.start() alleine triggert den Popup auf aktuellen
+    // Chrome-Versionen nicht mehr zuverlässig.
+    if (perm !== 'granted' && navigator.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        // Wir wollten nur die Permission — Stream sofort wieder freigeben
+        stream.getTracks().forEach(t => t.stop())
+        return 'granted'
+      } catch (e: unknown) {
+        const name = (e as { name?: string })?.name ?? ''
+        if (name === 'NotAllowedError' || name === 'SecurityError') return 'denied'
+        if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+          setError(friendlyError('audio-capture'))
+          return 'denied'
+        }
+        return 'denied'
+      }
+    }
+    return perm === 'granted' ? 'granted' : 'unknown'
+  }
+
+  async function start() {
     if (typeof window === 'undefined') return
     if (!getCtor()) {
       setError('Spracheingabe in diesem Browser nicht verfügbar.')
@@ -183,6 +224,16 @@ export function useSpeechInput(args: {
     if (listening) return // bereits aktiv → ignorieren
 
     setError(null)
+
+    // Vor SpeechRecognition.start() explizit die Mikrofon-Permission holen.
+    // Das triggert den nativen Chrome-Popup (falls noch nicht entschieden)
+    // und zeigt eine klare Fehlermeldung wenn der User irgendwann "blockiert" geklickt hat.
+    const permResult = await ensureMicPermission()
+    if (permResult === 'denied') {
+      setError(friendlyError('not-allowed'))
+      return
+    }
+
     try {
       // Falls noch eine alte Instance läuft → abort
       recRef.current?.abort()
