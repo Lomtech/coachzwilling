@@ -6,6 +6,7 @@ import { buildCoachSystem } from '@/lib/coach/system-prompt'
 import { loadMemoryForCoach, extractMemoryFromTurn } from '@/lib/coach/memory'
 import { maybeAutoRefresh } from '@/lib/coach/refine'
 import { validateFirstTurn, buildCorrectionInstruction } from '@/lib/coach/validator'
+import { detectRepetition, buildRepetitionCorrection } from '@/lib/coach/repetition-check'
 import { ACTIVE_STATUSES } from '@/types/database'
 import type Anthropic from '@anthropic-ai/sdk'
 
@@ -214,6 +215,55 @@ export async function POST(req: NextRequest) {
               inputTokens = ev.message.usage.input_tokens ?? null
               cacheRead = ev.message.usage.cache_read_input_tokens ?? null
               cacheCreate = ev.message.usage.cache_creation_input_tokens ?? null
+            }
+          }
+
+          // ─── Notbremse: Repetition-Detector ──────────────────────────
+          // Wenn die gestreamte Antwort fast wortgleich zu einer der letzten
+          // 3 Coach-Antworten ist → einmal automatisch retry mit Pattern-Break.
+          // Verhindert den "Morgen sagst du mir wie viele raus sind"-Loop.
+          const recentAssistantContents = (history ?? [])
+            .filter(m => m.role === 'assistant')
+            .map(m => m.content)
+          const rep = detectRepetition({
+            newReply: finalText,
+            recentAssistantReplies: recentAssistantContents,
+          })
+          if (rep.isRepetition && finalText.trim().length > 0) {
+            console.warn(
+              '[chat] repetition detected — retry mit Pattern-Break',
+              `similarity=${rep.similarity?.toFixed(2)} matchedPrior=${rep.matchedPriorIndex}`,
+            )
+            const retryMessages = [
+              ...messages.slice(0, -1),
+              {
+                role: 'user' as const,
+                content: body.message.trim() + buildRepetitionCorrection(),
+              },
+            ]
+            try {
+              const retry = await anthropic().messages.create({
+                model: COACH_MODEL,
+                max_tokens: 1024,
+                system: system.blocks,
+                messages: retryMessages,
+              })
+              const retryText = retry.content
+                .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+                .map(b => b.text)
+                .join('')
+              if (retryText.trim().length > 0) {
+                // Client tauscht den bereits gestreamten Text gegen den
+                // korrigierten aus (SSE event: 'replace').
+                controller.enqueue(
+                  encoder.encode(`event: replace\ndata: ${JSON.stringify({ text: retryText })}\n\n`)
+                )
+                finalText = retryText
+                outputTokens = (outputTokens ?? 0) + (retry.usage?.output_tokens ?? 0)
+              }
+            } catch (e) {
+              console.error('[chat] repetition-retry failed', e)
+              // fail-open: belasse die ursprüngliche Antwort
             }
           }
 

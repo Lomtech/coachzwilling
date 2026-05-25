@@ -132,6 +132,12 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
                 m.id === placeholderId ? { ...m, content: m.content + json.text } : m
               )
             )
+          } else if (event === 'replace' && typeof json.text === 'string') {
+            // Repetition-Detector hat eingegriffen → die gestreamte Antwort
+            // wurde durch eine korrigierte ersetzt. Inhalt komplett tauschen.
+            setMessages(prev =>
+              prev.map(m => (m.id === placeholderId ? { ...m, content: json.text } : m))
+            )
           } else if (event === 'assistantId' && typeof json.id === 'string') {
             // Placeholder-UUID gegen echte DB-Message-ID austauschen,
             // damit Feedback (👍/👎) sofort funktioniert ohne Refresh.
