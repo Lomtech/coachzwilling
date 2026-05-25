@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ChatView } from '@/components/chat/ChatView'
+import { ConversationItem } from '@/components/chat/ConversationItem'
 import { isAdminEmail } from '@/lib/admin-auth'
 import { AccountMenu } from '@/components/AccountMenu'
 
@@ -96,24 +97,20 @@ export default async function CoachPage({
             + Neues Gespräch
           </Link>
         </div>
-        <div className="flex-1 overflow-y-auto px-2">
-          {(conversations ?? []).map(c => {
-            const active = c.id === activeId
-            return (
-              <Link
-                key={c.id}
-                href={`/coach?c=${c.id}`}
-                className={
-                  'block px-3 py-2.5 rounded-xl text-sm truncate ' +
-                  (active
-                    ? 'bg-[var(--color-ink)] text-white'
-                    : 'hover:bg-white text-[var(--color-ink-2)]')
-                }
-              >
-                {c.title ?? 'Gespräch'}
-              </Link>
-            )
-          })}
+        <div className="flex-1 overflow-y-auto px-2 space-y-0.5">
+          {(conversations ?? []).map(c => (
+            <ConversationItem
+              key={c.id}
+              id={c.id}
+              title={c.title}
+              active={c.id === activeId}
+            />
+          ))}
+          {(!conversations || conversations.length === 0) && (
+            <div className="px-3 py-2.5 text-xs text-[var(--color-muted)]">
+              Noch keine Gespräche.
+            </div>
+          )}
         </div>
         <div className="px-2 py-2 border-t border-[var(--color-border)]">
           <AccountMenu
