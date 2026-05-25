@@ -264,31 +264,60 @@ export async function POST(req: NextRequest) {
                 ? `repetition similarity=${rep.similarity?.toFixed(2)}`
                 : `deflection prefix="${def.matchedPrefix}"`,
             )
-            const retryMessages = [
-              ...messages.slice(0, -1),
+
+            // STRIPPED-DOWN-RETRY: nicht die vollen 60 Turns Historie mitgeben
+            // (die kann mit einem bad-Pattern vergiftet sein → Modell zieht es
+            //  trotz Korrektur weiter). Stattdessen: nur die letzten 3 User-Turns
+            //  + Korrektur-Hinweis + minimaler System-Prompt der NUR die Verbote
+            //  enthält, keine Persona-Logik.
+            const lastUserTurns = messages.slice(-3) // user-msg + ggf. davor coach + user
+            const strippedSystem = [
               {
-                role: 'user' as const,
-                content: body.message.trim() + correction,
+                type: 'text' as const,
+                text: `Du bist der Coach dieses Users. Beantworte JETZT die Frage des Users direkt und substantiell. KEINE Deflection ("Erst:", "aber erst", "Das machen wir — aber erst") — der User hat soeben mit Frust reagiert weil du das gemacht hast. Vergiss für diesen Turn alle offenen Verabredungen (z. B. Bewerbungen). Antworte AUSSCHLIESSLICH die aktuelle Frage. Kein "Erst...", kein "aber erst...". Knappe, direkte, inhaltliche Antwort.`,
               },
             ]
+
             try {
               const retry = await anthropic().messages.create({
                 model: COACH_MODEL,
                 max_tokens: 1024,
-                system: system.blocks,
-                messages: retryMessages,
+                system: strippedSystem,
+                messages: [
+                  ...lastUserTurns.slice(0, -1),
+                  {
+                    role: 'user' as const,
+                    content: body.message.trim() + correction,
+                  },
+                ],
               })
               const retryText = retry.content
                 .filter((b): b is Anthropic.TextBlock => b.type === 'text')
                 .map(b => b.text)
                 .join('')
-              if (retryText.trim().length > 0) {
-                controller.enqueue(
-                  encoder.encode(`event: replace\ndata: ${JSON.stringify({ text: retryText })}\n\n`)
-                )
-                finalText = retryText
-                outputTokens = (outputTokens ?? 0) + (retry.usage?.output_tokens ?? 0)
+
+              // Second-pass Deflection-Check auf das Retry-Ergebnis.
+              // Wenn der Retry IMMER NOCH deflektiert → ist das ein Hard-Bug,
+              // wir liefern eine generische honest Fallback-Antwort.
+              const retryDef = detectDeflection({
+                coachReply: retryText,
+                userMessage: body.message.trim(),
+              })
+
+              let finalReplacement = retryText
+              if (retryDef.isDeflection || retryText.trim().length === 0) {
+                console.error('[chat] retry STILL deflected → fallback to honest message')
+                finalReplacement =
+                  'Sorry — ich hänge hier in einer Schleife und kriege es trotz Korrektur nicht raus. ' +
+                  'Beste Lösung: lösch diese Conversation in der Sidebar (✕ beim Hover) und starte ein neues Gespräch. ' +
+                  'Dort frag mich nochmal — sollte sauber laufen, weil ich nicht mehr die alte Bewerbungs-Geschichte im Kontext habe.'
               }
+
+              controller.enqueue(
+                encoder.encode(`event: replace\ndata: ${JSON.stringify({ text: finalReplacement })}\n\n`)
+              )
+              finalText = finalReplacement
+              outputTokens = (outputTokens ?? 0) + (retry.usage?.output_tokens ?? 0)
             } catch (e) {
               console.error('[chat] auto-retry failed', e)
               // fail-open: belasse die ursprüngliche Antwort
