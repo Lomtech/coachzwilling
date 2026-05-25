@@ -216,7 +216,11 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
         <div className="px-4 pb-2 max-w-2xl w-full mx-auto text-sm text-[var(--color-danger)]">{error}</div>
       )}
       {speech.error && (
-        <div className="px-4 pb-2 max-w-2xl w-full mx-auto text-xs text-[var(--color-muted)]">{speech.error}</div>
+        <div className="px-4 pb-2 max-w-2xl w-full mx-auto">
+          <div className="text-xs text-[var(--color-danger)] bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/30 rounded-lg px-3 py-2">
+            {speech.error}
+          </div>
+        </div>
       )}
 
       {/* Composer */}
@@ -233,7 +237,7 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
             className="!min-h-[48px] !py-3"
             style={{ resize: 'none' }}
           />
-          {speech.supported && (
+          {speech.supported ? (
             <button
               type="button"
               onClick={toggleSpeech}
@@ -249,7 +253,17 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
             >
               {speech.listening ? '■' : '🎙'}
             </button>
-          )}
+          ) : speech.unsupportedReason ? (
+            <button
+              type="button"
+              disabled
+              className="btn btn-ghost opacity-40 cursor-not-allowed"
+              aria-label="Spracheingabe nicht verfügbar"
+              title={speech.unsupportedReason}
+            >
+              🎙
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={send}
