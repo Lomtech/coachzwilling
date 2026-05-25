@@ -217,8 +217,17 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
       )}
       {speech.error && (
         <div className="px-4 pb-2 max-w-2xl w-full mx-auto">
-          <div className="text-xs text-[var(--color-danger)] bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/30 rounded-lg px-3 py-2">
-            {speech.error}
+          <div className="text-xs text-[var(--color-danger)] bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/30 rounded-lg px-3 py-2 flex items-start gap-2">
+            <span className="flex-1">{speech.error}</span>
+            <button
+              type="button"
+              onClick={() => speech.clearError()}
+              className="text-[var(--color-danger)]/60 hover:text-[var(--color-danger)] shrink-0"
+              aria-label="Hinweis ausblenden"
+              title="Ausblenden"
+            >
+              ✕
+            </button>
           </div>
         </div>
       )}

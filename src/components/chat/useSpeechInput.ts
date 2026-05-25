@@ -26,6 +26,7 @@ interface UseSpeechInputResult {
   listening: boolean
   start: () => void
   stop: () => void
+  clearError: () => void
   error: string | null
   unsupportedReason: string | null
 }
@@ -117,27 +118,16 @@ export function useSpeechInput(args: {
       return
     }
     setSupported(true)
-
-    // Proaktiver Check: ist die Mikrofon-Berechtigung permanent blockiert?
-    // Permissions API ist nicht überall, daher try/catch + permissive Default.
-    try {
-      const navWithPerm = navigator as Navigator & {
-        permissions?: { query: (q: { name: string }) => Promise<{ state: string }> }
-      }
-      if (navWithPerm.permissions?.query) {
-        navWithPerm.permissions
-          .query({ name: 'microphone' as PermissionName })
-          .then(p => {
-            if (p.state === 'denied') {
-              setError(friendlyError('not-allowed'))
-            }
-          })
-          .catch(() => {/* Browser kennt 'microphone' nicht — egal */})
-      }
-    } catch {
-      // Permissions-API nicht da — egal, beim Klick wird's eh angefragt
-    }
+    // Wir checken die Mikrofon-Permission NICHT proaktiv beim Mount.
+    // Wenn der User das Feature gar nicht nutzt, soll auch keine Warnung
+    // den Chat-Screen mit Banner blockieren. Der Fehler erscheint erst
+    // dann, wenn der User wirklich auf den Mikro-Button klickt und es
+    // fehlschlägt (siehe rec.onerror unten).
   }, [])
+
+  function clearError() {
+    setError(null)
+  }
 
   function buildRecognition(): SpeechRecognitionInstance | null {
     const Ctor = getCtor()
@@ -236,5 +226,5 @@ export function useSpeechInput(args: {
     }
   }, [])
 
-  return { supported, listening, start, stop, error, unsupportedReason }
+  return { supported, listening, start, stop, clearError, error, unsupportedReason }
 }
