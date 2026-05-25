@@ -170,38 +170,47 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5">
         <div className="max-w-2xl mx-auto flex flex-col gap-3">
           {messages.length === 0 && <EmptyState />}
-          {messages.map(m => (
-            <Bubble
-              key={m.id}
-              msg={m}
-              onRate={async (rating) => {
-                // Optimistic UI: sofort updaten, dann persistieren
-                const previousRating = m.rating ?? null
-                const newRating = previousRating === rating ? null : rating
-                setMessages(prev =>
-                  prev.map(x => (x.id === m.id ? { ...x, rating: newRating } : x))
-                )
-                try {
-                  if (newRating === null) {
-                    await fetch(`/api/feedback?messageId=${encodeURIComponent(m.id)}`, {
-                      method: 'DELETE',
-                    })
-                  } else {
-                    await fetch('/api/feedback', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ messageId: m.id, rating: newRating }),
-                    })
-                  }
-                } catch {
-                  // Rollback bei Netzwerkfehler
+          {messages.map((m, i) => {
+            const isLast = i === messages.length - 1
+            // Daumen nur zeigen wenn:
+            // - Assistant-Message
+            // - Antwort ist FERTIG (nicht aktuell am streamen)
+            // - mindestens 1 Zeichen Inhalt da ist
+            const ratingAllowed =
+              m.role === 'assistant' &&
+              m.content.trim().length > 0 &&
+              !(streaming && isLast)
+            return (
+              <Bubble
+                key={m.id}
+                msg={m}
+                onRate={ratingAllowed ? async (rating) => {
+                  const previousRating = m.rating ?? null
+                  const newRating = previousRating === rating ? null : rating
                   setMessages(prev =>
-                    prev.map(x => (x.id === m.id ? { ...x, rating: previousRating } : x))
+                    prev.map(x => (x.id === m.id ? { ...x, rating: newRating } : x))
                   )
-                }
-              }}
-            />
-          ))}
+                  try {
+                    if (newRating === null) {
+                      await fetch(`/api/feedback?messageId=${encodeURIComponent(m.id)}`, {
+                        method: 'DELETE',
+                      })
+                    } else {
+                      await fetch('/api/feedback', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ messageId: m.id, rating: newRating }),
+                      })
+                    }
+                  } catch {
+                    setMessages(prev =>
+                      prev.map(x => (x.id === m.id ? { ...x, rating: previousRating } : x))
+                    )
+                  }
+                } : undefined}
+              />
+            )
+          })}
           {streaming && messages.at(-1)?.role === 'assistant' && messages.at(-1)?.content === '' && (
             <div className="bubble bubble-assistant">
               <span className="typing-dot" />
@@ -289,15 +298,26 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
 }
 
 function Bubble({ msg, onRate }: { msg: Message; onRate?: (rating: 1 | -1) => void }) {
-  // Feedback nur für persistierte Assistant-Messages (UUID, nicht "streaming-…")
+  // Feedback nur für persistierte Assistant-Messages (UUID-Pattern, nicht das
+  // alte "streaming-"-Format) + nur wenn ChatView per onRate erlaubt hat.
   const canRate = msg.role === 'assistant' && /^[0-9a-f]{8}-/i.test(msg.id) && !!onRate
+  const rated = msg.rating === 1 || msg.rating === -1
   return (
-    <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+    <div className={`group flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
       <div className={`bubble ${msg.role === 'user' ? 'bubble-user' : 'bubble-assistant prose-coach'}`}>
         {renderText(msg.content)}
       </div>
       {canRate && (
-        <div className="mt-1 flex gap-1 opacity-60 hover:opacity-100 transition">
+        <div
+          className={
+            'mt-1 flex gap-1 transition-opacity duration-150 ' +
+            // Standard: unsichtbar. Erst bei Hover über die Bubble erscheinen,
+            // oder dauerhaft sichtbar wenn der User bereits bewertet hat.
+            (rated
+              ? 'opacity-100'
+              : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100')
+          }
+        >
           <button
             type="button"
             onClick={() => onRate?.(1)}
