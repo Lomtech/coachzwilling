@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSpeechInput } from './useSpeechInput'
 import { IconMic, IconStop } from '@/components/Icons'
@@ -29,9 +29,33 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
   // Speech-Input: getrennt halten von `input` damit interim-Hypothesen
   // den finalen Text nicht überschreiben können.
   const speechBaseRef = useRef<string>('')
+  // Initial-Scroll-Tracking: erster Scroll instant (kein Animation-Lag bei
+  // langen Conversations), danach smooth wenn neue Messages reinkommen.
+  const hasInitiallyScrolledRef = useRef(false)
 
+  // SOFORT zum Bottom scrollen wenn die Component mit initialMessages mountet.
+  // useLayoutEffect statt useEffect verhindert dass der User für einen Frame
+  // die Spitze des Chats sieht — der Scroll passiert vor dem ersten Paint.
+  useLayoutEffect(() => {
+    if (!scrollRef.current) return
+    scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    hasInitiallyScrolledRef.current = true
+    // Keine Dependencies → läuft nur einmal beim Mount (Conv-Switch macht
+    // Re-Mount via key-Prop in coach/page.tsx, also fired auch bei Switch).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Folge-Scrolls: smooth, aber nur wenn der User nahe am Bottom ist
+  // (damit ihm das Lesen der History nicht weggescrollt wird wenn die neue
+  // Coach-Antwort streamt).
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+    if (!hasInitiallyScrolledRef.current) return
+    const el = scrollRef.current
+    if (!el) return
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200
+    if (nearBottom) {
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+    }
   }, [messages, streaming])
 
   const speech = useSpeechInput({
