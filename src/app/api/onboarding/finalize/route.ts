@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   // Antworten kommen entweder direkt mit (Robustheit: falls Auto-Save nicht lief)
   // oder werden aus der DB geladen.
   const body = (await req.json().catch(() => null)) as
-    | { answers?: Record<string, string> }
+    | { answers?: Record<string, string>; followupOptIn?: boolean }
     | null
 
   // Letzte Response holen
@@ -97,12 +97,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: insErr.message }, { status: 500 })
   }
 
+  // Follow-up-Opt-in mit-persistieren falls der User im Onboarding "Ja" gesagt hat.
+  // Default bleibt false (DSGVO-safe) — User muss explizit opt-in.
+  const profileUpdate: { onboarding_state: string; followup_enabled?: boolean } = {
+    onboarding_state: 'profiled',
+  }
+  if (body?.followupOptIn === true) {
+    profileUpdate.followup_enabled = true
+  }
+
   await Promise.all([
     supa.from('questionnaire_responses')
       .update({ completed_at: new Date().toISOString() })
       .eq('id', responseId),
     supa.from('profiles')
-      .update({ onboarding_state: 'profiled' })
+      .update(profileUpdate)
       .eq('id', user.id),
   ])
 

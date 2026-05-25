@@ -27,6 +27,10 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
   const [probesUsed, setProbesUsed] = useState(0)
   const [probeAttempted, setProbeAttempted] = useState<Set<number>>(new Set())
 
+  // Opt-in für Follow-up-Mails — wird auf dem letzten Frage-Screen unter dem
+  // "Profil erstellen"-Button als kleine Karte gezeigt. Default false (DSGVO).
+  const [followupOptIn, setFollowupOptIn] = useState(false)
+
   const q: Question = QUESTIONS[index]
   const rawAnswer = answers[String(q.id)] ?? ''
   // Wenn die Antwort schon einen Probe-Supplement enthält (Format: "X | Y"), nimm nur den ersten Teil als raw
@@ -136,7 +140,7 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
       const res = await fetch('/api/onboarding/finalize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers }),
+        body: JSON.stringify({ answers, followupOptIn }),
       })
       if (!res.ok) {
         const t = await res.text()
@@ -250,6 +254,25 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
           <div className="mt-4 text-xs text-[var(--color-muted)] text-right">
             Vertiefungsfragen genutzt: {probesUsed} / {MAX_PROBES_PER_SCAN}
           </div>
+        )}
+
+        {/* Follow-up-Opt-in nur auf der letzten Frage anzeigen — dezent, kein Modal */}
+        {isLast && !probeQuestion && (
+          <label
+            className="mt-8 flex items-start gap-3 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-2)]/50 cursor-pointer hover:bg-[var(--color-surface-2)] transition"
+          >
+            <input
+              type="checkbox"
+              checked={followupOptIn}
+              onChange={(e) => setFollowupOptIn(e.target.checked)}
+              className="mt-1 w-4 h-4 shrink-0"
+            />
+            <span className="text-sm text-[var(--color-ink-2)]">
+              <span className="font-medium text-[var(--color-ink)]">Follow-up-Mails vom Coach aktivieren.</span>{' '}
+              In regelmäßigen Abständen knüpft dein Coach per Email an offene Punkte aus euren Gesprächen an.
+              Frequenz + Pause jederzeit in den Einstellungen änderbar, ein-Klick-Abbestellen über jede Mail.
+            </span>
+          </label>
         )}
       </div>
 
