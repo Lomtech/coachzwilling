@@ -103,6 +103,7 @@ export interface DeflectionResult {
   matchedPrefix?: string
 }
 
+// Pattern 1: Antwort beginnt direkt mit "Erst:" / "Zuerst:" / etc.
 const DEFLECTION_PREFIXES = [
   /^erst:\s*/i,
   /^zuerst:?\s+/i,
@@ -113,6 +114,26 @@ const DEFLECTION_PREFIXES = [
   /^das machen wir gleich\.?\s*(zu)?erst:?\s+/i,
   /^einen moment\.?\s*(zu)?erst:?\s+/i,
 ]
+
+// Pattern 2: "Ja, aber erst…" — die hinterhältige Variante: tut so als würde sie
+// die Frage beantworten ("Das machen wir / Das beantworte ich"), schiebt aber
+// eine Vorbedingung ein. Dieses Pattern sucht überall in den ersten 200 Zeichen.
+const DEFLECTION_INLINE = [
+  /\b(aber|doch)\s+(zu)?erst\b/i,             // "...aber erst...", "...doch erst..."
+  /\b—\s*(zu)?erst\b/i,                       // "Das machen wir — erst..."
+  /^das (mach|kommt|beantworte|kläre|sage|sag dir|machen wir)/i, // Eingang von Deflection-Sätzen
+]
+
+// Whitelist: wenn das Antwort-Start klar substanziell ist (Liste, lange Erklärung,
+// direkter Inhalt), gilt's NICHT als Deflection auch wenn "aber erst" vorkommt.
+function looksSubstantive(reply: string): boolean {
+  const trimmed = reply.trim()
+  // Bullet-Liste oder nummerierte Liste in den ersten 200 Zeichen → echte Antwort
+  if (/^[\s\S]{0,60}(\n[•\-*\d])/.test(trimmed)) return true
+  // Mehr als 3 Absätze → echte ausführliche Antwort
+  if (trimmed.split(/\n\n+/).length >= 3) return true
+  return false
+}
 
 export function detectDeflection(args: {
   coachReply: string
@@ -125,14 +146,36 @@ export function detectDeflection(args: {
   const userIsSubstantive = userMsg.length >= 30 || /\?\s*$/.test(userMsg)
   if (!userIsSubstantive) return { isDeflection: false }
 
-  // Erste 1-2 Zeilen der Coach-Antwort gegen Prefix-Liste prüfen
-  const firstChunk = reply.split('\n').slice(0, 2).join(' ').slice(0, 120)
+  // Wenn der Coach klar substantiell antwortet (Liste, mehrere Absätze) — kein
+  // Retry triggern, auch wenn irgendwo später "aber erst" vorkommt.
+  if (looksSubstantive(reply)) return { isDeflection: false }
+
+  const firstChunk = reply.split('\n').slice(0, 3).join(' ').slice(0, 240)
+
+  // Pattern 1: Prefix-Match
   for (const rx of DEFLECTION_PREFIXES) {
     const m = firstChunk.match(rx)
     if (m) {
       return { isDeflection: true, matchedPrefix: m[0].trim() }
     }
   }
+
+  // Pattern 2: Inline-Deflection ("Das machen wir — aber erst...")
+  // Trigger nur wenn ZWEI der Inline-Pattern matchen (Eingang + aber-erst),
+  // sonst zu viele False Positives.
+  let inlineHits = 0
+  let firstMatch = ''
+  for (const rx of DEFLECTION_INLINE) {
+    const m = firstChunk.match(rx)
+    if (m) {
+      inlineHits++
+      if (!firstMatch) firstMatch = m[0].trim()
+    }
+  }
+  if (inlineHits >= 2) {
+    return { isDeflection: true, matchedPrefix: firstMatch }
+  }
+
   return { isDeflection: false }
 }
 
