@@ -3,8 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSpeechInput } from './useSpeechInput'
-import { useAudioUpload } from './useAudioUpload'
-import { IconMic, IconStop, IconUpload, IconSpinner } from '@/components/Icons'
+import { IconMic, IconStop } from '@/components/Icons'
 
 interface Message {
   id: string
@@ -89,23 +88,6 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
       speech.start()
     }
   }
-
-  // Fallback: Audio-Datei hochladen + Whisper-Transkription. Funktioniert auch
-  // wenn Chrome die Mikrofon-Permission für diese Domain dauerhaft blockiert.
-  const audioUpload = useAudioUpload({
-    onTranscript: (text) => {
-      const sep = input && !input.endsWith(' ') && text ? ' ' : ''
-      setInput(input + sep + text)
-      requestAnimationFrame(() => {
-        const ta = taRef.current
-        if (ta) {
-          ta.style.height = 'auto'
-          ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`
-          ta.focus()
-        }
-      })
-    },
-  })
 
   async function send() {
     const text = input.trim()
@@ -276,34 +258,13 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
       {speech.error && (
         <div className="px-4 pb-2 max-w-2xl w-full mx-auto">
           <div className="text-xs text-[var(--color-danger)] bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/30 rounded-lg px-3 py-2 flex items-start gap-2">
-            <span className="flex-1">
-              {speech.error}
-              {' '}
-              <span className="text-[var(--color-ink-2)]">
-                Oder nutze das ⬆-Symbol rechts und lade eine Audio-Datei hoch — funktioniert auch ohne Browser-Mikro.
-              </span>
-            </span>
+            <span className="flex-1">{speech.error}</span>
             <button
               type="button"
               onClick={() => speech.clearError()}
               className="text-[var(--color-danger)]/60 hover:text-[var(--color-danger)] shrink-0"
               aria-label="Hinweis ausblenden"
               title="Ausblenden"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-      {audioUpload.error && (
-        <div className="px-4 pb-2 max-w-2xl w-full mx-auto">
-          <div className="text-xs text-[var(--color-danger)] bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/30 rounded-lg px-3 py-2 flex items-start gap-2">
-            <span className="flex-1">Audio-Upload: {audioUpload.error}</span>
-            <button
-              type="button"
-              onClick={() => audioUpload.clearError()}
-              className="text-[var(--color-danger)]/60 hover:text-[var(--color-danger)] shrink-0"
-              aria-label="Hinweis ausblenden"
             >
               ✕
             </button>
@@ -353,18 +314,6 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
             </button>
           ) : null}
 
-          {/* Whisper-Fallback: Audio-Datei hochladen, funktioniert IMMER
-              (auch bei dauerhaft blockiertem Browser-Mikro) */}
-          <button
-            type="button"
-            onClick={audioUpload.trigger}
-            disabled={streaming || audioUpload.uploading}
-            className="btn btn-ghost inline-flex items-center justify-center"
-            aria-label="Audio-Datei hochladen und transkribieren"
-            title={audioUpload.uploading ? 'Transkribiere …' : 'Audio-Datei hochladen (Whisper) — funktioniert immer, auch ohne Browser-Mikro'}
-          >
-            {audioUpload.uploading ? <IconSpinner className="w-5 h-5" /> : <IconUpload className="w-5 h-5" />}
-          </button>
           <button
             type="button"
             onClick={send}
