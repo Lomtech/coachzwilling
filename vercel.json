@@ -5,6 +5,14 @@
   "regions": ["fra1"],
   "functions": {
     "src/app/api/chat/route.ts": { "maxDuration": 60 },
-    "src/app/api/onboarding/finalize/route.ts": { "maxDuration": 120 }
-  }
+    "src/app/api/onboarding/finalize/route.ts": { "maxDuration": 120 },
+    "src/app/api/coach/refine/route.ts": { "maxDuration": 300 },
+    "src/app/api/cron/followups/route.ts": { "maxDuration": 300 }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/followups",
+      "schedule": "0 7 * * *"
+    }
+  ]
 }

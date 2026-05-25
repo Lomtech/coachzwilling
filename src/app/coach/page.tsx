@@ -11,13 +11,45 @@ export const dynamic = 'force-dynamic'
 export default async function CoachPage({
   searchParams,
 }: {
-  searchParams: Promise<{ c?: string }>
+  searchParams: Promise<{ c?: string; followup?: string }>
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/coach')
 
-  const { c: convId } = await searchParams
+  const { c: convId, followup: followupId } = await searchParams
+
+  // Follow-up-Email-Klick: User kommt aus seiner Mail. Wir erstellen eine
+  // neue Conversation in der die Email-Frage als erster Coach-Turn vorgefüllt
+  // ist, damit der User direkt antworten kann. Dann redirect zur frischen Conv.
+  if (followupId && !convId) {
+    const { data: fu } = await supabase
+      .from('email_followups')
+      .select('subject, body_text')
+      .eq('id', followupId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (fu) {
+      // Coach-Turn-Text: Subject + Body ohne den CTA-Link am Ende
+      const cleanBody = fu.body_text.replace(/Schreib hier rein:.*$/s, '').trim()
+      const coachText = `${fu.subject}\n\n${cleanBody}`
+      // Neue Conv anlegen + Coach-Message persistieren
+      const { data: newConv } = await supabase
+        .from('conversations')
+        .insert({ user_id: user.id, title: fu.subject.slice(0, 60) })
+        .select('id')
+        .single()
+      if (newConv) {
+        await supabase.from('messages').insert({
+          conversation_id: newConv.id,
+          user_id: user.id,
+          role: 'assistant',
+          content: coachText,
+        })
+        redirect(`/coach?c=${newConv.id}`)
+      }
+    }
+  }
 
   // Letzte Conversations + Trial-Status + User-Profil (für Avatar)
   const [{ data: conversations }, { data: profile }, { data: sub }] = await Promise.all([

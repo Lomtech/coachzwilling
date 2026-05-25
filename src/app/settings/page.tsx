@@ -12,6 +12,7 @@ import { RestartOnboardingButton } from './RestartOnboardingButton'
 import { ProfileViewer } from './ProfileViewer'
 import { ShareProfileSection } from './ShareProfileSection'
 import { TestimonialSection } from './TestimonialSection'
+import { FollowupSection } from './FollowupSection'
 import { IconChevronDown, IconSettings, IconCompare } from '@/components/Icons'
 import { isAdminEmail } from '@/lib/admin-auth'
 
@@ -22,8 +23,8 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/settings')
 
-  const [{ data: profile }, { data: sub }, { data: cp }, { data: memoryRows }, { count: memoryCount }, { count: assistantMsgCount }, { count: testimonialCount }] = await Promise.all([
-    supabase.from('profiles').select('full_name, email, onboarding_state, created_at, trial_until').eq('id', user.id).maybeSingle(),
+  const [{ data: profile }, { data: sub }, { data: cp }, { data: memoryRows }, { count: memoryCount }, { count: assistantMsgCount }, { count: testimonialCount }, { data: recentFollowups }] = await Promise.all([
+    supabase.from('profiles').select('full_name, email, onboarding_state, created_at, trial_until, followup_enabled, followup_frequency_days, last_followup_at').eq('id', user.id).maybeSingle(),
     supabase.from('subscriptions').select('status, current_period_end, cancel_at_period_end').eq('user_id', user.id).maybeSingle(),
     supabase.from('coach_profiles')
       .select('id, generated_at, model, version, source, memories_used_count, config_md, share_token, share_enabled')
@@ -43,6 +44,11 @@ export default async function SettingsPage() {
     supabase.from('testimonials')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id),
+    supabase.from('email_followups')
+      .select('id, subject, sent_at, opened_at, clicked_at')
+      .eq('user_id', user.id)
+      .order('composed_at', { ascending: false })
+      .limit(5),
   ])
 
   const memoriesSinceRefresh = Math.max(0, (memoryCount ?? 0) - (cp?.memories_used_count ?? 0))
@@ -149,6 +155,13 @@ export default async function SettingsPage() {
         showPrompt={(assistantMsgCount ?? 0) >= 5}
         alreadySubmitted={(testimonialCount ?? 0) > 0}
         defaultName={profile?.full_name ?? null}
+      />
+
+      <FollowupSection
+        initialEnabled={profile?.followup_enabled ?? false}
+        initialFrequencyDays={profile?.followup_frequency_days ?? 4}
+        lastSent={profile?.last_followup_at ?? null}
+        recentMails={recentFollowups ?? []}
       />
 
       <section className="card mb-4">

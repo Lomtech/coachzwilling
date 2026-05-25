@@ -7,9 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
+  __InternalSupabase: { PostgrestVersion: "14.5" }
   public: {
     Tables: {
       coach_memory: {
@@ -111,6 +109,51 @@ export type Database = {
         }
         Relationships: []
       }
+      commitments: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          due_hint: string | null
+          id: string
+          importance: number
+          resolution_note: string | null
+          resolved_at: string | null
+          source_msg_id: string | null
+          status: string
+          text: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          due_hint?: string | null
+          id?: string
+          importance?: number
+          resolution_note?: string | null
+          resolved_at?: string | null
+          source_msg_id?: string | null
+          status?: string
+          text: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          due_hint?: string | null
+          id?: string
+          importance?: number
+          resolution_note?: string | null
+          resolved_at?: string | null
+          source_msg_id?: string | null
+          status?: string
+          text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string
@@ -131,6 +174,66 @@ export type Database = {
           id?: string
           title?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_followups: {
+        Row: {
+          body_html: string | null
+          body_text: string
+          bounced_at: string | null
+          click_target: string | null
+          clicked_at: string | null
+          complained_at: string | null
+          composed_at: string
+          expires_at: string
+          id: string
+          opened_at: string | null
+          resend_message_id: string | null
+          run_id: string | null
+          sent_at: string | null
+          signed_token: string
+          source_summary: string | null
+          subject: string
+          user_id: string
+        }
+        Insert: {
+          body_html?: string | null
+          body_text: string
+          bounced_at?: string | null
+          click_target?: string | null
+          clicked_at?: string | null
+          complained_at?: string | null
+          composed_at?: string
+          expires_at: string
+          id?: string
+          opened_at?: string | null
+          resend_message_id?: string | null
+          run_id?: string | null
+          sent_at?: string | null
+          signed_token: string
+          source_summary?: string | null
+          subject: string
+          user_id: string
+        }
+        Update: {
+          body_html?: string | null
+          body_text?: string
+          bounced_at?: string | null
+          click_target?: string | null
+          clicked_at?: string | null
+          complained_at?: string | null
+          composed_at?: string
+          expires_at?: string
+          id?: string
+          opened_at?: string | null
+          resend_message_id?: string | null
+          run_id?: string | null
+          sent_at?: string | null
+          signed_token?: string
+          source_summary?: string | null
+          subject?: string
           user_id?: string
         }
         Relationships: []
@@ -247,8 +350,12 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          followup_enabled: boolean
+          followup_frequency_days: number
+          followup_unsubscribed_at: string | null
           full_name: string | null
           id: string
+          last_followup_at: string | null
           onboarding_state: string
           trial_until: string | null
           updated_at: string
@@ -256,8 +363,12 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
+          followup_enabled?: boolean
+          followup_frequency_days?: number
+          followup_unsubscribed_at?: string | null
           full_name?: string | null
           id: string
+          last_followup_at?: string | null
           onboarding_state?: string
           trial_until?: string | null
           updated_at?: string
@@ -265,8 +376,12 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+          followup_enabled?: boolean
+          followup_frequency_days?: number
+          followup_unsubscribed_at?: string | null
           full_name?: string | null
           id?: string
+          last_followup_at?: string | null
           onboarding_state?: string
           trial_until?: string | null
           updated_at?: string
@@ -370,16 +485,12 @@ export type Database = {
         Relationships: []
       }
     }
-    Views: {
-      [_ in never]: never
-    }
+    Views: { [_ in never]: never }
     Functions: {
       next_profile_version: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: Record<string, never>
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    CompositeTypes: { [_ in never]: never }
   }
 }
 

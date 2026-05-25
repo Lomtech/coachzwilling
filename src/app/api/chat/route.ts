@@ -5,6 +5,7 @@ import { anthropic, COACH_MODEL } from '@/lib/claude/client'
 import { buildCoachSystem } from '@/lib/coach/system-prompt'
 import { loadMemoryForCoach, extractMemoryFromTurn } from '@/lib/coach/memory'
 import { maybeAutoRefresh } from '@/lib/coach/refine'
+import { extractCommitmentsFromTurn } from '@/lib/coach/commitments'
 import { validateFirstTurn, buildCorrectionInstruction } from '@/lib/coach/validator'
 import {
   detectRepetition,
@@ -382,9 +383,10 @@ export async function POST(req: NextRequest) {
               .eq('id', convIdFinal)
           }
 
-          // Living Memory: nach jedem Coach-Turn extrahieren (Haiku, async, fail-safe)
+          // Living Memory + Commitments PARALLEL extrahieren (beides Haiku, ~2s je).
+          // fail-safe: ein Fehler in einem Pfad blockiert nicht den anderen.
           if (finalText.length > 50) {
-            const memEntry = await extractMemoryFromTurn({
+            const memoryPromise = extractMemoryFromTurn({
               userId: user.id,
               conversationId: convIdFinal,
               assistantMessageId: insertedMsgId,
@@ -394,7 +396,22 @@ export async function POST(req: NextRequest) {
                 role: m.role as 'user' | 'assistant',
                 content: m.content,
               })) ?? [],
+            }).catch(e => {
+              console.error('[memory] extract failed', e)
+              return null
             })
+
+            const commitmentsPromise = extractCommitmentsFromTurn({
+              userId: user.id,
+              conversationId: convIdFinal,
+              sourceMsgId: insertedMsgId,
+              coachQuestion: finalText,
+              userReply: body.message.trim(),
+            }).catch(e => {
+              console.error('[commitments] extract failed', e)
+            })
+
+            const [memEntry] = await Promise.all([memoryPromise, commitmentsPromise])
 
             // Auto-Refresh: wenn neue Memory geschrieben + ≥20 seit letztem Refresh,
             // schärft sich das Profil im Hintergrund (Opus-Call).
