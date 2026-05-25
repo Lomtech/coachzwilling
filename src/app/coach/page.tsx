@@ -40,22 +40,28 @@ export default async function CoachPage({
   let initialMessages: { id: string; role: 'user' | 'assistant'; content: string; rating?: 1 | -1 | null }[] = []
 
   if (convId) {
-    const { data: conv } = await supabase
-      .from('conversations')
-      .select('id')
-      .eq('id', convId)
-      .eq('user_id', user.id)
-      .maybeSingle()
-    if (conv) {
-      activeId = conv.id
-      const { data: msgs } = await supabase
+    // Ownership-Check + Messages in einem Schwung parallel laden.
+    // Vorher waren das 2 serielle Queries (conv → msgs) + 1 weiterer
+    // serieller Query für Feedback → bis zu 3× Round-Trip pro Switch.
+    const [{ data: conv }, { data: msgs }] = await Promise.all([
+      supabase
+        .from('conversations')
+        .select('id')
+        .eq('id', convId)
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase
         .from('messages')
         .select('id, role, content')
-        .eq('conversation_id', conv.id)
+        .eq('conversation_id', convId)
         .in('role', ['user', 'assistant'])
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: true }),
+    ])
 
-      // Feedback für alle Assistant-Messages in dieser Conversation laden
+    if (conv) {
+      activeId = conv.id
+
+      // Feedback parallel zu evtl. weiteren Abfragen
       const assistantIds = (msgs ?? [])
         .filter(m => m.role === 'assistant')
         .map(m => m.id)

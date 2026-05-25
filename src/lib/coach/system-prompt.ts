@@ -28,6 +28,7 @@ export function buildCoachSystem(
   memoryMd: string,
   toneOneliner?: string | null,
   languageMirror?: string | null,
+  opts?: { isFreshConversation?: boolean },
 ): CoachSystemBlocks {
   const profileBlock = `=== PROFIL DES NUTZERS (Onboarding-Auswertung, intern, nicht zitieren) ===\n\n${coachProfileMd}\n\n=== ENDE PROFIL ===`
 
@@ -39,10 +40,22 @@ export function buildCoachSystem(
   ]
 
   // Block 3: Living Memory (optional)
+  // Bei FRESH CONVERSATION (erster Turn in einem neu gestarteten Chat): Memory
+  // wird mit einer "Zurückhaltungs"-Anweisung verpackt, damit der Coach nicht
+  // proaktiv Bewerbungs-Themen aus einer alten Conversation in die neue zieht.
+  // User entscheidet die Agenda. Memory bleibt verfügbar für Pattern-Erkennung.
   if (memoryMd && memoryMd.trim().length > 0) {
+    const restraintNote = opts?.isFreshConversation
+      ? '\n\nWICHTIG für DIESEN Turn: Dies ist ein NEU gestartetes Gespräch. ' +
+        'Bring keine offenen Themen aus diesem Memory von dir aus zur Sprache ' +
+        '(z. B. "Wann schickst du die Bewerbungen raus?" wenn der User dich grade ' +
+        'erst gegrüßt hat). Memory ist Hintergrund-Wissen über die Person, kein ' +
+        'Agenda-Punkt. Lass den User entscheiden worüber gesprochen wird, und nutze ' +
+        'Memory nur dann aktiv wenn der aktuelle Input tatsächlich an ein Memory-Muster anknüpft.\n'
+      : ''
     blocks.push({
       type: 'text',
-      text: `=== LIVING MEMORY (aus früheren Gesprächen, intern, nicht zitieren) ===\n\n${memoryMd}\n\n=== ENDE LIVING MEMORY ===`,
+      text: `=== LIVING MEMORY (aus früheren Gesprächen, intern, nicht zitieren) ===\n\n${memoryMd}\n${restraintNote}\n=== ENDE LIVING MEMORY ===`,
       cache_control: { type: 'ephemeral' },
     })
   }

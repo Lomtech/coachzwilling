@@ -105,6 +105,7 @@ export function ConversationItem({ id, title, active }: Props) {
     >
       <Link
         href={`/coach?c=${id}`}
+        prefetch={true}
         className={
           'flex-1 min-w-0 px-3 py-2.5 text-sm truncate ' +
           (active ? 'text-white' : 'text-[var(--color-ink-2)]')

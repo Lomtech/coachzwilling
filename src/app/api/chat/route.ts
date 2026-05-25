@@ -109,7 +109,17 @@ export async function POST(req: NextRequest) {
 
   // Living Memory laden (kann leer sein bei ersten Sessions)
   const memoryMd = await loadMemoryForCoach(user.id)
-  const system = buildCoachSystem(cp.config_md, memoryMd, cp.tone_oneliner, cp.language_mirror)
+  // isFreshConversation: erster Turn in einem neu gestarteten Chat
+  // → Coach soll keine alten Themen (z. B. offene Bewerbungen) proaktiv aufgreifen.
+  // Memory ist trotzdem im Kontext, nur mit Zurückhaltungs-Anweisung verpackt.
+  const isFreshConversation = (history?.length ?? 0) === 0
+  const system = buildCoachSystem(
+    cp.config_md,
+    memoryMd,
+    cp.tone_oneliner,
+    cp.language_mirror,
+    { isFreshConversation },
+  )
 
   // SSE-Stream zum Client + parallel im Hintergrund Persistierung
   const encoder = new TextEncoder()
