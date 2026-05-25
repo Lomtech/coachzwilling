@@ -95,9 +95,11 @@ export function RefineProfileButton({ hasMemories }: { hasMemories: boolean }) {
     <>
       <button
         onClick={() => setStep('confirm')}
-        className="text-sm font-medium text-[var(--color-accent)] hover:underline underline-offset-2"
+        className="btn btn-primary btn-block flex items-center justify-center gap-2"
+        aria-label="Tiefen-Analyse starten — Profil aus allen Quellen neu aufbauen"
       >
-        ↻ Tiefen-Analyse: Profil aus allen Quellen neu aufbauen
+        <span aria-hidden>↻</span>
+        <span>Tiefen-Analyse: Profil aus allen Quellen schärfen</span>
       </button>
       {error && <div className="mt-2 text-sm text-[var(--color-danger)]">{error}</div>}
     </>

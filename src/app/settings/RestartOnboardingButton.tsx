@@ -65,9 +65,11 @@ export function RestartOnboardingButton() {
     <>
       <button
         onClick={() => setStep('confirm')}
-        className="text-xs text-[var(--color-muted)] hover:text-[var(--color-ink)] underline underline-offset-2"
+        className="btn btn-ghost btn-block flex items-center justify-center gap-2 text-sm"
+        aria-label="Den 42-Fragen-Scan komplett neu durchgehen"
       >
-        Fragebogen neu machen
+        <span aria-hidden>📝</span>
+        <span>Fragebogen komplett neu machen</span>
       </button>
       {error && <div className="mt-2 text-sm text-[var(--color-danger)]">{error}</div>}
     </>

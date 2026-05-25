@@ -99,7 +99,9 @@ export default async function SettingsPage() {
                 }
               />
             )}
-            <div className="mt-4 pt-3 border-t border-[var(--color-border)] space-y-3">
+            {/* Primärer Block: Profil ansehen + Tiefen-Analyse — die zwei
+                Aktionen die jeder User braucht. */}
+            <div className="mt-4 pt-4 border-t border-[var(--color-border)] space-y-2">
               <ProfileViewer profile={{
                 id: cp.id,
                 version: cp.version,
@@ -108,9 +110,25 @@ export default async function SettingsPage() {
                 configMd: cp.config_md,
               }} />
               <RefineProfileButton hasMemories={(memoryCount ?? 0) > 0} />
-              <RegenerateProfileButton />
-              <RestartOnboardingButton />
             </div>
+
+            {/* Sekundärer Block: seltenere Aktionen, optisch deutlich abgesetzt. */}
+            <details className="mt-4 pt-4 border-t border-[var(--color-border)] group">
+              <summary className="cursor-pointer list-none flex items-center justify-between text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wider hover:text-[var(--color-ink)]">
+                <span>Erweitert — Profil zurücksetzen</span>
+                <span aria-hidden className="transition-transform group-open:rotate-180">▾</span>
+              </summary>
+              <div className="mt-3 space-y-2">
+                <RegenerateProfileButton />
+                <RestartOnboardingButton />
+                <p className="text-xs text-[var(--color-muted)] pt-2">
+                  „Neu generieren" baut das Profil ausschließlich aus deinen 42 Onboarding-Antworten —
+                  Memory + Chat-Verlauf bleiben erhalten, fließen aber nicht ein. „Fragebogen neu machen"
+                  startet den 42-Fragen-Scan komplett neu — sinnvoll wenn sich deine Situation grundlegend
+                  geändert hat.
+                </p>
+              </div>
+            </details>
           </>
         ) : (
           <p className="text-sm text-[var(--color-ink-2)]">

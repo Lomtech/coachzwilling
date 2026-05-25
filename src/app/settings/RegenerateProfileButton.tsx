@@ -65,9 +65,11 @@ export function RegenerateProfileButton() {
     <>
       <button
         onClick={() => setStep('confirm')}
-        className="text-xs text-[var(--color-muted)] hover:text-[var(--color-ink)] underline underline-offset-2"
+        className="btn btn-ghost btn-block flex items-center justify-center gap-2 text-sm"
+        aria-label="Profil aus 42 Onboarding-Antworten komplett neu generieren"
       >
-        Profil neu generieren
+        <span aria-hidden>🔄</span>
+        <span>Profil neu aus Antworten generieren</span>
       </button>
       {error && <div className="mt-2 text-sm text-[var(--color-danger)]">{error}</div>}
     </>

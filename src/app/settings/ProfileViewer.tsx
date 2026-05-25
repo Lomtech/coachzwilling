@@ -43,18 +43,20 @@ export function ProfileViewer({ profile }: { profile: ProfileItem | null }) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="text-sm font-medium text-[var(--color-accent)] hover:underline underline-offset-2 inline-flex items-center gap-1"
+        className="btn btn-secondary btn-block flex items-center justify-center gap-2"
+        aria-expanded={open}
       >
-        {open ? '▾' : '▸'} Mein Coach-Profil ansehen
+        <span aria-hidden>{open ? '👁' : '📄'}</span>
+        <span>{open ? 'Profil ausblenden' : 'Mein Coach-Profil ansehen'}</span>
       </button>
 
       {open && (
-        <div className="mt-4">
+        <div className="mt-4 anim-fade-up">
           <div className="flex gap-2 mb-3">
-            <button onClick={copy} className="btn btn-secondary text-xs px-3 py-1">
+            <button onClick={copy} className="btn btn-ghost text-xs px-3 py-1">
               {copied ? '✓ Kopiert' : 'Kopieren'}
             </button>
-            <button onClick={download} className="btn btn-secondary text-xs px-3 py-1">
+            <button onClick={download} className="btn btn-ghost text-xs px-3 py-1">
               Als .md herunterladen
             </button>
           </div>
@@ -64,8 +66,9 @@ export function ProfileViewer({ profile }: { profile: ProfileItem | null }) {
             </pre>
           </div>
           <p className="mt-3 text-xs text-[var(--color-muted)]">
-            Dies ist die interne Konfiguration, die dein Coach bei jeder Antwort als Wissensbasis
-            erhält. Du kannst sie kopieren, herunterladen oder via „Profil auffrischen" mit Chat-Erkenntnissen aktualisieren.
+            Das ist die vollständige interne Konfiguration, die dein Coach bei jeder Antwort
+            kennt. Sektionen 10 + 11 (Tonprofil-Echo + Sprach-Mirror) bekommen im System-Prompt
+            zusätzlich die höchste Priorität.
           </p>
         </div>
       )}
