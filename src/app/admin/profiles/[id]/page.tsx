@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { serviceClient } from '@/lib/supabase/service'
+import { isHiddenUserId } from '@/lib/admin/hidden-users'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +16,8 @@ export default async function AdminProfileDetailPage({ params }: { params: Promi
     .maybeSingle()
 
   if (!profile) notFound()
+  // Profile von hidden Users: nicht anzeigbar
+  if (await isHiddenUserId(profile.user_id)) notFound()
 
   const [{ data: user }, { data: otherVersions }, { data: response }] = await Promise.all([
     supa.from('profiles').select('email, full_name').eq('id', profile.user_id).maybeSingle(),

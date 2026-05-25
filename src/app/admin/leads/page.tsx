@@ -1,5 +1,6 @@
 import { requireAdmin } from '@/lib/admin-auth'
 import { serviceClient } from '@/lib/supabase/service'
+import { getHiddenUserIds, isHiddenEmail } from '@/lib/admin/hidden-users'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,13 +20,19 @@ export default async function AdminLeadsPage() {
   await requireAdmin()
   const supa = serviceClient()
 
+  const hiddenIds = await getHiddenUserIds()
   const { data: leads } = await supa
     .from('leads')
     .select('id, email, name, source, short_profile, answers, user_agent, converted_user_id, created_at')
     .order('created_at', { ascending: false })
     .limit(200)
 
-  const items = (leads ?? []) as LeadRow[]
+  // Doppel-Filter: per Email (Pre-Auth-Leads) und converted_user_id (post-Auth)
+  const items = ((leads ?? []) as LeadRow[]).filter(l => {
+    if (l.converted_user_id && hiddenIds.has(l.converted_user_id)) return false
+    if (isHiddenEmail(l.email)) return false
+    return true
+  })
   const stats = {
     total: items.length,
     withEmail: items.filter(l => !!l.email).length,

@@ -1,5 +1,6 @@
 import { requireAdmin } from '@/lib/admin-auth'
 import { serviceClient } from '@/lib/supabase/service'
+import { getHiddenUserIds } from '@/lib/admin/hidden-users'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,13 +25,14 @@ export default async function AdminTestimonialsPage() {
   await requireAdmin()
   const supa = serviceClient()
 
+  const hiddenIds = await getHiddenUserIds()
   const { data } = await supa
     .from('testimonials')
     .select('id, user_id, decision, context, allow_publish, display_name, approved_by_admin, created_at')
     .order('created_at', { ascending: false })
     .limit(200)
 
-  const items = (data ?? []) as TestimonialRow[]
+  const items = ((data ?? []) as TestimonialRow[]).filter(t => !hiddenIds.has(t.user_id))
   const userIds = Array.from(new Set(items.map(t => t.user_id)))
   const { data: users } = userIds.length > 0
     ? await supa.from('profiles').select('id, full_name, email').in('id', userIds)

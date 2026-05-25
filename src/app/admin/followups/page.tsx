@@ -1,5 +1,6 @@
 import { requireAdmin } from '@/lib/admin-auth'
 import { serviceClient } from '@/lib/supabase/service'
+import { getHiddenUserIds } from '@/lib/admin/hidden-users'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,6 +29,7 @@ export default async function AdminFollowupsPage() {
   await requireAdmin()
   const supa = serviceClient()
 
+  const hiddenIds = await getHiddenUserIds()
   const [{ data: followups }, { data: users }] = await Promise.all([
     supa
       .from('email_followups')
@@ -37,8 +39,8 @@ export default async function AdminFollowupsPage() {
     supa.from('profiles').select('id, full_name, email, followup_enabled'),
   ])
 
-  const items = (followups ?? []) as FollowupRow[]
-  const usersList = (users ?? []) as UserRow[]
+  const items = ((followups ?? []) as FollowupRow[]).filter(f => !hiddenIds.has(f.user_id))
+  const usersList = ((users ?? []) as UserRow[]).filter(u => !hiddenIds.has(u.id))
   const userById = new Map(usersList.map(u => [u.id, u]))
 
   const sentItems = items.filter(f => f.sent_at)

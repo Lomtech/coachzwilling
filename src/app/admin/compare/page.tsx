@@ -1,5 +1,7 @@
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { serviceClient } from '@/lib/supabase/service'
+import { getHiddenUserIds } from '@/lib/admin/hidden-users'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,8 +23,9 @@ export default async function CompareProfilesPage({
 }) {
   const { a, b } = await searchParams
   const supa = serviceClient()
+  const hiddenIds = await getHiddenUserIds()
 
-  // Alle Profile + alle User separat laden, dann clientseitig joinen
+  // Alle Profile + alle User separat laden, dann clientseitig joinen — hidden raus
   const [{ data: rows }, { data: users }] = await Promise.all([
     supa.from('coach_profiles')
       .select('id, version, source, generated_at, config_md, user_id')
@@ -31,19 +34,25 @@ export default async function CompareProfilesPage({
   ])
 
   const userById = new Map((users ?? []).map(u => [u.id, u]))
-  const profilesAll: ProfileWithUser[] = (rows ?? []).map(r => {
-    const u = userById.get(r.user_id)
-    return {
-      id: r.id,
-      version: r.version,
-      source: r.source,
-      generated_at: r.generated_at,
-      config_md: r.config_md,
-      user_id: r.user_id,
-      user_email: u?.email ?? '(unbekannt)',
-      user_name: u?.full_name ?? null,
-    }
-  })
+  const profilesAll: ProfileWithUser[] = (rows ?? [])
+    .filter(r => !hiddenIds.has(r.user_id))
+    .map(r => {
+      const u = userById.get(r.user_id)
+      return {
+        id: r.id,
+        version: r.version,
+        source: r.source,
+        generated_at: r.generated_at,
+        config_md: r.config_md,
+        user_id: r.user_id,
+        user_email: u?.email ?? '(unbekannt)',
+        user_name: u?.full_name ?? null,
+      }
+    })
+
+  // Direkter URL-Aufruf mit hidden profile-id → 404
+  if (a && !profilesAll.find(p => p.id === a)) notFound()
+  if (b && !profilesAll.find(p => p.id === b)) notFound()
 
   const profileA = a ? profilesAll.find(p => p.id === a) : null
   const profileB = b ? profilesAll.find(p => p.id === b) : null

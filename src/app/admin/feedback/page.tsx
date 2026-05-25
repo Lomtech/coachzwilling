@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin-auth'
 import { serviceClient } from '@/lib/supabase/service'
+import { getHiddenUserIds } from '@/lib/admin/hidden-users'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,13 +30,14 @@ export default async function AdminFeedbackPage() {
   await requireAdmin()
   const supa = serviceClient()
 
+  const hiddenIds = await getHiddenUserIds()
   const { data: feedbacks } = await supa
     .from('message_feedback')
     .select('id, rating, comment, created_at, message_id, user_id')
     .order('created_at', { ascending: false })
     .limit(200)
 
-  const items = (feedbacks ?? []) as FeedbackRow[]
+  const items = ((feedbacks ?? []) as FeedbackRow[]).filter(f => !hiddenIds.has(f.user_id))
 
   const msgIds = Array.from(new Set(items.map(f => f.message_id)))
   const userIds = Array.from(new Set(items.map(f => f.user_id)))

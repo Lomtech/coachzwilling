@@ -1,19 +1,24 @@
 import Link from 'next/link'
 import { serviceClient } from '@/lib/supabase/service'
+import { getHiddenUserIds } from '@/lib/admin/hidden-users'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminOverviewPage() {
   const supa = serviceClient()
 
-  // Alle Profile mit Aggregaten
-  const { data: profiles } = await supa
+  // Hidden-User-Set holen (Test-/Privacy-Accounts unsichtbar machen)
+  const hiddenIds = await getHiddenUserIds()
+
+  // Alle Profile mit Aggregaten — hidden Accounts werden gefiltert
+  const { data: profilesRaw } = await supa
     .from('profiles')
     .select('id, email, full_name, onboarding_state, created_at, trial_until')
     .order('created_at', { ascending: false })
+  const profiles = (profilesRaw ?? []).filter(p => !hiddenIds.has(p.id))
 
   // Stats pro User parallel laden
-  const userIds = (profiles ?? []).map(p => p.id)
+  const userIds = profiles.map(p => p.id)
 
   const [coachProfiles, memoryCounts, conversationCounts, messageCounts, responses] = await Promise.all([
     supa.from('coach_profiles')
@@ -62,7 +67,7 @@ export default async function AdminOverviewPage() {
     if (r.completed_at) respByUser.set(r.user_id, r.completed_at)
   }
 
-  const rows = (profiles ?? []).map(p => ({
+  const rows = profiles.map(p => ({
     ...p,
     coach: cpByUser.get(p.id),
     memoryCount: memByUser.get(p.id) ?? 0,

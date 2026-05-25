@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { serviceClient } from '@/lib/supabase/service'
+import { isHiddenUserId } from '@/lib/admin/hidden-users'
 import { QUESTIONS, type Question } from '@/data/questionnaire'
 import { MEMORY_SECTION_LABELS } from '@/lib/coach/prompts'
 
@@ -8,6 +9,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  // Hidden-User-Check: direkter URL-Aufruf für versteckte Accounts → 404
+  if (await isHiddenUserId(id)) notFound()
   const supa = serviceClient()
 
   const [{ data: profile }, { data: responses }, { data: memories }, { data: coachProfiles }, { data: conversations }] =
