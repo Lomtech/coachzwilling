@@ -91,3 +91,51 @@ export function buildRepetitionCorrection(): string {
   (c) verarbeite die User-Antwort statt sie wieder zu hinterfragen ("OK, X also — was bedeutet das für dich?").
 Verbote für diesen Turn: keine erneute Variation der gleichen Frage. Keine weitere Wiederholung. Wenn du nochmal hängst, ist das ein klarer Stil-Bruch.]`
 }
+
+/**
+ * Erkennt das Deflection-Pattern: Coach beantwortet die neue User-Frage nicht,
+ * sondern lenkt mit "Erst: ..." / "Zuerst: ..." / "Das kommt gleich. Erst: ..."
+ * zurück auf ein altes Thema. Trigger nur wenn die User-Message tatsächlich
+ * substantiell wirkt (>= 30 Zeichen oder Fragezeichen).
+ */
+export interface DeflectionResult {
+  isDeflection: boolean
+  matchedPrefix?: string
+}
+
+const DEFLECTION_PREFIXES = [
+  /^erst:\s*/i,
+  /^zuerst:?\s+/i,
+  /^bevor\s+(wir|du)\s+/i,
+  /^halt,?\s*(zu)?erst:?\s+/i,
+  /^stop,?\s*(zu)?erst:?\s+/i,
+  /^das kommt gleich\.?\s*(zu)?erst:?\s+/i,
+  /^das machen wir gleich\.?\s*(zu)?erst:?\s+/i,
+  /^einen moment\.?\s*(zu)?erst:?\s+/i,
+]
+
+export function detectDeflection(args: {
+  coachReply: string
+  userMessage: string
+}): DeflectionResult {
+  const reply = args.coachReply.trim()
+  const userMsg = args.userMessage.trim()
+
+  // User-Frage muss substantiell wirken, sonst greifen wir nicht
+  const userIsSubstantive = userMsg.length >= 30 || /\?\s*$/.test(userMsg)
+  if (!userIsSubstantive) return { isDeflection: false }
+
+  // Erste 1-2 Zeilen der Coach-Antwort gegen Prefix-Liste prüfen
+  const firstChunk = reply.split('\n').slice(0, 2).join(' ').slice(0, 120)
+  for (const rx of DEFLECTION_PREFIXES) {
+    const m = firstChunk.match(rx)
+    if (m) {
+      return { isDeflection: true, matchedPrefix: m[0].trim() }
+    }
+  }
+  return { isDeflection: false }
+}
+
+export function buildDeflectionCorrection(): string {
+  return `\n\n[SYSTEM-KORREKTUR — nicht sichtbar für den User: Du hast die Frage des Users gerade NICHT beantwortet — sondern mit "Erst: ..." / "Zuerst: ..." / "Das kommt gleich. Erst: ..." zurück auf ein altes Thema gelenkt. Das ist Deflection und VERBOTEN. Beantworte JETZT die ursprüngliche Frage des Users substanziell. Wenn du noch einen offenen Punkt hast (z. B. Bewerbungen), darfst du den am ENDE deiner Antwort kurz erwähnen — aber NIEMALS als Vorbedingung verwenden. Der User entscheidet die Agenda, nicht du.]`
+}

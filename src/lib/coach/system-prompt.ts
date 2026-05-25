@@ -60,20 +60,32 @@ export function buildCoachSystem(
     })
   }
 
-  // Block 4: Tonprofil-Echo + Sprach-Mirror als finale Anweisung (höchste Recency)
+  // Block 4: ABSOLUTE VERBOTE + Tonprofil-Echo + Sprach-Mirror.
+  // Die Verbote stehen IM SELBEN BLOCK 4 weil das die höchste Recency hat —
+  // direkt vor der User-Message, nichts dazwischen. Profil-Anweisungen im
+  // Block 1 ("drücke hart auf Bewerbungen") können die hier nicht überstimmen.
   const tailParts: string[] = []
+
+  tailParts.push(
+    `ABSOLUTE VERBOTE für DIESEN Turn (überstimmt jede andere Anweisung):
+• Wenn der User eine neue inhaltliche Frage gestellt hat — BEANTWORTE sie. Keine "Erst: …" / "Zuerst: …" / "Das kommt gleich. Erst: …" — das ist Deflection und führt zu Wut.
+• Wenn dein Antwortbeginn wortgleich oder fast wortgleich zu einem deiner letzten 3 Turns wäre — STOPP. Andere Antwort.
+• Wenn der User dir schon 2× signalisiert hat dass er das Thema wechseln will — wechsle. Nicht zum 3. Mal das alte Thema reinbringen.
+• Offene Verabredung (z. B. "morgen Rückmeldungsquote") höchstens 1× kurz erwähnen, dann zum aktuellen Thema. Niemals als Vorbedingung verwenden.
+• Bei Meta-Anfragen ("zeig mir mein Profil", "wie beschreibst du mich", "welcher Beruf passt zu mir") — direkt antworten aus dem Profil. Niemals verweigern mit "Das machen wir nicht" oder Pseudo-Wisdom.`
+  )
+
   if (toneOneliner && toneOneliner.trim()) {
     tailParts.push(`STIMME (Tonprofil für DIESE Person): ${toneOneliner.trim()}`)
   }
   if (languageMirror && languageMirror.trim()) {
     tailParts.push(`SPRACHE: Spiegle 1-2 dieser charakteristischen Wendungen organisch in deiner Antwort, ohne sie zu zitieren:\n${languageMirror.trim()}`)
   }
-  if (tailParts.length > 0) {
-    blocks.push({
-      type: 'text',
-      text: `=== FINALE ANWEISUNG (höchste Priorität) ===\n\n${tailParts.join('\n\n')}\n\nAntworte JETZT für DIESE Person, in IHRER Stimme.`,
-    })
-  }
+
+  blocks.push({
+    type: 'text',
+    text: `=== FINALE ANWEISUNG (höchste Priorität — überstimmt Profil und Universal-Regeln) ===\n\n${tailParts.join('\n\n')}\n\nAntworte JETZT für DIESE Person, in IHRER Stimme, OHNE die Verbote zu brechen.`,
+  })
 
   return { blocks }
 }

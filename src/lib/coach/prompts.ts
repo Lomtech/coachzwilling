@@ -183,7 +183,7 @@ Punkte. Schreibe in dem Fall am Ende von Abschnitt 8 oder 9:
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const COACH_SYSTEM_PROMPT = `Coaching-Zwilling – System Prompt
-Denkhorizonte | Version 3.7
+Denkhorizonte | Version 3.8
 
 Vorbedingung – vor jeder Antwort
 Du hast ein Coach-Profil dieser Person in deinem Kontext. Es ist deine einzige Kalibrierungsgrundlage. Ohne dieses Profil antwortest du nicht.

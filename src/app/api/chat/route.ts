@@ -6,7 +6,12 @@ import { buildCoachSystem } from '@/lib/coach/system-prompt'
 import { loadMemoryForCoach, extractMemoryFromTurn } from '@/lib/coach/memory'
 import { maybeAutoRefresh } from '@/lib/coach/refine'
 import { validateFirstTurn, buildCorrectionInstruction } from '@/lib/coach/validator'
-import { detectRepetition, buildRepetitionCorrection } from '@/lib/coach/repetition-check'
+import {
+  detectRepetition,
+  buildRepetitionCorrection,
+  detectDeflection,
+  buildDeflectionCorrection,
+} from '@/lib/coach/repetition-check'
 import { ACTIVE_STATUSES } from '@/types/database'
 import type Anthropic from '@anthropic-ai/sdk'
 
@@ -228,7 +233,7 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // ─── Notbremse: Repetition-Detector ──────────────────────────
+          // ─── Notbremse 1: Repetition-Detector ────────────────────────
           // Wenn die gestreamte Antwort fast wortgleich zu einer der letzten
           // 3 Coach-Antworten ist → einmal automatisch retry mit Pattern-Break.
           // Verhindert den "Morgen sagst du mir wie viele raus sind"-Loop.
@@ -239,16 +244,31 @@ export async function POST(req: NextRequest) {
             newReply: finalText,
             recentAssistantReplies: recentAssistantContents,
           })
-          if (rep.isRepetition && finalText.trim().length > 0) {
+
+          // ─── Notbremse 2: Deflection-Detector ────────────────────────
+          // User stellt substantielle neue Frage, Coach antwortet "Erst: ..."
+          // statt zu beantworten → ebenfalls auto-retry.
+          const def = detectDeflection({
+            coachReply: finalText,
+            userMessage: body.message.trim(),
+          })
+
+          const needsRetry = (rep.isRepetition || def.isDeflection) && finalText.trim().length > 0
+          if (needsRetry) {
+            const correction = rep.isRepetition
+              ? buildRepetitionCorrection()
+              : buildDeflectionCorrection()
             console.warn(
-              '[chat] repetition detected — retry mit Pattern-Break',
-              `similarity=${rep.similarity?.toFixed(2)} matchedPrior=${rep.matchedPriorIndex}`,
+              '[chat] auto-retry triggered',
+              rep.isRepetition
+                ? `repetition similarity=${rep.similarity?.toFixed(2)}`
+                : `deflection prefix="${def.matchedPrefix}"`,
             )
             const retryMessages = [
               ...messages.slice(0, -1),
               {
                 role: 'user' as const,
-                content: body.message.trim() + buildRepetitionCorrection(),
+                content: body.message.trim() + correction,
               },
             ]
             try {
@@ -263,8 +283,6 @@ export async function POST(req: NextRequest) {
                 .map(b => b.text)
                 .join('')
               if (retryText.trim().length > 0) {
-                // Client tauscht den bereits gestreamten Text gegen den
-                // korrigierten aus (SSE event: 'replace').
                 controller.enqueue(
                   encoder.encode(`event: replace\ndata: ${JSON.stringify({ text: retryText })}\n\n`)
                 )
@@ -272,7 +290,7 @@ export async function POST(req: NextRequest) {
                 outputTokens = (outputTokens ?? 0) + (retry.usage?.output_tokens ?? 0)
               }
             } catch (e) {
-              console.error('[chat] repetition-retry failed', e)
+              console.error('[chat] auto-retry failed', e)
               // fail-open: belasse die ursprüngliche Antwort
             }
           }
