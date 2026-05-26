@@ -28,19 +28,36 @@ function SignupInner() {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(next)}`,
-      },
-    })
-    setLoading(false)
-    if (error) { setError(error.message); return }
-    router.push(next)
-    router.refresh()
+    try {
+      // Server-side Signup mit Auto-Confirm (umgeht Email-Bestätigungs-Dance).
+      // Backend nutzt admin.createUser mit email_confirm: true → kein
+      // "email not confirmed"-Fehler beim direkt darauffolgenden Login.
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, fullName }),
+      })
+      const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null
+      if (!res.ok || !json?.ok) {
+        const errCode = json?.error ?? `HTTP ${res.status}`
+        if (errCode === 'email-already-exists') {
+          setError('Diese E-Mail ist bereits registriert. Geh zum Login.')
+        } else {
+          setError(errCode)
+        }
+        return
+      }
+      // Direkt einloggen (User ist bereits confirmed)
+      const supabase = createClient()
+      const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
+      if (signInErr) { setError(signInErr.message); return }
+      router.push(next)
+      router.refresh()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Signup fehlgeschlagen')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
