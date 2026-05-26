@@ -72,12 +72,29 @@ export async function proxy(request: NextRequest) {
 
   // 5) Coach-Gate: Profil + (Trial ODER Subscription)
   if (path.startsWith(COACH_PREFIX)) {
-    const [{ data: profile }, { data: sub }] = await Promise.all([
+    // Defensive Onboarding-Check: schau auf REAL-Daten (aktives coach_profile),
+    // nicht nur auf den onboarding_state-Flag. Sonst hängen User die in der
+    // DB-State-Update verloren haben permanent im Onboarding fest, auch wenn
+    // sie längst ein Profil + Chat-Historie haben. (Bug-Report dreadflicker
+    // 2026-05-25: State war "questionnaire" trotz 90 Messages + Profile.)
+    const [{ data: profile }, { data: sub }, { data: activeCoachProfile }] = await Promise.all([
       supabase.from('profiles').select('onboarding_state, trial_until').eq('id', user.id).maybeSingle(),
       supabase.from('subscriptions').select('status').eq('user_id', user.id).maybeSingle(),
+      supabase
+        .from('coach_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle(),
     ])
 
-    const onboardingDone = profile?.onboarding_state === 'profiled' || profile?.onboarding_state === 'active'
+    const stateSaysProfiled = profile?.onboarding_state === 'profiled' || profile?.onboarding_state === 'active'
+    const hasActiveCoachProfile = !!activeCoachProfile
+    // Onboarding gilt als erledigt wenn ENTWEDER der State passt ODER ein
+    // aktives Coach-Profil existiert. So heilt sich der Coach-Zugang selbst
+    // wenn der State-Flag aus irgendeinem Grund nicht mit der Realität synct.
+    const onboardingDone = stateSaysProfiled || hasActiveCoachProfile
     if (!onboardingDone) {
       const url = request.nextUrl.clone()
       url.pathname = '/onboarding'
