@@ -38,10 +38,18 @@ button { cursor: pointer; }
 .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 1rem); }
 .safe-top    { padding-top: max(env(safe-area-inset-top), 1rem); }
 
-/* Form-Reset für mobile */
-input, textarea, select, button {
-  font: inherit;
-  color: inherit;
+/* Form-Reset für mobile.
+   WICHTIG: muss in @layer base liegen, damit Tailwind's @layer utilities
+   die element-level color-Regel überschreiben kann. Unlayered hätte sonst
+   höhere Cascade-Priorität als jeder @layer — Effekt vorher: Buttons mit
+   className="text-white" blieben dunkel weil das unlayered `color: inherit`
+   gewann. Alle Klick-State-Klassen wie bg-[var(--color-ink)] text-white in
+   QuestionnaireFlow funktionieren jetzt sauber. */
+@layer base {
+  input, textarea, select, button {
+    font: inherit;
+    color: inherit;
+  }
 }
 input, textarea {
   background: var(--color-surface);
