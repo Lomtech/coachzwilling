@@ -38,15 +38,30 @@ export async function GET(req: NextRequest) {
       ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
       : 'https://fuehrungs-coach.vercel.app'
 
-  // Selektion: alle Kandidaten holen, dann clientseitig filtern (kein
-  // komplexes SQL für die Daten-Bedingungen).
-  const { data: candidates, error: selErr } = await supa
-    .from('profiles')
-    .select('id, full_name, email, followup_enabled, followup_frequency_days, last_followup_at, followup_unsubscribed_at, onboarding_state')
-    .eq('followup_enabled', true)
-    .is('followup_unsubscribed_at', null)
-    .in('onboarding_state', ['profiled', 'active'])
-    .limit(500)
+  // Selektion: alle opted-in Kandidaten holen + zusätzlich aktive
+  // Coach-Profile checken. Wir nutzen NICHT mehr nur den state-Filter
+  // weil der bei out-of-sync State-Drift User aussperrt obwohl sie eigentlich
+  // ein aktives Profil + Memory haben (bekanntes Issue, Bug-Report 2026-05-27:
+  // lomaliimadaev war state="questionnaire" trotz 90 Messages).
+  const [{ data: candidates, error: selErr }, { data: activeProfiles }] = await Promise.all([
+    supa
+      .from('profiles')
+      .select('id, full_name, email, followup_enabled, followup_frequency_days, last_followup_at, followup_unsubscribed_at, onboarding_state')
+      .eq('followup_enabled', true)
+      .is('followup_unsubscribed_at', null)
+      .limit(500),
+    supa
+      .from('coach_profiles')
+      .select('user_id')
+      .eq('is_active', true),
+  ])
+  // Eligibilität: state passt ODER aktives Profil existiert (Belt-and-Suspenders)
+  const usersWithActiveProfile = new Set((activeProfiles ?? []).map(p => p.user_id))
+  const candidatesFiltered = (candidates ?? []).filter(p =>
+    p.onboarding_state === 'profiled' ||
+    p.onboarding_state === 'active' ||
+    usersWithActiveProfile.has(p.id),
+  )
 
   if (selErr) {
     console.error('[cron/followups] selection failed', selErr)
@@ -54,7 +69,7 @@ export async function GET(req: NextRequest) {
   }
 
   const now = Date.now()
-  const eligible = (candidates ?? []).filter(p => {
+  const eligible = candidatesFiltered.filter(p => {
     if (!p.email) return false
     if (!p.last_followup_at) return true // noch nie gesendet → eligible
     const ageMs = now - new Date(p.last_followup_at).getTime()
@@ -63,7 +78,7 @@ export async function GET(req: NextRequest) {
   })
 
   console.log(
-    `[cron/followups] run=${runId} total=${candidates?.length ?? 0} eligible=${eligible.length}`,
+    `[cron/followups] run=${runId} total=${candidates?.length ?? 0} withProfile=${candidatesFiltered.length} eligible=${eligible.length}`,
   )
 
   const results = {
