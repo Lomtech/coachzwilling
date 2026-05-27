@@ -1,8 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { serviceClient } from '@/lib/supabase/service'
 import { loadCandidate, composeFollowup } from '@/lib/coach/followup'
 import { sendEmail } from '@/lib/email/resend'
 import { signToken, generateRandomTokenId } from '@/lib/email/tokens'
+import { isAdminEmail } from '@/lib/admin-auth'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300 // Vercel Pro: bis 800s, 300s deckt locker 500+ User
@@ -21,10 +23,22 @@ export const maxDuration = 300 // Vercel Pro: bis 800s, 300s deckt locker 500+ U
  * damit nicht zweimal pro Cycle gesendet wird.
  */
 export async function GET(req: NextRequest) {
-  // Vercel Cron Auth
+  // Auth: Vercel-Cron (Bearer CRON_SECRET) ODER eingeloggter Admin
+  // (für manuelles Triggern aus dem Admin-Dashboard / via Browser)
   const auth = req.headers.get('authorization')
   const expected = process.env.CRON_SECRET ? `Bearer ${process.env.CRON_SECRET}` : null
-  if (expected && auth !== expected) {
+  const isCronAuthed = expected ? auth === expected : true
+
+  let isAdminAuthed = false
+  if (!isCronAuthed) {
+    try {
+      const sb = await createClient()
+      const { data: { user } } = await sb.auth.getUser()
+      if (user?.email && isAdminEmail(user.email)) isAdminAuthed = true
+    } catch {/* ignore — bleibt unauthed */}
+  }
+
+  if (!isCronAuthed && !isAdminAuthed) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
