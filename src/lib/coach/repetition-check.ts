@@ -62,12 +62,47 @@ export function detectRepetition(args: {
   recentAssistantReplies: string[]   // chronologisch, neueste zuletzt
 }): RepetitionResult {
   const newNorm = normalize(args.newReply)
-  if (newNorm.length < 10) return { isRepetition: false } // zu kurz für sinnvollen Vergleich
+  if (newNorm.length === 0) return { isRepetition: false }
 
   const recent = args.recentAssistantReplies.slice(-REPETITION_WINDOW)
   for (let i = recent.length - 1; i >= 0; i--) {
     const priorNorm = normalize(recent[i])
-    if (priorNorm.length < 10) continue
+    if (priorNorm.length === 0) continue
+
+    // Spezial-Case: exakt gleiche Antwort (z. B. "Nichts?" → "Nichts?")
+    // → IMMER als Repetition werten, egal wie kurz
+    if (newNorm === priorNorm) {
+      return {
+        isRepetition: true,
+        matchedPriorIndex: recent.length - 1 - i,
+        similarity: 1.0,
+      }
+    }
+
+    // Für KURZE Strings (<10 Zeichen): zusätzlich prüfen ob neue Antwort
+    // ein "Echo" der priorReply ist (gleiche Worte in fast gleicher Reihenfolge,
+    // z. B. "Nichts?" → "Nichts." oder "Nichts also?"). Token-Vergleich:
+    if (newNorm.length < 10 || priorNorm.length < 10) {
+      // Vergleiche unique-word-sets
+      const newWords = new Set(newNorm.split(/\s+/).filter(w => w.length > 0))
+      const priorWords = new Set(priorNorm.split(/\s+/).filter(w => w.length > 0))
+      if (newWords.size > 0 && priorWords.size > 0) {
+        // Wie viel Prozent der neuen Worte stehen schon in der prior?
+        let overlap = 0
+        for (const w of newWords) if (priorWords.has(w)) overlap++
+        const wordOverlap = overlap / Math.max(newWords.size, priorWords.size)
+        if (wordOverlap >= 0.7) {
+          return {
+            isRepetition: true,
+            matchedPriorIndex: recent.length - 1 - i,
+            similarity: wordOverlap,
+          }
+        }
+      }
+      continue
+    }
+
+    // Normaler Fall: Shingle-Similarity
     const sim = shingleSimilarity(newNorm, priorNorm)
     if (sim >= SIMILARITY_THRESHOLD) {
       return {
