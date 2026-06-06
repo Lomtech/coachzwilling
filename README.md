@@ -12,7 +12,7 @@ Ein KI-Coaching-Zwilling für Führungskräfte, gebaut auf Next.js 16, Supabase,
 | Styling | Tailwind v4, helles Theme, mobile-first |
 | Auth + DB | Supabase (Projekt `wlxolfkhkxembiuofmfa`, Region eu-west-2) |
 | Zahlungen | Stripe Subscriptions (monatlich + jährlich, 7 Tage Trial) |
-| KI | Anthropic SDK — Sonnet 4.6 (Coach), Opus 4.7 (Profiler) |
+| KI | Anthropic SDK — Sonnet 4.6 (Coach), Opus 4.7 (Profiler), Haiku 4.5 (Memory). Provider via `LLM_PROVIDER` umschaltbar: **anthropic** (Direct/USA), **bedrock** (AWS eu-central-1), **langdock** (EU-Hosting, DSGVO, ISO 27001, SOC 2 Type II) — siehe `docs/LANGDOCK_SETUP.md` |
 | Hosting | Vercel `fra1` |
 
 ## Routen
@@ -79,14 +79,17 @@ supabase db push
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://wlxolfkhkxembiuofmfa.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase-Dashboard → Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | dito (server-only, **nie** mit `NEXT_PUBLIC_` prefixen) |
-| `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys (in Vercel als **Production-only** Env eintragen) |
+| `LLM_PROVIDER` | `anthropic` (default), `bedrock` oder `langdock` |
+| `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys (nur für `LLM_PROVIDER=anthropic`) |
+| `LANGDOCK_API_KEY` / `LANGDOCK_REGION` | Langdock-Workspace → API Keys (nur für `LLM_PROVIDER=langdock`) — siehe [docs/LANGDOCK_SETUP.md](docs/LANGDOCK_SETUP.md) |
+| `AWS_REGION` / `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | AWS-Console (nur für `LLM_PROVIDER=bedrock`) |
 | `STRIPE_SECRET_KEY` | Stripe-Dashboard → Developers → API Keys |
 | `STRIPE_WEBHOOK_SECRET` | Stripe → Webhooks → Endpoint signing secret |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe → API Keys |
 | `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_YEARLY` | Stripe → Products → Preise anlegen, IDs kopieren |
 | `NEXT_PUBLIC_APP_URL` | Production-Domain (lokal: `http://localhost:3000`) |
 
-> 🔐 `ANTHROPIC_API_KEY` und `SUPABASE_SERVICE_ROLE_KEY` sind beide vollwertige Backend-Schlüssel. In Vercel als „Sensitive" markieren — dann lassen sie sich nach dem Speichern nicht mehr einsehen.
+> 🔐 `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY` und `SUPABASE_SERVICE_ROLE_KEY` sind alle vollwertige Backend-Schlüssel. In Vercel als „Sensitive" markieren — dann lassen sie sich nach dem Speichern nicht mehr einsehen.
 
 ### 3. Stripe-Produkt anlegen
 
