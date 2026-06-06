@@ -2,15 +2,14 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { QUESTIONS, TOTAL_QUESTIONS, type Question } from '@/data/questionnaire'
+import { QUESTIONS, TOTAL_QUESTIONS, FOLLOWUP_QUESTION_IDS, type Question } from '@/data/questionnaire'
 
 interface Props {
   initialAnswers: Record<string, string>
   initialIndex: number
 }
 
-const PROBE_MIN_CHARS = 40 // synchron mit lib/coach/probe.ts
-const MAX_PROBES_PER_SCAN = 5
+const TOTAL_FOLLOWUPS = FOLLOWUP_QUESTION_IDS.length // V3-Doc: genau 5 feste Nachfragen
 
 export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
   const router = useRouter()
@@ -20,12 +19,9 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
   const [finalizing, setFinalizing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Probe-State pro Frage: question, supplement, loading
-  const [probeQuestion, setProbeQuestion] = useState<string | null>(null)
-  const [probeAnswer, setProbeAnswer] = useState('')
-  const [probeLoading, setProbeLoading] = useState(false)
-  const [probesUsed, setProbesUsed] = useState(0)
-  const [probeAttempted, setProbeAttempted] = useState<Set<number>>(new Set())
+  // Nachfrage-State pro Frage (V3-Doc: 5 feste Nachfragen an Q4, Q21, Q30, Q33, Q40)
+  const [showFollowUp, setShowFollowUp] = useState(false)
+  const [followUpAnswer, setFollowUpAnswer] = useState('')
 
   // Opt-in für Follow-up-Mails — wird auf dem letzten Frage-Screen unter dem
   // "Profil erstellen"-Button als kleine Karte gezeigt. Default false (DSGVO).
@@ -52,24 +48,27 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
     return () => clearTimeout(t)
   }, [answers])
 
-  // Reset Probe-State bei Frage-Wechsel
+  // Reset Nachfrage-State bei Frage-Wechsel — falls die nächste Frage selbst
+  // schon eine bestehende Nachfrage-Antwort hat (Resume-Fall), pre-populate.
   useEffect(() => {
-    setProbeQuestion(null)
-    setProbeAnswer('')
-    setProbeLoading(false)
-  }, [index])
+    const raw = answers[String(q.id)] ?? ''
+    const [, existingFollow] = raw.split(/\s*\|\s*/)
+    setShowFollowUp(false)
+    setFollowUpAnswer(existingFollow ?? '')
+  }, [index, q.id, answers])
 
   function setAnswer(value: string) {
     setAnswers(prev => ({ ...prev, [String(q.id)]: value }))
   }
 
-  function appendProbeAnswer() {
-    const supplement = probeAnswer.trim()
-    if (!supplement) return
-    const combined = `${rawOnly.trim()} | ${supplement}`
+  function commitFollowUpAndProceed() {
+    const supplement = followUpAnswer.trim()
+    const combined = supplement
+      ? `${rawOnly.trim()} | ${supplement}`
+      : rawOnly.trim()
     setAnswer(combined)
-    setProbeQuestion(null)
-    setProbeAnswer('')
+    setShowFollowUp(false)
+    setFollowUpAnswer('')
     proceedToNext()
   }
 
@@ -78,56 +77,25 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
     startTransition(() => setIndex(i => Math.min(TOTAL_QUESTIONS - 1, i + 1)))
   }
 
-  async function tryProbe() {
-    // Probe-Voraussetzungen
-    if (q.type !== 'open') { proceedToNext(); return }
-    if (rawOnly.trim().length >= PROBE_MIN_CHARS) { proceedToNext(); return }
-    if (probesUsed >= MAX_PROBES_PER_SCAN) { proceedToNext(); return }
-    if (probeAttempted.has(q.id)) { proceedToNext(); return } // pro Frage max 1 Probe
-
-    setProbeLoading(true)
-    setProbeAttempted(prev => new Set(prev).add(q.id))
-    try {
-      const res = await fetch('/api/onboarding/probe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionId: q.id, answer: rawOnly }),
-      })
-      const json = (await res.json().catch(() => null)) as { probe?: string | null } | null
-      if (json?.probe) {
-        setProbeQuestion(json.probe)
-        setProbesUsed(p => p + 1)
-      } else {
-        proceedToNext() // kein Probe verfügbar → einfach weiter
-      }
-    } catch {
-      proceedToNext() // Fehler → einfach weiter
-    } finally {
-      setProbeLoading(false)
-    }
-  }
-
   function next() {
     if (!answered) return
-    // Wenn Probe gerade aktiv: ergänzen oder skip
-    if (probeQuestion) {
-      if (probeAnswer.trim()) {
-        appendProbeAnswer()
-      } else {
-        // skip
-        setProbeQuestion(null)
-        proceedToNext()
-      }
+    // Wenn Nachfrage gerade aktiv: ergänzen oder überspringen
+    if (showFollowUp) {
+      commitFollowUpAndProceed()
       return
     }
-    // Sonst: ggf. Probe anfragen
-    void tryProbe()
+    // V3-Doc: feste Nachfrage nur an den im Fragebogen markierten Stellen
+    if (q.followUp) {
+      setShowFollowUp(true)
+      return
+    }
+    proceedToNext()
   }
 
   function prev() {
-    if (probeQuestion) {
-      setProbeQuestion(null)
-      setProbeAnswer('')
+    if (showFollowUp) {
+      setShowFollowUp(false)
+      setFollowUpAnswer('')
       return
     }
     startTransition(() => setIndex(i => Math.max(0, i - 1)))
@@ -187,39 +155,34 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
           {q.type === 'open' ? (
             <>
               <textarea
-                autoFocus={!probeQuestion}
+                autoFocus={!showFollowUp}
                 value={rawOnly}
                 onChange={e => setAnswer(e.target.value)}
                 placeholder="In eigenen Worten …"
                 rows={5}
-                disabled={!!probeQuestion}
-                className={probeQuestion ? 'opacity-60' : ''}
+                disabled={showFollowUp}
+                className={showFollowUp ? 'opacity-60' : ''}
               />
-              {/* Probe-Block: erscheint nach Klick auf "Weiter" wenn Antwort zu kurz */}
-              {probeQuestion && (
+              {/* Feste Nachfrage gemäss V3-Doc: erscheint nach Klick auf "Weiter"
+                  bei Q4, Q21, Q30, Q33, Q40 */}
+              {showFollowUp && q.followUp && (
                 <div className="mt-4 card border-l-4 border-l-[var(--color-accent)] bg-[var(--color-accent-soft)]/30 anim-fade-up">
                   <div className="flex items-start gap-2 mb-3">
                     <span className="text-[var(--color-accent)] text-lg leading-none">↳</span>
                     <p className="text-sm font-medium text-[var(--color-ink)]">
-                      {probeQuestion}
+                      {q.followUp}
                     </p>
                   </div>
                   <textarea
                     autoFocus
-                    value={probeAnswer}
-                    onChange={e => setProbeAnswer(e.target.value)}
+                    value={followUpAnswer}
+                    onChange={e => setFollowUpAnswer(e.target.value)}
                     placeholder="Konkreter beschreiben (optional) …"
                     rows={3}
                   />
                   <div className="mt-2 text-xs text-[var(--color-muted)]">
                     Klick „Weiter" um zu ergänzen oder leer lassen + „Weiter" um zu überspringen.
                   </div>
-                </div>
-              )}
-              {probeLoading && (
-                <div className="mt-3 flex items-center gap-2 text-sm text-[var(--color-muted)]">
-                  <div className="w-3 h-3 rounded-full border-2 border-[var(--color-surface-2)] border-t-[var(--color-accent)] animate-spin" />
-                  <span>Generiere Vertiefungsfrage …</span>
                 </div>
               )}
             </>
@@ -249,15 +212,15 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
           <div className="mt-4 text-sm text-[var(--color-danger)]">{error}</div>
         )}
 
-        {/* Probe-Counter, klein und dezent */}
-        {probesUsed > 0 && (
+        {/* Hinweis auf feste Nachfragen — nur an den fünf markierten Stellen */}
+        {q.followUp && !showFollowUp && (
           <div className="mt-4 text-xs text-[var(--color-muted)] text-right">
-            Vertiefungsfragen genutzt: {probesUsed} / {MAX_PROBES_PER_SCAN}
+            Eine Nachfrage folgt nach „Weiter" ({FOLLOWUP_QUESTION_IDS.indexOf(q.id) + 1} / {TOTAL_FOLLOWUPS})
           </div>
         )}
 
         {/* Follow-up-Opt-in nur auf der letzten Frage anzeigen — dezent, kein Modal */}
-        {isLast && !probeQuestion && (
+        {isLast && !showFollowUp && (
           <label
             className="mt-8 flex items-start gap-3 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-2)]/50 cursor-pointer hover:bg-[var(--color-surface-2)] transition"
           >
@@ -282,13 +245,13 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
           <button
             type="button"
             onClick={prev}
-            disabled={(index === 0 && !probeQuestion) || pending || probeLoading}
+            disabled={(index === 0 && !showFollowUp) || pending}
             className="btn btn-ghost"
           >
-            {probeQuestion ? 'Zurück' : 'Zurück'}
+            Zurück
           </button>
 
-          {isLast && !probeQuestion ? (
+          {isLast && !showFollowUp && !q.followUp ? (
             <button
               type="button"
               onClick={finalize}
@@ -297,15 +260,24 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
             >
               Profil erstellen →
             </button>
+          ) : isLast && showFollowUp ? (
+            <button
+              type="button"
+              onClick={() => { commitFollowUpAndProceed(); void finalize() }}
+              disabled={!answered || pending}
+              className="btn btn-primary flex-1"
+            >
+              {followUpAnswer.trim() ? 'Ergänzen & abschließen →' : 'Überspringen & abschließen →'}
+            </button>
           ) : (
             <button
               type="button"
               onClick={next}
-              disabled={!answered || pending || probeLoading}
+              disabled={!answered || pending}
               className="btn btn-primary flex-1"
             >
-              {probeQuestion
-                ? (probeAnswer.trim() ? 'Ergänzen & weiter →' : 'Überspringen →')
+              {showFollowUp
+                ? (followUpAnswer.trim() ? 'Ergänzen & weiter →' : 'Überspringen →')
                 : 'Weiter'}
             </button>
           )}

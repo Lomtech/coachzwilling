@@ -47,7 +47,7 @@ export function RegenerateProfileButton() {
     return (
       <div className="space-y-3">
         <p className="text-sm text-[var(--color-ink-2)]">
-          Dein aktuelles Profil wird deaktiviert (Historie bleibt). Aus deinen 42 Antworten
+          Dein aktuelles Profil wird deaktiviert (Historie bleibt). Aus deinen 50 Antworten
           wird ein neues Profil mit der aktuellen Prompt-Version generiert. Dauert ~30–60 Sekunden.
         </p>
         <div className="flex gap-2">

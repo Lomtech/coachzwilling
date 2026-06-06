@@ -2,7 +2,7 @@
 
 Ein KI-Coaching-Zwilling für Führungskräfte, gebaut auf Next.js 16, Supabase, Stripe und Claude.
 
-**Konzept:** User füllt einen 42-Fragen-Scan aus (Denkhorizonte-Methodik). Daraus generiert Claude Opus 4.7 ein individuelles Coach-Profil, das als System-Prompt + Cache-Anker für jeden Coach-Dialog mit Claude Sonnet 4.6 dient.
+**Konzept:** User füllt einen 50-Fragen-Scan aus (Denkhorizonte-Methodik V3, Stand 5.6.26). An fünf festen Stellen (Q4, Q21, Q30, Q33, Q40) gibt es eine Nachfrage. Daraus generiert Claude Opus 4.7 in einem Lauf zwei Outputs — Output A (Rohprofil für den Nutzer) + Output B (Wissensdatei B1–B15 als Coach-Anker). Beide bilden zusammen den System-Prompt + Cache-Anker für jeden Coach-Dialog mit Claude Sonnet 4.6.
 
 ## Stack
 
@@ -45,8 +45,8 @@ Ein KI-Coaching-Zwilling für Führungskräfte, gebaut auf Next.js 16, Supabase,
 Alle Tabellen in `public`:
 
 - `profiles` — 1:1 zu `auth.users`, hält `onboarding_state`
-- `questionnaire_responses` — JSONB-Map `{ "1": "...", "2": "...", ..., "42": "..." }`
-- `coach_profiles` — generiertes `config_md` + Modell + active-flag
+- `questionnaire_responses` — JSONB-Map `{ "1": "...", "2": "...", ..., "50": "..." }`. Antworten an Q4/Q21/Q30/Q33/Q40 können das Format `"<Hauptantwort> | <Nachfrage-Antwort>"` haben.
+- `coach_profiles` — generiertes `config_md` (Output A + B in einem Markdown) + Modell + active-flag
 - `conversations` + `messages` — Chat-History inkl. Token-Telemetrie für Cache-Auswertung
 - `subscriptions` — Mirror der Stripe-Subscription, vom Webhook synchron gehalten
 
@@ -122,16 +122,37 @@ Vercel:
 | Prompt | Ort |
 |---|---|
 | Scan-Intro (User sieht das im Onboarding) | `src/lib/coach/prompts.ts → SCAN_INTRO` |
-| Auswertungs-Prompt (Profiler) | `src/lib/coach/prompts.ts → PROFILER_PROMPT` |
-| Coach System-Prompt | `src/lib/coach/prompts.ts → COACH_SYSTEM_PROMPT` |
-| 42 Fragen | `src/data/questionnaire.ts` |
+| Auswertungs-Prompt V5 (Profiler, Output A+B) | `src/lib/coach/prompts.ts → PROFILER_PROMPT` |
+| Coach System-Prompt V4 (4-Modus-Logik) | `src/lib/coach/prompts.ts → COACH_SYSTEM_PROMPT` |
+| Profile-Refine-Prompt V5 (Tiefen-Refresh) | `src/lib/coach/prompts.ts → PROFILE_REFINE_PROMPT` |
+| 50 Fragen + 5 feste Nachfragen | `src/data/questionnaire.ts` |
 
-Die zwei Prompts sind 1:1 aus dem Briefing übernommen. Änderungen am Coaching-Verhalten dort vornehmen, nicht im Code.
+Die Prompts sind 1:1 aus dem Deep-Space-Briefing (Stand 5.6.26) übernommen. Änderungen am Coaching-Verhalten dort vornehmen, nicht im Code.
+
+**Fragebogen-Struktur (V3, 13 Blöcke):**
+
+1. Ressourcen & Realität (Q1–Q4) — Nachfrage bei Q4
+2. Ziel vs. Weg vs. Identität (Q5–Q7)
+3. Motivstruktur (Q8–Q11)
+4. Emotionales Grundmuster (Q12–Q15)
+5. Weltbild & Entscheidungslogik (Q16–Q18)
+6. Ehrlichkeit & Selbstbild (Q19–Q21) — Nachfrage bei Q21
+7. Umsetzung (Q22–Q24)
+8. Coaching-Stil & Veränderung (Q25–Q28)
+9. Zukunft & Energie (Q29–Q31) — Nachfrage bei Q30
+10. Stärke, Schatten & Entwicklung (Q32–Q39, neu in V3) — Nachfrage bei Q33
+11. Sinn des Coaching-Zwillings (Q40–Q42) — Nachfrage bei Q40
+12. Grenzen (Q43–Q45)
+13. Kontext (Q46–Q50)
+
+**Coaching-Modus-Klassifikation (B9):** KONFRONTATION / KONFRONTATION MIT SUBSTANZ / RAUM / RÜCKENWIND — Primärsignale aus Q8–Q18 (1 Punkt), Zusatzsignale aus Q25–Q28 und Q40 (0,5 Punkte). Sekundärer Modus = ≥3 Treffer. Validierung gegen Q25–Q28 (Vorrang bei eindeutigem Widerspruch).
 
 ## Prompt-Caching-Strategie
 
-Der System-Prompt für den Coach besteht aus zwei Blöcken (`src/lib/coach/system-prompt.ts`):
-1. **Coach-System-Prompt** (statisch, ~1k Tokens) — kein Cache nötig
-2. **User-Profil** (~2k–4k Tokens, stabil über alle Calls dieses Users) — `cache_control: ephemeral`
+Der System-Prompt für den Coach besteht aus vier Blöcken (`src/lib/coach/system-prompt.ts`):
+1. **Profil (Output A + B)** — `cache_control: ephemeral`, ~6–8k Tokens, dominiert die Aufmerksamkeit
+2. **Coach-System-Prompt V4** (statisch, ~3k Tokens) — kein Cache nötig
+3. **Living Memory** (optional, cached) — wächst nach jedem Gespräch
+4. **Finale Anweisung** (B14 Tonprofil-Echo + B15 Sprach-Mirror + absolute Verbote) — kein Cache, höchste Recency
 
-Heißt: der zweite Coach-Call und alle folgenden lesen das Profil aus dem Anthropic-Prompt-Cache. Token-Telemetrie (`cache_read_input_tokens`, `cache_creation_input_tokens`) wird pro Message in `messages` mitgeschrieben für spätere Auswertung.
+Heißt: der zweite Coach-Call und alle folgenden lesen Profil + Memory aus dem Anthropic-Prompt-Cache. Token-Telemetrie (`cache_read_input_tokens`, `cache_creation_input_tokens`) wird pro Message in `messages` mitgeschrieben für spätere Auswertung.

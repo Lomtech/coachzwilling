@@ -9,14 +9,15 @@
 - Server-Komponenten by default; `'use client'` nur wenn State/Effects nötig
 
 ## Architektur
-- **Coach-Zwilling:** ein Nutzer → ein Profil (`coach_profiles.config_md`) → wird als System-Prompt + Cache-Anker für jede Coach-Antwort genutzt.
-- **Datenfluss:** Onboarding speichert Antworten roh in `questionnaire_responses` → Profiler-Edge-Function generiert `config_md` → Chat lädt `config_md` aus DB und steckt ihn in den Anthropic-Call (mit `cache_control: ephemeral`).
+- **Coach-Zwilling:** ein Nutzer → ein Profil (`coach_profiles.config_md`, Deep-Space V5 mit Output A + B) → wird als System-Prompt + Cache-Anker für jede Coach-Antwort genutzt.
+- **Datenfluss:** Onboarding speichert Antworten roh in `questionnaire_responses` (50 Fragen, Q4/Q21/Q30/Q33/Q40 enthalten optional `"main | followUp"`-Strings) → Profiler generiert `config_md` (A1–A9 + B1–B15) → Chat lädt `config_md` aus DB und steckt ihn in den Anthropic-Call (mit `cache_control: ephemeral`).
+- **Coaching-Modus (B9):** Profiler klassifiziert den Coach in KONFRONTATION / KONFRONTATION MIT SUBSTANZ / RAUM / RÜCKENWIND mit primärem + (optional) sekundärem Modus. Coach folgt durchgehend dem primären, alle 4–5 Züge ein Impuls aus dem sekundären Modus.
 - **Paywall:** Stripe-Subscription-Status wird in `subscriptions.status` synchron gehalten via Webhook. Chat-Route checkt `status === 'active' || status === 'trialing'`.
 
 ## Tabellen (Supabase)
 - `profiles` — 1:1 zu `auth.users`, basic info
-- `questionnaire_responses` — JSONB der 42 Antworten
-- `coach_profiles` — generiertes `config_md` + Tonprofil
+- `questionnaire_responses` — JSONB der 50 Antworten (5 davon enthalten optional die feste Nachfrage)
+- `coach_profiles` — generiertes `config_md` (Output A + B), `tone_oneliner` (B14), `language_mirror` (B15)
 - `conversations`, `messages` — Chat-History
 - `subscriptions` — Stripe-Sync
 

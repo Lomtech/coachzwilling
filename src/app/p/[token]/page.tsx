@@ -71,7 +71,7 @@ export default async function SharedProfilePage({
         <div className="mt-8 card bg-[var(--color-accent-soft)]/30 border-[var(--color-accent)]/30">
           <h2 className="font-semibold mb-2">Was ist der Coaching-Zwilling?</h2>
           <p className="text-sm text-[var(--color-ink-2)] mb-4">
-            Ein personalisierter KI-Coach, der aus 42 Fragen ein präzises Profil
+            Ein personalisierter KI-Coach, der aus 50 Fragen ein präzises Profil
             ableitet — und in jeder Antwort exakt im Stil dieser Person agiert.
             Dieses Profil hier ist der "Beipackzettel" — der eigentliche Coach
             wird damit kalibriert.

@@ -8,7 +8,7 @@ import type Anthropic from '@anthropic-ai/sdk'
  * Input: ~5 Antworten aus dem Mini-Scan (~200-500 Zeichen total)
  * Output: 3-4 Absätze die wie eine erstaunlich präzise Einschätzung wirken —
  *   die genau-genug ist, dass der Lead "Wow, das stimmt" denkt, und
- *   genau-vage-genug bleibt, dass die Vollversion (42 Fragen + Opus) den
+ *   genau-vage-genug bleibt, dass die Vollversion (50 Fragen + Opus) den
  *   wahren Wert bringt.
  *
  * Modell: Haiku — schnell + günstig (~10ct pro Lead).
@@ -20,7 +20,7 @@ const MINI_PROFILE_PROMPT = `Du erhältst 5 Antworten aus einem Mini-Scan für e
 Aufgabe: Erstelle ein erstaunlich präzises, persönlich klingendes Kurzprofil
 in **3 kurzen Absätzen** (insgesamt 120-180 Wörter). Es muss sich wie ein
 "Aha-Moment" anfühlen — der Leser soll denken: "Das hat mich nach 5 Fragen
-schon getroffen, wie tief geht das erst nach 42 Fragen?"
+schon getroffen, wie tief geht das erst nach 50 Fragen?"
 
 STRUKTUR (genau 3 Absätze, keine Überschriften)
 

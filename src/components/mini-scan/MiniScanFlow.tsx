@@ -234,10 +234,11 @@ export function MiniScanFlow() {
 
       {/* E-Mail-Capture + Upsell */}
       <div className="card bg-[var(--color-accent-soft)]/30 border-[var(--color-accent)]/30 mb-4">
-        <h2 className="font-semibold mb-2">Vollständiges Profil — alle 11 Sektionen</h2>
+        <h2 className="font-semibold mb-2">Vollständiges Profil — alle Sektionen</h2>
         <p className="text-sm text-[var(--color-ink-2)] mb-4">
-          Der vollständige Scan (42 Fragen, 15-20 Min.) erzeugt ein detailliertes
-          11-Sektionen-Profil und schaltet den persönlichen Coaching-Zwilling frei.
+          Der vollständige Scan (50 Fragen, 18-25 Min.) erzeugt ein detailliertes
+          Rohprofil + Wissensdatei (A1–A9 plus B1–B15) und schaltet den persönlichen
+          Coaching-Zwilling frei.
         </p>
         <div className="space-y-2 mb-3">
           <input

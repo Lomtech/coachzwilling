@@ -1,5 +1,9 @@
-// Deep Profiling — Coaching-Zwilling (Denkhorizonte)
-// Scan-Modus: eine Frage nach der anderen, keine Nachfragen, keine Bewertung.
+// Deep Space — Fragebogen V3 (Stand 5.6.26)
+// Denkhorizonte | Coaching-Zwilling
+// Scan-Modus: eine Frage nach der anderen, keine Bewertung, keine Kommentierung.
+// An fünf definierten Stellen (Q4, Q21, Q30, Q33, Q40) wird eine einzige
+// Nachfrage gestellt — diese sind hier als `followUp` markiert. Nur dort,
+// nirgendwo sonst.
 
 export type QuestionType = 'open' | 'single'
 
@@ -16,6 +20,11 @@ export interface Question {
   helper?: string
   options?: QuestionOption[]
   placeholder?: string
+  /**
+   * Feste Nachfrage gemäss V3-Doc — wird nach der eigentlichen Antwort gestellt.
+   * Nur an den fünf in der Doc markierten Stellen (Q4, Q21, Q30, Q33, Q40).
+   */
+  followUp?: string
 }
 
 export const SECTIONS = [
@@ -28,9 +37,10 @@ export const SECTIONS = [
   '7. Umsetzung',
   '8. Coaching-Stil & Veränderung',
   '9. Zukunft & Energie',
-  '10. Sinn des Coaching-Zwillings',
-  '11. Grenzen',
-  '12. Kontext',
+  '10. Stärke, Schatten & Entwicklung',
+  '11. Sinn des Coaching-Zwillings',
+  '12. Grenzen',
+  '13. Kontext',
 ] as const
 
 export const QUESTIONS: Question[] = [
@@ -50,6 +60,7 @@ export const QUESTIONS: Question[] = [
   {
     id: 4, section: SECTIONS[0], type: 'open',
     prompt: 'Was genau daran beschäftigt dich wirklich?',
+    followUp: 'Was ist der Teil davon, den du dir selbst gegenüber noch nicht ganz zugegeben hast?',
   },
 
   // ─── 2. Ziel vs. Weg vs. Identität ─────────────────────────
@@ -204,6 +215,7 @@ export const QUESTIONS: Question[] = [
   {
     id: 21, section: SECTIONS[5], type: 'open',
     prompt: 'Wo weichst du aktuell eher aus, obwohl du weißt, dass es eigentlich dran wäre?',
+    followUp: 'Was genau passiert in dir, wenn du dir vorstellst, es anzugehen? Was schützt du damit?',
   },
 
   // ─── 7. Umsetzung ──────────────────────────────────────────
@@ -260,7 +272,7 @@ export const QUESTIONS: Question[] = [
   {
     id: 27, section: SECTIONS[7], type: 'single',
     prompt: 'Wie viel Veränderung willst du aktuell wirklich?',
-    helper: 'Stell dir vor, dein Coach verändert in 6 Monaten drei zentrale Dinge in deinem Verhalten. Wie reagierst du innerlich?',
+    helper: 'Stell dir vor, der Coaching-Zwilling verändert in 6 Monaten drei zentrale Dinge in deinem Verhalten. Wie reagierst du innerlich?',
     options: [
       { value: 'genau_will', label: 'Das ist genau das, was ich will' },
       { value: 'umfeld', label: 'Interessant – aber ich frage mich, was das für mein Umfeld bedeutet' },
@@ -289,6 +301,7 @@ export const QUESTIONS: Question[] = [
   {
     id: 30, section: SECTIONS[8], type: 'open',
     prompt: 'Was würdest du tun, wenn du mutiger wärst?',
+    followUp: 'Und was genau hält dich davon ab – wirklich?',
   },
   {
     id: 31, section: SECTIONS[8], type: 'single',
@@ -300,37 +313,77 @@ export const QUESTIONS: Question[] = [
     ],
   },
 
-  // ─── 10. Sinn des Coaching-Zwillings ───────────────────────
+  // ─── 10. Stärke, Schatten & Entwicklung (neu in V3) ────────
+  // Offene Fragen, keine Mehrfachauswahl. Nachfrage nur bei Q33.
   {
     id: 32, section: SECTIONS[9], type: 'open',
-    prompt: 'Warum willst du diesen Coaching-Zwilling nutzen – wirklich?',
+    prompt: 'Welche Eigenschaft hat am meisten zu deinem Erfolg beigetragen?',
+    helper: 'Eine Antwort – so konkret wie möglich.',
   },
   {
     id: 33, section: SECTIONS[9], type: 'open',
-    prompt: 'Woran würdest du erkennen, dass er dir hilft?',
+    prompt: 'Wann wurde genau diese Eigenschaft zuletzt zum Problem – für dich oder für andere?',
+    helper: 'Konkretes Beispiel.',
+    followUp: 'Was genau ist dort passiert – und was hätte es gebraucht, damit es anders läuft?',
   },
   {
     id: 34, section: SECTIONS[9], type: 'open',
+    prompt: 'Welche Kritik hörst du seit Jahren immer wieder – auch wenn du sie innerlich nicht ganz akzeptierst?',
+  },
+  {
+    id: 35, section: SECTIONS[9], type: 'open',
+    prompt: 'Was bekommen andere von dir ab, wenn du müde, enttäuscht oder unter Druck bist?',
+  },
+  {
+    id: 36, section: SECTIONS[9], type: 'open',
+    prompt: 'Welche wichtige Entscheidung schiebst du seit längerer Zeit vor dir her?',
+    helper: 'Nicht der aktuelle Anlass – das wiederkehrende Muster.',
+  },
+  {
+    id: 37, section: SECTIONS[9], type: 'open',
+    prompt: 'Was ist der offizielle Grund dafür – und was ist vermutlich der ehrlichere Grund?',
+  },
+  {
+    id: 38, section: SECTIONS[9], type: 'open',
+    prompt: 'Welche Verhaltensweisen bei anderen regen dich besonders schnell auf?',
+  },
+  {
+    id: 39, section: SECTIONS[9], type: 'open',
+    prompt: 'Mit welchem Menschentyp würdest du freiwillig niemals ein Unternehmen, Projekt oder Team führen – und warum?',
+  },
+
+  // ─── 11. Sinn des Coaching-Zwillings ───────────────────────
+  {
+    id: 40, section: SECTIONS[10], type: 'open',
+    prompt: 'Warum willst du diesen Coaching-Zwilling nutzen – wirklich?',
+    followUp: 'Was ist der eigentliche Grund – den du vielleicht noch niemandem so direkt gesagt hast?',
+  },
+  {
+    id: 41, section: SECTIONS[10], type: 'open',
+    prompt: 'Woran würdest du erkennen, dass er dir hilft?',
+  },
+  {
+    id: 42, section: SECTIONS[10], type: 'open',
     prompt: 'Wovor soll er dich im besten Fall bewahren?',
   },
 
-  // ─── 11. Grenzen ───────────────────────────────────────────
+  // ─── 12. Grenzen ───────────────────────────────────────────
   {
-    id: 35, section: SECTIONS[10], type: 'open',
+    id: 43, section: SECTIONS[11], type: 'open',
     prompt: 'Was soll dieser Coach auf keinen Fall tun?',
   },
   {
-    id: 36, section: SECTIONS[10], type: 'open',
+    id: 44, section: SECTIONS[11], type: 'open',
     prompt: 'Was wäre für dich ein richtig starker Moment in der Zusammenarbeit?',
   },
   {
-    id: 37, section: SECTIONS[10], type: 'open',
+    id: 45, section: SECTIONS[11], type: 'open',
     prompt: 'Denk an eine Situation, in der Feedback oder ein Rat dich eher blockiert als weitergebracht hat. Was genau hat das ausgelöst?',
   },
 
-  // ─── 12. Kontext ───────────────────────────────────────────
+  // ─── 13. Kontext ───────────────────────────────────────────
   {
-    id: 38, section: SECTIONS[11], type: 'single',
+    id: 46, section: SECTIONS[12], type: 'single',
     prompt: 'Was beschreibt deine aktuelle berufliche Rolle am besten?',
     options: [
       { value: 'angestellt_ohne', label: 'Angestellt ohne Führungsverantwortung' },
@@ -341,7 +394,7 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    id: 39, section: SECTIONS[11], type: 'single',
+    id: 47, section: SECTIONS[12], type: 'single',
     prompt: 'Wenn du Verantwortung für andere trägst – in welchem Rahmen?',
     options: [
       { value: 'niemand', label: 'Ich führe niemanden' },
@@ -351,7 +404,7 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    id: 40, section: SECTIONS[11], type: 'single',
+    id: 48, section: SECTIONS[12], type: 'single',
     prompt: 'Wie viele Jahre Berufserfahrung hast du ungefähr?',
     options: [
       { value: 'unter_5', label: 'Unter 5 Jahre' },
@@ -361,7 +414,7 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    id: 41, section: SECTIONS[11], type: 'single',
+    id: 49, section: SECTIONS[12], type: 'single',
     prompt: 'In welchem Bereich liegt dein größter Handlungsdruck gerade?',
     options: [
       { value: 'beruflich', label: 'Berufliche Entwicklung' },
@@ -372,7 +425,7 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    id: 42, section: SECTIONS[11], type: 'single',
+    id: 50, section: SECTIONS[12], type: 'single',
     prompt: 'Wie viel Zeit und Energie kannst du realistisch in diesen Prozess investieren?',
     options: [
       { value: 'wenig', label: 'Ich habe gerade wenig Kapazität – es muss effizient sein' },
@@ -384,22 +437,43 @@ export const QUESTIONS: Question[] = [
 
 export const TOTAL_QUESTIONS = QUESTIONS.length
 
+/**
+ * IDs jener Fragen, an denen V3-Doc eine feste Nachfrage vorsieht.
+ * Quelle der Wahrheit: das `followUp`-Feld in QUESTIONS — diese Liste ist
+ * nur eine convenience-Konstante für UI/Tests.
+ */
+export const FOLLOWUP_QUESTION_IDS: ReadonlyArray<number> = QUESTIONS
+  .filter(q => Boolean(q.followUp))
+  .map(q => q.id)
+
 export function questionById(id: number): Question | undefined {
   return QUESTIONS.find(q => q.id === id)
 }
 
+/**
+ * Eine Antwort kann das Format "Hauptantwort | Nachfrage-Antwort" haben
+ * (siehe QuestionnaireFlow). Im Scan-Output werden beide getrennt
+ * ausgewiesen, damit der Profiler die Vorrang-Hierarchie korrekt
+ * anwenden kann (Nachfrage-Antworten haben höchste Priorität).
+ */
 export function answersToScanText(answers: Record<string, string>): string {
   return QUESTIONS
     .map(q => {
       const raw = answers[String(q.id)]
       if (!raw) return null
-      let answerText = raw
+      const [main, follow] = raw.split(/\s*\|\s*/)
+      let mainText = main
       if (q.type === 'single' && q.options) {
-        const opt = q.options.find(o => o.value === raw)
-        if (opt) answerText = opt.label
+        const opt = q.options.find(o => o.value === main)
+        if (opt) mainText = opt.label
       }
       const sectionPart = `[${q.section}]`
-      return `Q${q.id} ${sectionPart} ${q.prompt}\nA: ${answerText}`
+      const lines = [`Q${q.id} ${sectionPart} ${q.prompt}`, `A: ${mainText}`]
+      if (follow && q.followUp) {
+        lines.push(`NACHFRAGE: ${q.followUp}`)
+        lines.push(`A: ${follow}`)
+      }
+      return lines.join('\n')
     })
     .filter(Boolean)
     .join('\n\n')

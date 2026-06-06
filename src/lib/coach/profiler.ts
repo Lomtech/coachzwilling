@@ -13,32 +13,37 @@ export interface ProfilerResult {
 }
 
 /**
- * Extrahiert Sektion 10 (Tonprofil-Echo) und Sektion 11 (Sprach-Mirror) aus dem
- * generierten Profil. Splittet das Markdown an `^## `-Headern statt regex-basiert,
- * weil JS-Regex `\Z` nicht kennt (interpretiert als literal "Z" — Bug v3.3 Phase 1).
+ * Extrahiert B14 (Tonprofil-Echo) und B15 (Sprach-Mirror) aus dem generierten
+ * Deep-Space-V5-Profil. Splittet das Markdown an `^## `-Headern (A1–A9 und
+ * B1–B15 sind die strukturierenden Header). Backwards-compatible: alte Profile
+ * mit "## 10. Tonprofil-Echo" / "## 11. Sprach-Mirror" werden ebenfalls erkannt,
+ * damit Refreshes auf historischen Profilen nicht brechen.
  */
 function extractToneAndLanguage(md: string): { tone: string | null; language: string | null } {
-  // Splitte das Markdown an Section-Headern: `^## N. <Titel>`
-  // Pattern: Newline + ## + N.
-  const sectionParts = md.split(/(?=^##\s+\d+\.\s+)/m)
+  // Splitte das Markdown an Section-Headern. Akzeptiert: `## A1.`, `## B14.`,
+  // `## 10.` (legacy v3.x), jeweils mit optionalem Whitespace.
+  const sectionParts = md.split(/(?=^##\s+(?:[AB]?\d+)\.\s+)/m)
 
-  function findSection(prefix: string): string | null {
+  function findSection(patterns: string[]): string | null {
     for (const part of sectionParts) {
-      if (part.match(new RegExp(`^##\\s*${prefix}`, 'i'))) {
-        // Header-Zeile entfernen, dann den Body trimmen
-        const body = part
-          .replace(/^##[^\n]*\n/, '')
-          .replace(/^\([^)]*\)\n?/gm, '') // (PFLICHT, ...) Hinweise weg
-          .trim()
-        return body.length > 0 ? body : null
+      for (const p of patterns) {
+        if (part.match(new RegExp(`^##\\s*${p}`, 'i'))) {
+          const body = part
+            .replace(/^##[^\n]*\n/, '')
+            .replace(/^\([^)]*\)\n?/gm, '') // (PFLICHT, ...) Hinweise weg
+            .trim()
+          return body.length > 0 ? body : null
+        }
       }
     }
     return null
   }
 
   return {
-    tone: findSection('10\\.\\s*Tonprofil'),
-    language: findSection('11\\.\\s*Sprach'),
+    // B14 (V5) oder 10. Tonprofil-Echo (legacy v3.x)
+    tone: findSection(['B14\\.\\s*Tonprofil', '10\\.\\s*Tonprofil']),
+    // B15 (V5) oder 11. Sprach-Mirror (legacy v3.x)
+    language: findSection(['B15\\.\\s*Sprach', '11\\.\\s*Sprach']),
   }
 }
 
@@ -125,7 +130,7 @@ export async function refineCoachProfile(args: {
     '',
     '---',
     '',
-    '## QUELLE 2 — ROHE ONBOARDING-ANTWORTEN (42 Fragen, Selbstbild)',
+    '## QUELLE 2 — ROHE ONBOARDING-ANTWORTEN (50 Fragen, Selbstbild)',
     '',
     scanBlock,
     '',

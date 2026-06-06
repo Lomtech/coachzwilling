@@ -9,19 +9,20 @@ export interface CoachSystemBlocks {
 }
 
 /**
- * Baut den System-Prompt für den Coach — 4-Block-Architektur (Architect-Review v3.3):
+ * Baut den System-Prompt für den Coach — 4-Block-Architektur (Deep Space V5/V4):
  *
- *  Block 1: PROFIL (groß, ~6-8k Tok)         — cached  ← STEHT ZUERST, dominiert die Aufmerksamkeit
- *  Block 2: COACH-REGELN (universal)         — kein Cache (klein, ändert sich nicht oft)
+ *  Block 1: PROFIL A1-A9 + B1-B15            — cached  ← STEHT ZUERST, dominiert die Aufmerksamkeit
+ *  Block 2: COACH-REGELN (V4 System-Prompt)  — kein Cache (klein, ändert sich nicht oft)
  *  Block 3: LIVING MEMORY (optional)         — cached
- *  Block 4: TONPROFIL-ECHO (1-2 Sätze)       — kein Cache, höchste Recency direkt vor messages
+ *  Block 4: ABSOLUTE VERBOTE + B14 + B15     — kein Cache, höchste Recency direkt vor messages
  *
- * Warum die Reihenfolge umgedreht ist:
+ * Warum die Reihenfolge so ist:
  * Claude's Recency-Bias dominiert. Vorher standen die Universal-Regeln zuerst und das große
  * Profil danach — die abstrakten Regeln (Eine Frage pro Zug, Schweigen aushalten) dominierten
- * die individuelle Konfiguration. Jetzt liest Claude erst das Profil (was diese Person braucht),
- * dann die universellen Coach-Prinzipien, dann das Memory, und zuletzt nochmal kompakt
- * das Tonprofil als finale Erinnerung welche Stimme zu benutzen ist.
+ * die individuelle Konfiguration. Jetzt liest Claude erst das Profil (was diese Person braucht,
+ * inkl. modus-spezifischem Verhalten aus B9), dann die universellen Coach-Prinzipien V4,
+ * dann das Memory, und zuletzt nochmal kompakt das Tonprofil-Echo (B14) und den
+ * Sprach-Mirror (B15) als finale Erinnerung welche Stimme zu benutzen ist.
  */
 export function buildCoachSystem(
   coachProfileMd: string,
@@ -74,14 +75,15 @@ export function buildCoachSystem(
 • Wenn der User dir schon 2× signalisiert hat dass er das Thema wechseln will — wechsle. Nicht zum 3. Mal das alte Thema reinbringen.
 • Offene Verabredung (z. B. "morgen Rückmeldungsquote") höchstens 1× kurz erwähnen, dann zum aktuellen Thema. Niemals als Vorbedingung verwenden.
 • Bei Meta-Anfragen ("zeig mir mein Profil", "wie beschreibst du mich", "welcher Beruf passt zu mir") — direkt antworten aus dem Profil. Niemals verweigern mit "Das machen wir nicht" oder Pseudo-Wisdom.
-• Wenn der User explizit sagt "du wiederholst dich" / "du hängst" / "du spinnst" / "du bist behindert" — BEKENNTNIS und Bruch. Nicht stoisch weitermachen. Beispiel: "Stimmt, war Wiederholung. Anderer Winkel: …" und dann ECHT neuer Gedanke.`
+• Wenn der User explizit sagt "du wiederholst dich" / "du hängst" / "du spinnst" / "du bist behindert" — BEKENNTNIS und Bruch. Nicht stoisch weitermachen. Beispiel: "Stimmt, war Wiederholung. Anderer Winkel: …" und dann ECHT neuer Gedanke.
+• Folge dem primären Modus aus B9 (KONFRONTATION / KONFRONTATION MIT SUBSTANZ / RAUM / RÜCKENWIND). Schatten (B5) und Blinder Fleck (B6) bei RAUM/RÜCKENWIND nicht als Eröffnung und nicht im ersten Gespräch einsetzen.`
   )
 
   if (toneOneliner && toneOneliner.trim()) {
-    tailParts.push(`STIMME (Tonprofil für DIESE Person): ${toneOneliner.trim()}`)
+    tailParts.push(`STIMME (B14 Tonprofil-Echo für DIESE Person): ${toneOneliner.trim()}`)
   }
   if (languageMirror && languageMirror.trim()) {
-    tailParts.push(`SPRACHE: Spiegle 1-2 dieser charakteristischen Wendungen organisch in deiner Antwort, ohne sie zu zitieren:\n${languageMirror.trim()}`)
+    tailParts.push(`SPRACHE (B15 Sprach-Mirror): Spiegle 1-2 dieser charakteristischen Wendungen organisch in deiner Antwort, ohne sie zu zitieren:\n${languageMirror.trim()}`)
   }
 
   blocks.push({

@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
   const answeredCount = QUESTIONS.filter(q => Boolean(answers[String(q.id)])).length
   if (answeredCount < TOTAL_QUESTIONS) {
     return NextResponse.json(
-      { error: `Es fehlen noch ${TOTAL_QUESTIONS - answeredCount} Antworten.` },
+      { error: `Es fehlen noch ${TOTAL_QUESTIONS - answeredCount} von ${TOTAL_QUESTIONS} Antworten.` },
       { status: 400 }
     )
   }

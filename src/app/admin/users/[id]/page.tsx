@@ -110,7 +110,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
       {/* Onboarding Antworten */}
       <section className="card">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--color-muted)] mb-3">
-          Onboarding-Antworten (42 Fragen)
+          Onboarding-Antworten (50 Fragen)
         </h2>
         {!latestResponse ? (
           <p className="text-sm text-[var(--color-muted)]">Noch keinen Fragebogen ausgefüllt.</p>

@@ -91,9 +91,9 @@ export default async function HomePage() {
         <div className="max-w-3xl w-full mx-auto">
           <h2 className="text-2xl font-semibold tracking-tight mb-6">So entsteht dein Zwilling</h2>
           <ol className="space-y-4">
-            <Step n={1} title="42 Fragen im Scan-Modus">
-              Eine Frage pro Bildschirm. Keine Bewertung, keine Nachfragen — nur sauberes Profiling.
-              Dauer: 15–20 Minuten.
+            <Step n={1} title="50 Fragen im Scan-Modus">
+              Eine Frage pro Bildschirm. Keine Bewertung, an fünf festen Stellen eine Nachfrage —
+              sonst sauberes Profiling. Dauer: 18–25 Minuten.
             </Step>
             <Step n={2} title="Dein Coach-Profil entsteht">
               Aus deinen Antworten wird ein individuelles Coach-Profil mit Tonprofil,

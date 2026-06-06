@@ -33,7 +33,7 @@ export default function AgbPage() {
             Der Anbieter stellt einen personalisierten KI-Coaching-Dienst zur Verfügung:
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li>Strukturierter Selbstreflexions-Fragebogen mit 42 Fragen</li>
+            <li>Strukturierter Selbstreflexions-Fragebogen mit 50 Fragen</li>
             <li>Automatisierte Erstellung eines individuellen Coach-Profils auf Basis deiner Antworten</li>
             <li>Dialog mit einem KI-Coach (Large-Language-Model „Claude" von Anthropic PBC), der
                 personalisierte Fragen und Impulse liefert</li>
