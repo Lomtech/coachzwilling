@@ -73,6 +73,22 @@ function detectIosSafari(): boolean {
   return isIos && isSafari
 }
 
+/**
+ * Atlas (OpenAI-Browser, Chromium-basiert) hat Web Speech API laut
+ * Stand 2026-06 deaktiviert — vermutlich reservieren sie das Mikro für
+ * eigene Agent-Features. Wenn webkitSpeechRecognition fehlt UND der UA
+ * "Atlas" enthält, geben wir dem User einen klaren Hinweis statt nur
+ * "Browser unterstützt das nicht".
+ *
+ * UA-Pattern bewusst breit gewählt — Atlas-UAs sind nicht stabil
+ * dokumentiert. Wenn Detection vorbeischiesst: Console-Log am Mount
+ * (s.u.) zeigt den echten UA, dann gezielt nachschärfen.
+ */
+function detectAtlas(): boolean {
+  if (typeof navigator === 'undefined') return false
+  return /Atlas/i.test(navigator.userAgent)
+}
+
 function friendlyError(code: string): string {
   switch (code) {
     case 'not-allowed':
@@ -107,10 +123,29 @@ export function useSpeechInput(args: {
   useEffect(() => {
     if (typeof window === 'undefined') return
     const Ctor = getCtor()
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
+    const hasGetUserMedia = typeof navigator !== 'undefined'
+      && !!navigator.mediaDevices?.getUserMedia
+
+    // Diagnose-Log für Browser-Kompatibilitätsdebugging (Atlas etc.).
+    // Bewusst console.info statt console.log — bleibt in Production-Builds
+    // sichtbar, ist aber nicht als Error/Warn markiert.
+    console.info('[useSpeechInput] init', {
+      hasSpeechRecognition: typeof window !== 'undefined' && 'SpeechRecognition' in window,
+      hasWebkitSpeechRecognition: typeof window !== 'undefined' && 'webkitSpeechRecognition' in window,
+      hasGetUserMedia,
+      userAgent: ua,
+    })
+
     if (!Ctor) {
       setSupported(false)
-      const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
-      if (/Firefox/.test(ua)) {
+      if (detectAtlas()) {
+        setUnsupportedReason(
+          'Atlas-Browser unterstützt die Web-Speech-API derzeit nicht. ' +
+          'Für Spracheingabe: Chrome, Edge oder Safari verwenden — ' +
+          'oder ohne Mikro tippen.'
+        )
+      } else if (/Firefox/.test(ua)) {
         setUnsupportedReason('Firefox unterstützt Spracheingabe (noch) nicht. Verwende Chrome, Edge oder Safari.')
       } else {
         setUnsupportedReason('Dein Browser unterstützt keine Spracheingabe.')

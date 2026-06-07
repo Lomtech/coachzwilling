@@ -29,6 +29,11 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
   // Speech-Input: getrennt halten von `input` damit interim-Hypothesen
   // den finalen Text nicht überschreiben können.
   const speechBaseRef = useRef<string>('')
+  // User-Intent für Speech-Input: true zwischen "Mikro an" und send()/stop().
+  // Verhindert dass in-flight onTranscript-Events nach dem Senden den
+  // gerade geleerten Input mit dem alten Text wieder befüllen
+  // (Web Speech API liefert final-Hypothesen oft 200–800ms verzögert).
+  const expectSpeechInputRef = useRef<boolean>(false)
   // Initial-Scroll-Tracking: erster Scroll instant (kein Animation-Lag bei
   // langen Conversations), danach smooth wenn neue Messages reinkommen.
   const hasInitiallyScrolledRef = useRef(false)
@@ -60,6 +65,11 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
 
   const speech = useSpeechInput({
     onTranscript: (text, isFinal) => {
+      // Bug-Fix: in-flight Events nach send()/stop() ignorieren.
+      // Web Speech API kann nach rec.stop() noch final-Hypothesen feuern,
+      // die sonst den gerade geleerten Input mit dem alten Text befüllen.
+      if (!expectSpeechInputRef.current) return
+
       // Live-Hypothesen werden angehängt, finales Segment ersetzt die Hypothese
       // und wird zur neuen Basis.
       const sep = speechBaseRef.current && !speechBaseRef.current.endsWith(' ') ? ' ' : ''
@@ -81,10 +91,12 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
 
   function toggleSpeech() {
     if (speech.listening) {
+      expectSpeechInputRef.current = false
       speech.stop()
     } else {
       // Aktuelles Input als Basis übernehmen, dann starten
       speechBaseRef.current = input
+      expectSpeechInputRef.current = true
       speech.start()
     }
   }
@@ -93,6 +105,15 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
     const text = input.trim()
     if (!text || streaming) return
     setError(null)
+
+    // Bug-Fix: Mikrofon explizit beenden, in-flight Speech-Events ignorieren,
+    // speechBase zurücksetzen. Sonst kann eine verzögerte final-Hypothese aus
+    // dem Web-Speech-Puffer den gerade geleerten Input mit dem alten Satz
+    // wieder befüllen, nachdem die KI bereits geantwortet hat.
+    expectSpeechInputRef.current = false
+    if (speech.listening) speech.stop()
+    speechBaseRef.current = ''
+
     setInput('')
     autosize()
 
