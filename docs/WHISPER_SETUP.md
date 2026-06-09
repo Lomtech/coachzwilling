@@ -1,121 +1,189 @@
-# Whisper-Fallback — Setup-Anleitung
+# Server-STT — Setup-Anleitung
 
-Diese Anleitung beschreibt den Whisper-Fallback für Browser ohne Web Speech API. Der Live-Mikro-Pfad (Chrome, Edge, Safari) bleibt unverändert — Whisper kommt nur dazu für **Firefox** und **OpenAI Atlas** sowie für alle Browser, in denen die Web-Speech-Permission blockiert ist.
+Server-side Speech-to-Text für den Coaching-Zwilling. Diese Anleitung zeigt **drei Varianten**, sortiert nach DSGVO-Konformität:
 
-## Wie das im Code aussieht
+1. **Speechmatics (Variante A)** — EU-Hosting, AVV, ISO 27001. **Empfohlen.**
+2. **OpenAI Whisper (Variante B)** — US-Hosting. Pragmatisch wenn EU egal.
+3. **Disabled (Variante C)** — Feature aus.
 
-| Pfad | Aktiv wenn | Latenz | Kosten |
-|---|---|---|---|
-| Web Speech API (`useSpeechInput`) | Browser unterstützt `webkitSpeechRecognition` | Live (interim + final) | 0 |
-| Whisper-Fallback (`useWhisperInput` → `/api/transcribe`) | Browser hat KEINE Web Speech API, aber MediaRecorder + STT-Provider konfiguriert | Push-to-talk + 1–4 s Upload | ~$0.006/Min |
+Für die strikte EU-Linie kombinierst du **Variante A** mit `NEXT_PUBLIC_SPEECH_PROVIDER=disabled` — siehe Abschnitt „DSGVO-Vollausbau" unten.
 
-Der Coach-Chat blendet automatisch den richtigen Knopf ein. Du brauchst clientseitig nichts tun.
+## DSGVO-Ehrlichkeit vorab
 
-## DSGVO-Ehrlichkeit
+**Drei Stellen, wo Audio-Daten leaken können:**
 
-**Wichtiger Hinweis vorab — sonst rutschst du in die EU-Datenfalle.**
+| Pfad | Wer hört mit? | DSGVO |
+|---|---|---|
+| **Web Speech API** (Live-Mikro, heutiger Default) | Chrome → Google, Safari → Apple, Edge → MS | ❌ kein AVV mit deinem Dienst — Audio leakt unsichtbar |
+| **OpenAI Whisper direkt** | OpenAI (USA) | ❌ US-Hosting, AVV nur über OpenAI Enterprise |
+| **Speechmatics (eu1)** | Speechmatics GmbH | ✅ EU-Hosting, Standard-AVV, ISO 27001 |
 
-Langdock proxy't aktuell **kein** Audio-/Whisper-Endpoint (verifiziert via [docs.langdock.com/llms.txt](https://docs.langdock.com/llms.txt), Stand 2026-06). Die einzigen out-of-the-box Whisper-Provider sind:
+Wenn du DSGVO-strikt willst, **musst** du beide Pfade fixen: Web Speech API ausschalten **und** Speechmatics anbinden.
 
-| Provider | Hosting | DSGVO | Aufwand |
-|---|---|---|---|
-| **OpenAI Whisper direkt** | USA | ❌ Audio fliesst an OpenAI/USA, AVV nur über OpenAI Enterprise | trivial |
-| **Speechmatics** | UK/EU | ✅ EU-Hosting + Standard-AVV | mittel — eigener Provider, eigener Key |
-| **Deepgram (EU-Region)** | EU | ✅ EU-Hosting + DPA | mittel — eigener Provider |
-| **Self-hosted Whisper** (Hetzner GPU, Replicate EU, etc.) | EU | ✅ volle Kontrolle | hoch — Infrastruktur |
+---
 
-Der Code ist provider-agnostisch — du wählst per Env-Var. Default ist `disabled`: ohne explizite Wahl ist das Feature aus, und Atlas-/Firefox-User sehen den Live-Mikro-Disabled-Hinweis statt eines Whisper-Buttons.
+## Variante A — Speechmatics (EU, empfohlen)
 
-## Variante A — OpenAI Whisper direkt (schnellster Pfad)
+### Schritt 1 — Account + AVV
 
-**Warnung:** Audio (≠ Coaching-Text) fliesst zu OpenAI/USA. Für die strikte EU-Linie nicht passend. Wenn du das pragmatisch machen willst (z.B. wenige Atlas-User, bewusste Entscheidung): folgendes Setup.
+1. [portal.speechmatics.com](https://portal.speechmatics.com) → Sign up
+2. Bei Account-Erstellung **EU-Region** wählen (default: eu1 Frankfurt)
+3. **Settings → Legal → Data Processing Agreement** → digital unterzeichnen. PDF lokal sichern für dein Art-30-Verzeichnis und für eine DSFA bei Coaching-Daten.
+
+### Schritt 2 — API-Key generieren
+
+1. **Settings → API Keys → Create new key**
+2. Name z.B. `coachzwilling-prod`
+3. Kopieren — wird nur einmal angezeigt.
+4. Zweiten Key `coachzwilling-dev` für lokal anlegen.
+
+API-Keys sind nicht region-gebunden — die Region steuerst du über die Endpoint-URL (siehe `SPEECHMATICS_REGION` Env-Var).
+
+### Schritt 3 — Lokale `.env.local`
+
+```bash
+STT_PROVIDER=speechmatics
+SPEECHMATICS_API_KEY=...
+SPEECHMATICS_REGION=eu1
+SPEECHMATICS_OPERATING_POINT=enhanced
+```
+
+`enhanced` ist die teurere, genauere Variante (~$0.008/Min). Für Coaching-Audio mit Fachvokabular lohnt sich das. Wenn die Kosten kleiner werden müssen: `standard` (~$0.005/Min).
+
+### Schritt 4 — Vercel-Production
+
+1. Vercel-Dashboard → **Project Settings → Environment Variables**
+2. Für **Production** anlegen:
+   - `STT_PROVIDER=speechmatics`
+   - `SPEECHMATICS_API_KEY=...` → **Sensitive**
+   - `SPEECHMATICS_REGION=eu1`
+   - `SPEECHMATICS_OPERATING_POINT=enhanced`
+3. Redeploy.
+
+### Schritt 5 — Smoke-Test
+
+In Firefox oder OpenAI Atlas:
+
+1. `https://<deine-domain>/api/transcribe` → sollte `{"enabled":true}` liefern
+2. Coach-Chat öffnen → Mikro-Knopf sichtbar
+3. Klick → Mikro-Permission erlauben → roter Puls (Aufnahme)
+4. Sprich 2–5 s, klick Stop → Spinner für 2–5 s → Transkript im Input
+
+Wenn 4× hintereinander failed: Vercel-Logs prüfen auf `[transcribe] provider error`. Häufigste Ursachen:
+- API-Key falsch oder noch nicht aktiviert
+- Region-URL passt nicht zum Key (Key wurde im US-Account erstellt, aber `SPEECHMATICS_REGION=eu1`)
+- Audio-Format nicht erkannt (sollte nicht passieren — Speechmatics frisst webm/opus)
+
+### Schritt 6 — Kostenmonitor
+
+Im Speechmatics-Portal: **Usage** zeigt täglichen Minutenverbrauch + Kosten.
+
+Beispielrechnung: 100 Coaches × 50 Antworten/Monat × 20 s Sprechzeit
+= 100.000 s = 1666 Min × $0.008 = **~$13 / Monat**.
+
+Bei deinem aktuellen Userzahl-Stand (0 zahlende Studios) faktisch $0.
+
+---
+
+## Variante B — OpenAI Whisper (US, pragmatisch)
+
+**Warnung:** Audio fliesst zu OpenAI/USA. Bricht die EU-Linie. Nur wenn du das bewusst willst und im Cookie-Banner / der Datenschutzerklärung sauber ausweist.
 
 ### Schritt 1 — OpenAI-Key
 
-1. [platform.openai.com/api-keys](https://platform.openai.com/api-keys) → **Create new secret key**
-2. Name z.B. `coachzwilling-whisper`
-3. Permissions: nur `audio.transcriptions` reicht — Restricted-Key bauen wenn dein OpenAI-Plan das hergibt
-4. Key kopieren und in den Passwortmanager
+1. [platform.openai.com/api-keys](https://platform.openai.com/api-keys) → Create new secret key
+2. Restricted-Key nur für `audio.transcriptions`
+3. Key kopieren
 
-### Schritt 2 — Lokale `.env.local`
+### Schritt 2 — `.env.local` / Vercel
 
 ```bash
 STT_PROVIDER=openai
 OPENAI_API_KEY=sk-...
-# Optional: anderes Whisper-Modell. Default ist whisper-1.
-# Neuere gpt-4o-*-transcribe Modelle sind genauer aber teurer.
-# OPENAI_TRANSCRIPTION_MODEL=whisper-1
+# Optional: anderes Modell — Default whisper-1
+# OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
 ```
 
-### Schritt 3 — Vercel-Production-Env
+### Smoke-Test wie Variante A.
 
-1. Vercel-Dashboard → **Project Settings → Environment Variables**
-2. Für **Production** anlegen:
-   - `STT_PROVIDER=openai`
-   - `OPENAI_API_KEY=sk-...` als **Sensitive** markieren
-3. Redeploy auslösen.
+---
 
-### Schritt 4 — Smoke-Test im Browser
+## Variante C — Disabled (Default)
 
-1. Öffne den Coach-Chat in einem Browser **ohne** Web Speech API (Firefox oder Atlas)
-2. Mikro-Button sollte sichtbar sein und nicht ausgegraut
-3. Klick drauf → Browser fragt nach Mikrofon-Permission → erlauben
-4. Sprich 2–3 Sekunden, klick Stop
-5. Spinner für ~1–3 s → Text erscheint im Input
-
-Wenn der Button **nicht** erscheint: `/api/transcribe` mit GET aufrufen
-```bash
-curl https://<deine-domain>/api/transcribe
-```
-sollte `{"enabled":true}` liefern. Falls `{"enabled":false}` → Env nicht gesetzt oder Vercel-Deploy hat sie nicht übernommen.
-
-## Variante B — Speechmatics (EU-konform)
-
-**Status: nicht implementiert.** Der Adapter ist auf Erweiterung vorbereitet, fehlt aber noch in `src/lib/stt/`. Wenn du das willst, sag Bescheid:
-
-1. Speechmatics-Konto + EU-Region wählen
-2. AVV unterzeichnen
-3. API-Key generieren
-4. Code-Erweiterung: `src/lib/stt/speechmatics.ts` (Adapter), `client.ts` (Branch), `STT_PROVIDER=speechmatics`-Variante
-
-Aufwand: ~1–2 h Code, $20/Mio Sekunden Audio bei Speechmatics Standard.
-
-## Variante C — Self-hosted Whisper
-
-**Status: nicht implementiert.** Optionen:
-
-- **Replicate** (`openai/whisper`-Endpoint) mit EU-Region
-- **Eigener Hetzner-GPU-Container** mit `faster-whisper` oder `whisper.cpp`
-- **Ollama / LM Studio** für Dev-Setup
-
-Code-Erweiterung wäre `src/lib/stt/self-hosted.ts` + Endpoint-URL via Env. Sag Bescheid wenn du das willst.
-
-## Kosten-Beispielrechnung (Variante A)
-
-Annahmen: ein User spricht 1× pro Coach-Antwort 20 Sekunden, 50 Coaching-Antworten pro Monat.
-
-- 50 × 20 s = 1000 s = ~17 Min
-- 17 Min × $0.006 = ~$0.10 / User / Monat
-- Bei 100 zahlenden Studios à 1 User: ~$10 / Monat zusätzlich
-
-Das ist überschaubar — wenn die Atlas-Nutzergruppe klein bleibt, kann Variante A pragmatisch sein, bis sich die EU-Variante lohnt.
-
-## Rückweg
-
-Whisper-Fallback abschalten:
+Nichts setzen, oder explizit:
 
 ```bash
 STT_PROVIDER=disabled
 ```
 
-→ Redeploy. Live-Mikro funktioniert weiter wo Web Speech API da ist, der Whisper-Button verschwindet im Composer.
+→ `/api/transcribe` liefert 503. Der Whisper-Knopf erscheint nicht im Chat. Atlas-User können nicht sprechen — sehen aber den klaren Hinweis „Wechsle auf Chrome/Edge/Safari".
+
+---
+
+## DSGVO-Vollausbau (was du WIRKLICH brauchst)
+
+Wenn du B2B-Pitches mit DSFA-Anforderungen machst, reicht ein STT-Wechsel nicht. Drei Stellen müssen zusammen passen:
+
+```bash
+# 1. LLM-Inferenz über Langdock EU
+LLM_PROVIDER=langdock
+LANGDOCK_API_KEY=...
+LANGDOCK_REGION=eu
+
+# 2. Server-STT über Speechmatics EU
+STT_PROVIDER=speechmatics
+SPEECHMATICS_API_KEY=...
+SPEECHMATICS_REGION=eu1
+SPEECHMATICS_OPERATING_POINT=enhanced
+
+# 3. Browser-Live-Mikro ABSCHALTEN (sonst leakt Audio an Google/Apple/MS)
+NEXT_PUBLIC_SPEECH_PROVIDER=disabled
+```
+
+Damit:
+- Coaching-Text fliesst nur durch Langdock-EU
+- Audio fliesst nur durch Speechmatics-EU
+- Web Speech API ist deaktiviert — User sieht beim Mikro-Klick „Live-Spracheingabe deaktiviert (DSGVO), nutze stattdessen den Aufnahme-Button"
+- Whisper-Aufnahme-Knopf (Push-to-talk) ist der einzige Mikro-Pfad — gleicher UX in allen Browsern
+
+**Was du dann noch klären musst** (Code kann das nicht):
+- AVVs unterzeichnet bei: Langdock, Speechmatics, Supabase, Vercel, Stripe, Resend
+- Cookie-Banner deklariert: Supabase-Cookies, Stripe-Iframe, ggf. Vercel-Analytics
+- DSFA für Coaching-Profile (Art. 35 DSGVO) — Coaching-Daten sind besonders sensibel, weil persönlichste Selbstreflexion
+- Verzeichnis der Verarbeitungstätigkeiten (Art. 30 DSGVO) gepflegt
+- Resend → EU-E-Mail-Provider tauschen (Postmark EU, Mailjet, Brevo) — separate Migration
+
+---
+
+## Rückweg
+
+Wenn was nicht funktioniert, schrittweise zurück:
+
+| Was geht kaputt | Lösung |
+|---|---|
+| Coach-Chat antwortet nicht | `LLM_PROVIDER=anthropic` → fallback auf Direkt-API |
+| Mikro-Aufnahme failed | `STT_PROVIDER=disabled` → Feature ausblenden |
+| User klagen, dass Live-Mikro fehlt | `NEXT_PUBLIC_SPEECH_PROVIDER=browser` zurück (bewusste Entscheidung: Live-UX wichtiger als strikte EU-Linie) |
+
+Alle drei Wege brauchen nur Env-Änderung + Redeploy, kein Code.
+
+---
 
 ## Was im Code passiert (kurz)
 
-- `src/lib/stt/client.ts` — Provider-Switch (`STT_PROVIDER`), Default `disabled`
-- `src/lib/stt/openai.ts` — OpenAI-Whisper-Adapter (multipart-Upload)
-- `src/app/api/transcribe/route.ts` — Auth-Gate, 25 MB Limit, `language=de`-Default, Coaching-Vokabular-Prompt
-- `src/components/chat/useWhisperInput.ts` — MediaRecorder-basierter Client-Hook (webm/opus → POST FormData)
-- `src/components/chat/ChatView.tsx` — wählt automatisch zwischen Web Speech und Whisper
+- `src/lib/stt/client.ts` — Provider-Factory: `speechmatics` | `openai` | `disabled`
+- `src/lib/stt/speechmatics.ts` — EU-Adapter: POST job → poll → GET transcript
+- `src/lib/stt/openai.ts` — US-Adapter: synchroner POST
+- `src/app/api/transcribe/route.ts` — Auth-Gate, 25 MB Limit, language=de, Coaching-Vokabular-Prompt
+- `src/components/chat/useSpeechInput.ts` — respektiert `NEXT_PUBLIC_SPEECH_PROVIDER=disabled`
+- `src/components/chat/useWhisperInput.ts` — MediaRecorder-basierter Server-STT-Pfad
+- `src/components/chat/ChatView.tsx` — wählt automatisch Live-Mikro vs Aufnahme-Knopf
 
-Der Hook prüft beim Mount via `GET /api/transcribe`, ob die Server-Route aktiv ist. Ohne aktiven STT-Provider blendet die UI den Whisper-Button erst gar nicht ein.
+Hook prüft beim Mount via `GET /api/transcribe`, ob STT enabled ist. Ohne aktiven Provider erscheint der Aufnahme-Knopf gar nicht.
+
+## Quellen
+
+- [Speechmatics Batch Quickstart](https://docs.speechmatics.com/introduction/quickstart)
+- [Speechmatics API Reference](https://docs.speechmatics.com/api-ref)
+- [Speechmatics Authentication](https://docs.speechmatics.com/get-started/authentication)
+- [OpenAI Speech-to-Text Guide](https://platform.openai.com/docs/guides/speech-to-text)

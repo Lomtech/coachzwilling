@@ -27,4 +27,5 @@
 - Stripe-Webhook validiert HMAC vor jedem Side-Effect
 - Auswertungs-Prompt + Coach-System-Prompt liegen in `src/lib/coach/prompts.ts` als reine Konstanten
 - LLM-Calls niemals direkt via `new Anthropic(...)` — immer über `anthropic()`-Factory in `src/lib/claude/client.ts` (sonst bricht der Provider-Switch). Bei Langdock-Betrieb prüfen ob `cache_control: ephemeral` durchgereicht wird (Telemetrie in `messages.cache_read_input_tokens`)
-- Speech-to-Text-Calls niemals direkt — immer über `transcribe()` aus `src/lib/stt/client.ts` (provider-agnostisch, default `disabled`). Whisper-Default-Provider ist OpenAI (US-Hosting); EU-Alternativen brauchen einen neuen Adapter in `src/lib/stt/`. Siehe `docs/WHISPER_SETUP.md`.
+- Speech-to-Text-Calls niemals direkt — immer über `transcribe()` aus `src/lib/stt/client.ts` (provider-agnostisch, default `disabled`). EU-Adapter: Speechmatics (`speechmatics`-Provider, Frankfurt eu1). US-Adapter: OpenAI Whisper. Siehe `docs/WHISPER_SETUP.md`.
+- **Web Speech API ist DSGVO-fraglich**: Chrome/Safari/Edge streamen Audio an den Browser-Hersteller. Für DSGVO-strikten Betrieb `NEXT_PUBLIC_SPEECH_PROVIDER=disabled` setzen — dann blockiert `useSpeechInput` die Live-Mikro-Aktivierung und nur der Server-STT-Pfad bleibt verfügbar.

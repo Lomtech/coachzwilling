@@ -10,17 +10,24 @@ import 'server-only'
 //   • Damit gibt es keine "DSGVO-First-Lösung" über den Langdock-Account.
 //
 // Provider-Optionen:
-//   STT_PROVIDER=openai      OpenAI Whisper direkt — US-Hosting, einfaches Setup.
-//                            Bricht die strikte EU-Datenflusslogik wenn du sonst
-//                            alles über Langdock fährst — bewusste Entscheidung
-//                            des Betreibers nötig.
-//   STT_PROVIDER=disabled    Feature aus — UI bietet keinen Whisper-Fallback an.
-//                            Default wenn nichts gesetzt UND kein OPENAI_API_KEY.
+//   STT_PROVIDER=speechmatics  Speechmatics Batch — EU-Hosting (Frankfurt),
+//                              Standard-AVV, ISO 27001. Empfohlen für
+//                              DSGVO-strikte Setups.
+//                              Konfiguration: SPEECHMATICS_API_KEY +
+//                              SPEECHMATICS_REGION (default eu1) +
+//                              SPEECHMATICS_OPERATING_POINT (default enhanced).
+//   STT_PROVIDER=openai        OpenAI Whisper direkt — US-Hosting, einfaches Setup.
+//                              Bricht die strikte EU-Datenflusslogik wenn du sonst
+//                              alles über Langdock fährst — bewusste Entscheidung
+//                              des Betreibers nötig.
+//   STT_PROVIDER=disabled      Feature aus — UI bietet keinen STT-Fallback an.
+//                              Default wenn nichts gesetzt UND kein
+//                              SPEECHMATICS_API_KEY / OPENAI_API_KEY.
 //
 // Erweiterbarkeit:
-//   Für EU-konforme STT-Provider (Speechmatics, Deepgram EU-Region,
-//   self-hosted Whisper auf Hetzner) kann hier ein neuer Branch ergänzt werden
-//   — gleiche Adapter-Signatur, der Rest des Codes bleibt unverändert.
+//   Für weitere EU-Provider (Deepgram EU-Region, self-hosted Whisper auf
+//   Hetzner) kann hier ein neuer Branch ergänzt werden — gleiche
+//   Adapter-Signatur, der Rest des Codes bleibt unverändert.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface TranscribeArgs {
@@ -42,13 +49,17 @@ export interface TranscribeResult {
   model: string
 }
 
-export type SttProviderId = 'openai' | 'disabled'
+export type SttProviderId = 'speechmatics' | 'openai' | 'disabled'
 
 export function sttProvider(): SttProviderId {
   const explicit = (process.env.STT_PROVIDER ?? '').toLowerCase()
-  if (explicit === 'openai' || explicit === 'disabled') return explicit
-  // Implicit-Default: wenn OPENAI_API_KEY gesetzt ist und nichts widerspricht,
-  // gehen wir davon aus, dass der Betreiber Whisper via OpenAI nutzen will.
+  if (explicit === 'speechmatics' || explicit === 'openai' || explicit === 'disabled') {
+    return explicit
+  }
+  // Implicit-Default: erste verfügbare Konfiguration gewinnt — Speechmatics
+  // hat Vorrang, weil EU-Hosting der Default-Wunsch ist, wenn beide Keys da
+  // sind aber STT_PROVIDER nicht explizit gewählt wurde.
+  if (process.env.SPEECHMATICS_API_KEY) return 'speechmatics'
   if (process.env.OPENAI_API_KEY) return 'openai'
   return 'disabled'
 }
@@ -61,6 +72,10 @@ export async function transcribe(args: TranscribeArgs): Promise<TranscribeResult
   const provider = sttProvider()
   if (provider === 'disabled') {
     throw new Error('STT-Provider nicht konfiguriert (STT_PROVIDER=disabled)')
+  }
+  if (provider === 'speechmatics') {
+    const { speechmaticsTranscribe } = await import('./speechmatics')
+    return speechmaticsTranscribe(args)
   }
   if (provider === 'openai') {
     const { openaiTranscribe } = await import('./openai')

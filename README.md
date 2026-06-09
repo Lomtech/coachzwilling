@@ -82,7 +82,8 @@ supabase db push
 | `LLM_PROVIDER` | `anthropic` (default), `bedrock` oder `langdock` |
 | `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys (nur für `LLM_PROVIDER=anthropic`) |
 | `LANGDOCK_API_KEY` / `LANGDOCK_REGION` | Langdock-Workspace → API Keys (nur für `LLM_PROVIDER=langdock`) — siehe [docs/LANGDOCK_SETUP.md](docs/LANGDOCK_SETUP.md) |
-| `STT_PROVIDER` / `OPENAI_API_KEY` | Optionaler Whisper-Fallback für Browser ohne Web Speech API (Atlas, Firefox) — siehe [docs/WHISPER_SETUP.md](docs/WHISPER_SETUP.md) |
+| `STT_PROVIDER` / `SPEECHMATICS_API_KEY` / `OPENAI_API_KEY` | Server-STT für Push-to-talk-Aufnahmen (Browser ohne Web Speech API: Atlas, Firefox). Speechmatics EU empfohlen. Siehe [docs/WHISPER_SETUP.md](docs/WHISPER_SETUP.md) |
+| `NEXT_PUBLIC_SPEECH_PROVIDER` | `browser` (default, Live-Mikro via Web Speech API) oder `disabled` (Web Speech aus — Pflicht für strikte DSGVO-Linie, sonst leakt Audio an Browser-Hersteller) |
 | `AWS_REGION` / `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | AWS-Console (nur für `LLM_PROVIDER=bedrock`) |
 | `STRIPE_SECRET_KEY` | Stripe-Dashboard → Developers → API Keys |
 | `STRIPE_WEBHOOK_SECRET` | Stripe → Webhooks → Endpoint signing secret |

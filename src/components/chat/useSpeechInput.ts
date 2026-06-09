@@ -5,9 +5,13 @@ import { useEffect, useRef, useState } from 'react'
 /**
  * Spracheingabe V1 — browser-natives Web Speech API.
  *
- * Vorteile:
- * - Kostenlos, läuft komplett im Browser
- * - DSGVO-unkritisch (kein Audio-Upload an unsere Server)
+ * DSGVO-EHRLICHKEIT (Stand 2026-06):
+ *   Die Web Speech API ist NICHT lokal. Chrome streamt Audio an Google,
+ *   Safari an Apple, Edge an Microsoft — keiner dieser Pfade hat einen
+ *   AVV mit deiner Coaching-Anwendung. Wer DSGVO-strikt sein muss,
+ *   setzt NEXT_PUBLIC_SPEECH_PROVIDER=disabled und nutzt ausschließlich
+ *   den server-side Whisper-Fallback (useWhisperInput) mit einem
+ *   EU-konformen STT-Provider (z.B. Speechmatics eu1).
  *
  * Browser-Realität (was wir hier kompensieren):
  * - Chrome/Edge Desktop: voll OK, continuous=true klappt
@@ -15,11 +19,20 @@ import { useEffect, useRef, useState } from 'react'
  * - iOS Safari: continuous=true bricht nach ~5s ab → wir setzen continuous=false
  *   und starten bei jedem onend automatisch neu, solange der User nicht stoppt
  * - Firefox: keine Implementierung → supported=false, Button zeigt Begründung
- * - Permission "blocked": früher silent fail, jetzt prominenter Hinweis
- *
- * Für V2 könnten wir auf Whisper API umsteigen (höhere Genauigkeit,
- * aber Audio-Upload + API-Kosten + DSGVO-Aufwand).
+ * - OpenAI Atlas: webkitSpeechRecognition vermutlich abgeschaltet
+ * - Permission "blocked": prominenter Hinweis mit browser-spezifischem Pfad
  */
+
+/**
+ * Wenn der Betreiber NEXT_PUBLIC_SPEECH_PROVIDER=disabled setzt, schalten
+ * wir die Web Speech API komplett aus — damit kein Audio mehr an
+ * Google/Apple/Microsoft fliesst, ohne dass der User es weiss.
+ * Der Whisper-Fallback (eigener STT-Provider) bleibt davon unberührt.
+ */
+function isBrowserSpeechDisabled(): boolean {
+  if (typeof process === 'undefined') return false
+  return (process.env.NEXT_PUBLIC_SPEECH_PROVIDER ?? 'browser').toLowerCase() === 'disabled'
+}
 
 interface UseSpeechInputResult {
   supported: boolean
@@ -145,6 +158,19 @@ export function useSpeechInput(args: {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+
+    // DSGVO-Disable-Pfad: wenn der Betreiber NEXT_PUBLIC_SPEECH_PROVIDER=disabled
+    // gesetzt hat, wollen wir die Web Speech API gar nicht erst anbieten —
+    // sonst leakt Audio an Google/Apple/Microsoft ohne AVV.
+    if (isBrowserSpeechDisabled()) {
+      setSupported(false)
+      setUnsupportedReason(
+        'Live-Spracheingabe ist auf diesem Deployment deaktiviert (DSGVO). ' +
+        'Nutze stattdessen den Aufnahme-Button für Push-to-talk via EU-STT.'
+      )
+      return
+    }
+
     const Ctor = getCtor()
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
     const hasGetUserMedia = typeof navigator !== 'undefined'
@@ -158,6 +184,7 @@ export function useSpeechInput(args: {
       hasWebkitSpeechRecognition: typeof window !== 'undefined' && 'webkitSpeechRecognition' in window,
       hasGetUserMedia,
       userAgent: ua,
+      browserSpeechDisabled: isBrowserSpeechDisabled(),
     })
 
     if (!Ctor) {
