@@ -58,3 +58,7 @@ create policy "inv_admin_read" on public.org_invitations
 
 -- Schreiben (Insert/Update/Delete) läuft über die API-Routes mit
 -- Service-Client — keine direkten Client-Schreibrechte.
+
+-- Anon-Discovery raus (defense in depth — RLS würde ohnehin filtern,
+-- aber die Tabelle gar nicht im GraphQL-Schema zu führen ist sauberer).
+revoke select on public.org_invitations from anon;

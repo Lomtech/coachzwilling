@@ -136,6 +136,19 @@ declare
   v_k_threshold integer;
   v_total       integer;
 begin
+  -- 0) Defense in depth: Caller muss HR-Admin oder Owner der Org sein.
+  --    Der Application-Layer prüft das auch (isOrgAdmin), aber so scheitert
+  --    ein direkter REST-Call /rest/v1/rpc/org_stress_aggregate mit fremder
+  --    org_id auch DB-seitig — nicht nur in der Next.js-Route.
+  if not exists (
+    select 1 from public.organization_members
+    where org_id = p_org_id
+      and user_id = auth.uid()
+      and role in ('owner','hr_admin')
+  ) then
+    raise exception 'forbidden — caller is not an org admin' using errcode = '42501';
+  end if;
+
   -- 1) Org existiert? K-Threshold lesen
   select k_anonymity_threshold into v_k_threshold
     from public.organizations where id = p_org_id;
@@ -201,8 +214,10 @@ $$;
 
 -- Authenticated-Rolle darf die RPC aufrufen, der Application-Layer prüft
 -- zusätzlich dass der Aufrufer ein HR-Admin der Ziel-Org ist (siehe
--- src/lib/org/auth.ts → assertOrgAdmin).
+-- src/lib/org/auth.ts → isOrgAdmin). Anon explizit raus — `revoke from
+-- public` reicht nicht, anon hat separate default-grants.
 revoke all on function public.org_stress_aggregate(uuid, integer, integer) from public;
+revoke execute on function public.org_stress_aggregate(uuid, integer, integer) from anon;
 grant execute on function public.org_stress_aggregate(uuid, integer, integer) to authenticated;
 
 -- Convenience-RPC: aktuelle vs. Baseline-Periode für Trend-Anzeige.
@@ -262,4 +277,11 @@ as $$
 $$;
 
 revoke all on function public.org_stress_trend(uuid, integer, integer) from public;
+revoke execute on function public.org_stress_trend(uuid, integer, integer) from anon;
 grant execute on function public.org_stress_trend(uuid, integer, integer) to authenticated;
+
+-- Tabellen-Exposure: anon soll die Org-Tabellen nicht via PostgREST/GraphQL
+-- discovern können. RLS wäre die zweite Schicht, aber wir wollen die OBJEKTE
+-- gar nicht erst sichtbar machen.
+revoke select on public.organizations from anon;
+revoke select on public.organization_members from anon;
