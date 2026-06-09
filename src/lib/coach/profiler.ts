@@ -79,6 +79,59 @@ export async function generateCoachProfile(
 }
 
 /**
+ * Streaming-Variante des Profilers. Liefert Tokens chunkweise an `onChunk` und
+ * gibt am Ende dasselbe Result-Shape zurück wie {@link generateCoachProfile}.
+ *
+ * Wird vom Onboarding-Finalize-Endpoint genutzt, damit die Vercel-Function
+ * während der ~2-4 Minuten Opus-Generierung permanent Bytes über SSE schickt
+ * (sonst killt der Edge-Proxy die Function nach maxDuration trotz running-LLM).
+ */
+export async function streamCoachProfile(
+  answers: Record<string, string>,
+  onChunk: (chunk: string, totalSoFar: number) => void,
+): Promise<ProfilerResult> {
+  const scanText = answersToScanText(answers)
+  const userMessage = `SCAN-OUTPUT:\n\n${scanText}`
+
+  let acc = ''
+  let modelId = PROFILER_MODEL
+  let inputTokens = 0
+  let outputTokens = 0
+
+  const stream = await anthropic().messages.stream({
+    model: PROFILER_MODEL,
+    max_tokens: 6144, // knapp gehalten — Profile passen erfahrungsgemäss in 5-6k
+    system: PROFILER_PROMPT,
+    messages: [{ role: 'user', content: userMessage }],
+  })
+
+  for await (const ev of stream) {
+    if (ev.type === 'content_block_delta' && ev.delta.type === 'text_delta') {
+      const t = ev.delta.text
+      acc += t
+      onChunk(t, acc.length)
+    } else if (ev.type === 'message_start' && ev.message.usage) {
+      inputTokens = ev.message.usage.input_tokens ?? 0
+      modelId = ev.message.model ?? PROFILER_MODEL
+    } else if (ev.type === 'message_delta' && ev.usage) {
+      outputTokens = ev.usage.output_tokens ?? outputTokens
+    }
+  }
+
+  const cleaned = acc.trim()
+  const { tone, language } = extractToneAndLanguage(cleaned)
+
+  return {
+    configMd: cleaned,
+    toneOneliner: tone,
+    languageMirror: language,
+    model: modelId,
+    inputTokens,
+    outputTokens,
+  }
+}
+
+/**
  * Tiefen-Refresh: liest alle vier Datenquellen und baut daraus eine neue
  * Profilversion. Im Gegensatz zur frühen Memory-only-Variante bekommt Opus
  * jetzt den ROHEN Chat-Verlauf zu sehen — keine Destillation mehr.

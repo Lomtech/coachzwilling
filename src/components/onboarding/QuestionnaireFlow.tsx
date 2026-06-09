@@ -17,6 +17,7 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
   const [index, setIndex] = useState(initialIndex)
   const [pending, startTransition] = useTransition()
   const [finalizing, setFinalizing] = useState(false)
+  const [profilerChars, setProfilerChars] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
   // Nachfrage-State pro Frage (V3-Doc: 5 feste Nachfragen an Q4, Q21, Q30, Q33, Q40)
@@ -103,27 +104,83 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
 
   async function finalize() {
     setFinalizing(true)
+    setProfilerChars(0)
     setError(null)
     try {
       const res = await fetch('/api/onboarding/finalize', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
         body: JSON.stringify({ answers, followupOptIn }),
       })
-      if (!res.ok) {
-        const t = await res.text()
-        throw new Error(t || 'Profil-Generation fehlgeschlagen')
+      if (!res.ok || !res.body) {
+        const t = await res.text().catch(() => '')
+        throw new Error(t || `HTTP ${res.status}`)
       }
+
+      // SSE-Reader. Bei Erfolg endet der Stream mit `event: done`.
+      // Wenn der Stream wegen Netz / Tab-Suspend abreisst, fällt der
+      // catch-Block unten auf Polling /api/onboarding/status zurück.
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buf = ''
+      let sawDone = false
+      let sawError: string | null = null
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buf += decoder.decode(value, { stream: true })
+        let nl
+        while ((nl = buf.indexOf('\n\n')) >= 0) {
+          const block = buf.slice(0, nl)
+          buf = buf.slice(nl + 2)
+          const lines = block.split('\n')
+          let event = 'message'
+          let data = ''
+          for (const ln of lines) {
+            if (ln.startsWith('event: ')) event = ln.slice(7).trim()
+            else if (ln.startsWith('data: ')) data += ln.slice(6)
+          }
+          if (!data) continue
+          let payload: unknown = null
+          try { payload = JSON.parse(data) } catch { /* ignore */ }
+          if (event === 'progress' && payload && typeof payload === 'object' && 'chars' in payload) {
+            const c = (payload as { chars?: number }).chars
+            if (typeof c === 'number') setProfilerChars(c)
+          } else if (event === 'done') {
+            sawDone = true
+          } else if (event === 'error' && payload && typeof payload === 'object' && 'message' in payload) {
+            sawError = String((payload as { message?: string }).message ?? 'profiler error')
+          }
+        }
+      }
+
+      if (sawError) throw new Error(sawError)
+      if (!sawDone) {
+        // Stream endete ohne `done` → könnte sein, dass die DB-Persistenz
+        // server-seitig trotzdem durchlief. Polling-Fallback.
+        const ok = await pollUntilProfiled()
+        if (!ok) throw new Error('Profil-Generation hat zu lange gedauert')
+      }
+
       router.push('/coach')
       router.refresh()
     } catch (e: unknown) {
+      // Streckenrest: vielleicht ist das Profil schon da, nur die Verbindung
+      // tot. Vor dem Fehler-Anzeigen einmal pollen.
+      const ok = await pollUntilProfiled(3).catch(() => false)
+      if (ok) {
+        router.push('/coach')
+        router.refresh()
+        return
+      }
       setError(e instanceof Error ? e.message : 'Unbekannter Fehler')
       setFinalizing(false)
     }
   }
 
   if (finalizing) {
-    return <FinalizingView />
+    return <FinalizingView chars={profilerChars} />
   }
 
   return (
@@ -287,15 +344,57 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
   )
 }
 
-function FinalizingView() {
+/**
+ * Polling-Fallback wenn der SSE-Stream wegen Netz / Tab-Suspend abreisst.
+ * Pollt `/api/onboarding/status` bis der Server-Profiler durchgelaufen ist
+ * (state='profiled') oder ein definitiver Fehler (state='failed') erreicht wird.
+ *
+ * Auch beim Erfolgspfad als Sicherheitsnetz: wenn der Stream sauber endet aber
+ * irgendwo ein Event verschluckt wurde, holt das Polling den Endzustand nach.
+ */
+async function pollUntilProfiled(maxAttempts = 60): Promise<boolean> {
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise(r => setTimeout(r, 3000))
+    try {
+      const r = await fetch('/api/onboarding/status', { cache: 'no-store' })
+      if (!r.ok) continue
+      const { state } = await r.json() as { state?: string }
+      if (state === 'profiled' || state === 'active') return true
+      if (state === 'failed') return false
+    } catch {
+      // Netz-Hänger, weiter probieren
+    }
+  }
+  return false
+}
+
+function FinalizingView({ chars }: { chars: number }) {
+  // Heuristik: Opus 4.7 schreibt ein typisches Profil mit ca. 18-22k Chars.
+  // Damit eine Progress-Bar plausibel füllt — bei Stagnation (langsamer Stream)
+  // sieht der User trotzdem Bewegung über die Char-Anzeige.
+  const ESTIMATED_TOTAL = 20000
+  const pct = Math.min(95, Math.round((chars / ESTIMATED_TOTAL) * 100))
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-6 text-center">
       <div className="w-12 h-12 rounded-full border-4 border-[var(--color-surface-2)] border-t-[var(--color-ink)] animate-spin mb-6" />
       <h2 className="text-xl font-semibold tracking-tight mb-2">Dein Profil wird erstellt</h2>
       <p className="text-[var(--color-ink-2)] max-w-sm">
-        Dein Coach-Profil wird aus deinen Antworten erstellt.
-        Das dauert etwa 30–60 Sekunden.
+        Dein Coach-Profil wird aus deinen Antworten kalibriert.
+        Das dauert in der Regel 1–3 Minuten — bitte den Tab offen lassen.
       </p>
+      {chars > 0 && (
+        <div className="mt-6 w-full max-w-xs">
+          <div className="h-1.5 w-full bg-[var(--color-surface-2)] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[var(--color-ink)] transition-all duration-300"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <div className="mt-2 text-xs text-[var(--color-muted)] tabular-nums">
+            {chars.toLocaleString('de-DE')} Zeichen
+          </div>
+        </div>
+      )}
     </div>
   )
 }
