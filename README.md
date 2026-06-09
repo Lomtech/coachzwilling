@@ -2,7 +2,7 @@
 
 Ein KI-Coaching-Zwilling für Führungskräfte, gebaut auf Next.js 16, Supabase, Stripe und Claude.
 
-**Konzept:** User füllt einen 50-Fragen-Scan aus (Denkhorizonte-Methodik V3, Stand 5.6.26). An fünf festen Stellen (Q4, Q21, Q30, Q33, Q40) gibt es eine Nachfrage. Daraus generiert Claude Opus 4.7 in einem Lauf zwei Outputs — Output A (Rohprofil für den Nutzer) + Output B (Wissensdatei B1–B15 als Coach-Anker). Beide bilden zusammen den System-Prompt + Cache-Anker für jeden Coach-Dialog mit Claude Sonnet 4.6.
+**Konzept:** User füllt einen 50-Fragen-Scan aus (Denkhorizonte-Methodik V3, Stand 5.6.26). An fünf festen Stellen (Q4, Q21, Q30, Q33, Q40) gibt es eine Nachfrage. Daraus generiert Claude Sonnet 4.6 in einem Lauf zwei Outputs — Output A (Rohprofil für den Nutzer) + Output B (Wissensdatei B1–B15 als Coach-Anker). Beide bilden zusammen den System-Prompt + Cache-Anker für jeden Coach-Dialog mit Claude Sonnet 4.6. (Profiler war initial Opus 4.7 — auf Sonnet runtergezogen wegen Latenz + Kosten, per `CLAUDE_PROFILER_MODEL=claude-opus-4-7` re-aktivierbar.)
 
 ## Stack
 
@@ -12,7 +12,7 @@ Ein KI-Coaching-Zwilling für Führungskräfte, gebaut auf Next.js 16, Supabase,
 | Styling | Tailwind v4, helles Theme, mobile-first |
 | Auth + DB | Supabase (Projekt `wlxolfkhkxembiuofmfa`, Region eu-west-2) |
 | Zahlungen | Stripe Subscriptions (monatlich + jährlich, 7 Tage Trial) |
-| KI | Anthropic SDK — Sonnet 4.6 (Coach), Opus 4.7 (Profiler), Haiku 4.5 (Memory). Provider via `LLM_PROVIDER` umschaltbar: **anthropic** (Direct/USA), **bedrock** (AWS eu-central-1), **langdock** (EU-Hosting, DSGVO, ISO 27001, SOC 2 Type II) — siehe `docs/LANGDOCK_SETUP.md` |
+| KI | Anthropic SDK — Sonnet 4.6 (Coach + Profiler), Haiku 4.5 (Memory). Profiler-Modell per `CLAUDE_PROFILER_MODEL` überschreibbar (z.B. `claude-opus-4-7` für tieferes Profiling — kostet ~5× mehr und braucht Vercel Pro wegen 60s-Hobby-Cap). Provider via `LLM_PROVIDER` umschaltbar: **anthropic** (Direct/USA), **bedrock** (AWS eu-central-1), **langdock** (EU-Hosting, DSGVO, ISO 27001, SOC 2 Type II) — siehe `docs/LANGDOCK_SETUP.md` |
 | Hosting | Vercel `fra1` |
 
 ## Routen

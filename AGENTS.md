@@ -1,6 +1,6 @@
 # Agent-Hinweise — fuehrungs-coach
 
-**Stack:** Next.js 16 App Router, React 19, TypeScript, Tailwind v4, Supabase (Auth+Postgres+RLS), Stripe Subscriptions, Claude Sonnet 4.6 (Coach) + Opus 4.7 (Profiler) + Haiku 4.5 (Memory). LLM-Provider via `LLM_PROVIDER` umschaltbar: `anthropic` (default, Direkt-API), `bedrock` (AWS eu-central-1), `langdock` (EU-Hosting, DSGVO/ISO27001/SOC2). Alle Calls gehen über die zentrale `anthropic()`-Factory in `src/lib/claude/client.ts` — kein call-site-spezifischer Code.
+**Stack:** Next.js 16 App Router, React 19, TypeScript, Tailwind v4, Supabase (Auth+Postgres+RLS), Stripe Subscriptions, Claude Sonnet 4.6 (Coach + Profiler) + Haiku 4.5 (Memory). Profiler war initial Opus 4.7 — auf Sonnet 4.6 runtergezogen damit der Generierungs-Call in Vercel Hobby (60s) und ~5× günstiger durchläuft; per `CLAUDE_PROFILER_MODEL=claude-opus-4-7` re-aktivierbar. LLM-Provider via `LLM_PROVIDER` umschaltbar: `anthropic` (default, Direkt-API), `bedrock` (AWS eu-central-1), `langdock` (EU-Hosting, DSGVO/ISO27001/SOC2). Alle Calls gehen über die zentrale `anthropic()`-Factory in `src/lib/claude/client.ts` — kein call-site-spezifischer Code.
 
 ## Konvention (Next 16 — wichtig!)
 - `src/proxy.ts` statt `middleware.ts`

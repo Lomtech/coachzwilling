@@ -10,7 +10,7 @@ Onboarding-Intro (/onboarding)
 Scan (42 Fragen, eine pro Bildschirm)
    ↓ [Auto-Save → questionnaire_responses.answers (JSONB)]
    ↓ [Letzte Frage → POST /api/onboarding/finalize]
-Profiler (Claude Opus 4.7)
+Profiler (Claude Sonnet 4.6 — per env `CLAUDE_PROFILER_MODEL` auf Opus 4.7 umstellbar)
    ↓ [PROFILER_PROMPT + Scan-Output → config_md]
    ↓ [Insert in coach_profiles, profiles.onboarding_state = 'profiled']
    ↓
@@ -75,7 +75,9 @@ Folgende Routen nutzen `serviceClient()`:
 
 ## Kosten-Annahme (Indikation)
 
-- Profiler-Call (einmalig pro User): ~6k Input + ~3k Output @ Opus 4.7 ≈ 0,15 €
+- Profiler-Call (einmalig pro User): ~14k System + ~6k User + ~5-7k Output
+  - @ Sonnet 4.6 (default) ≈ 0,03 €, ~45-60s Latenz
+  - @ Opus 4.7 (`CLAUDE_PROFILER_MODEL=claude-opus-4-7`) ≈ 0,15 €, ~2-4 min Latenz
 - Coach-Call (mit Cache-Hit nach Erstgespräch): ~500 Cache-Read + ~50 fresh Input + ~150 Output @ Sonnet 4.6 ≈ 0,003 € pro Antwort
 - Bei 30 Antworten/Monat/User: ~0,09 € KI-Kosten
 

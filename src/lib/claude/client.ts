@@ -120,11 +120,21 @@ export const COACH_MODEL = modelFor(
   'claude-sonnet-4-6-default',
 )
 
+// Profiler-Default: Sonnet 4.6 statt Opus 4.7. Begründung:
+//   • Geschwindigkeit ~3x — passt in Vercel Hobby 60s, sonst reisst der
+//     /api/onboarding/finalize-Endpoint trotz Streaming irgendwann den
+//     maxDuration-Ceiling (Pro: 300s, Hobby: 60s).
+//   • Kosten ~5x niedriger pro Profil (~0.03€ statt ~0.15€).
+//   • Qualität: Sonnet 4.6 reicht für die strukturierte V5-Markdown-
+//     Generation aus klar spezifiziertem Prompt. Opus' Vorteil zieht
+//     v.a. bei langen Reasoning-Ketten, nicht bei "befülle dieses
+//     Template aus diesen Antworten".
+// Wer trotzdem Opus will: CLAUDE_PROFILER_MODEL=claude-opus-4-7 setzen.
 export const PROFILER_MODEL = modelFor(
   'CLAUDE_PROFILER_MODEL',
-  'claude-opus-4-7',
-  'eu.anthropic.claude-opus-4-7-20260101-v1:0',
-  'claude-opus-4-7-default',
+  'claude-sonnet-4-6',
+  'eu.anthropic.claude-sonnet-4-6-20260101-v1:0',
+  'claude-sonnet-4-6-default',
 )
 
 export const MEMORY_MODEL = modelFor(
