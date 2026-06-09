@@ -74,26 +74,49 @@ function detectIosSafari(): boolean {
 }
 
 /**
- * Atlas (OpenAI-Browser, Chromium-basiert) hat Web Speech API laut
- * Stand 2026-06 deaktiviert — vermutlich reservieren sie das Mikro für
- * eigene Agent-Features. Wenn webkitSpeechRecognition fehlt UND der UA
- * "Atlas" enthält, geben wir dem User einen klaren Hinweis statt nur
- * "Browser unterstützt das nicht".
+ * Browser-Family-Erkennung für gezielte Help-Texte bei Permission-Problemen.
  *
- * UA-Pattern bewusst breit gewählt — Atlas-UAs sind nicht stabil
- * dokumentiert. Wenn Detection vorbeischiesst: Console-Log am Mount
- * (s.u.) zeigt den echten UA, dann gezielt nachschärfen.
+ * Wichtig: OpenAI Atlas hat einen Chrome-IDENTISCHEN User-Agent
+ * (`Mozilla/5.0 (...) Chrome/141.0.0.0 Safari/537.36`, Quelle:
+ * https://seraphicsecurity.com/learn/ai-browser/openai-atlas-browser-features-pros-cons-security-and-privacy/),
+ * d.h. Atlas vs. Chrome ist clientseitig nicht zuverlässig zu unterscheiden.
+ * Wir geben deshalb bei Permission-Fehlern HILFE FÜR BEIDE Browser aus —
+ * der User erkennt selbst welcher Weg passt.
  */
-function detectAtlas(): boolean {
-  if (typeof navigator === 'undefined') return false
-  return /Atlas/i.test(navigator.userAgent)
+type BrowserFamily = 'chromium' | 'safari' | 'firefox' | 'unknown'
+
+function detectBrowserFamily(): BrowserFamily {
+  if (typeof navigator === 'undefined') return 'unknown'
+  const ua = navigator.userAgent
+  if (/Firefox/.test(ua)) return 'firefox'
+  // Safari nur wenn KEIN Chrome im UA — Chrome auf macOS hat auch "Safari" im UA
+  if (/Safari/.test(ua) && !/Chrome|CriOS|EdgiOS|FxiOS/.test(ua)) return 'safari'
+  if (/Chrome|Chromium|Edg/.test(ua)) return 'chromium'
+  return 'unknown'
+}
+
+function permissionHelpText(): string {
+  const fam = detectBrowserFamily()
+  // Atlas-Hinweis bei Chromium IMMER mit anbieten — Atlas tarnt sich als Chrome.
+  if (fam === 'chromium') {
+    return (
+      'Mikrofon-Zugriff blockiert. So freischalten:\n' +
+      '• Chrome/Edge: 🔒-Symbol in der Adresszeile → Mikrofon → Erlauben\n' +
+      '• OpenAI Atlas: Settings → Web Browsing and security → Site settings → Microphone → diese Seite auf „Allow" setzen\n' +
+      'Danach Mikro-Button erneut drücken.'
+    )
+  }
+  if (fam === 'safari') {
+    return 'Mikrofon-Zugriff blockiert. Safari → Einstellungen für diese Website → Mikrofon „Erlauben". Danach Mikro-Button erneut drücken.'
+  }
+  return 'Mikrofon-Zugriff blockiert. Erlaube das Mikrofon in den Browser-Einstellungen für diese Seite und drück den Mikro-Button erneut.'
 }
 
 function friendlyError(code: string): string {
   switch (code) {
     case 'not-allowed':
     case 'service-not-allowed':
-      return 'Mikrofon-Zugriff blockiert. Klick auf das 🔒-Symbol in der Adresszeile und erlaube das Mikrofon — dann den Mikro-Button erneut drücken.'
+      return permissionHelpText()
     case 'audio-capture':
       return 'Kein Mikrofon gefunden. Prüfe die System-Einstellungen.'
     case 'network':
@@ -139,16 +162,21 @@ export function useSpeechInput(args: {
 
     if (!Ctor) {
       setSupported(false)
-      if (detectAtlas()) {
-        setUnsupportedReason(
-          'Atlas-Browser unterstützt die Web-Speech-API derzeit nicht. ' +
-          'Für Spracheingabe: Chrome, Edge oder Safari verwenden — ' +
-          'oder ohne Mikro tippen.'
-        )
-      } else if (/Firefox/.test(ua)) {
+      const fam = detectBrowserFamily()
+      if (fam === 'firefox') {
         setUnsupportedReason('Firefox unterstützt Spracheingabe (noch) nicht. Verwende Chrome, Edge oder Safari.')
+      } else if (fam === 'chromium') {
+        // Chromium-Familie OHNE webkitSpeechRecognition → vermutlich OpenAI
+        // Atlas (Web Speech API in einigen Atlas-Versionen ausgeblendet) oder
+        // eine speziell konfigurierte Chrome-Variante. Wir nennen Atlas
+        // explizit, weil das der häufigste Fall ist.
+        setUnsupportedReason(
+          'Dein Chrome/Chromium-basierter Browser stellt die Web-Speech-API nicht bereit. ' +
+          'Wenn du OpenAI Atlas verwendest: dort ist die Browser-Spracherkennung derzeit nicht aktiviert. ' +
+          'Wechsle für Spracheingabe auf Chrome, Edge oder Safari — oder tippe einfach.'
+        )
       } else {
-        setUnsupportedReason('Dein Browser unterstützt keine Spracheingabe.')
+        setUnsupportedReason('Dein Browser unterstützt keine Spracheingabe. Wechsle auf Chrome, Edge oder Safari.')
       }
       return
     }
