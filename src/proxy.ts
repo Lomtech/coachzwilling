@@ -14,7 +14,7 @@ import type { Database } from '@/types/database'
 
 // /billing ist absichtlich PUBLIC (Preise sichtbar ohne Login) —
 // Checkout selbst (POST /api/stripe/checkout) bleibt auth-protected.
-const PROTECTED_PREFIXES = ['/coach', '/onboarding', '/settings']
+const PROTECTED_PREFIXES = ['/coach', '/onboarding', '/settings', '/org']
 const COACH_PREFIX = '/coach'
 const AUTH_REDIRECT_PATHS = ['/login', '/signup']
 

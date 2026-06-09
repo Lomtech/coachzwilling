@@ -307,6 +307,99 @@ export type Database = {
         }
         Relationships: []
       }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          industry: string | null
+          k_anonymity_threshold: number
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          industry?: string | null
+          k_anonymity_threshold?: number
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          industry?: string | null
+          k_anonymity_threshold?: number
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      org_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          email: string
+          expires_at: string
+          id: string
+          invited_at: string
+          invited_by: string
+          org_id: string
+          revoked_at: string | null
+          role: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          email: string
+          expires_at?: string
+          id?: string
+          invited_at?: string
+          invited_by: string
+          org_id: string
+          revoked_at?: string | null
+          role: string
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string
+          org_id?: string
+          revoked_at?: string | null
+          role?: string
+          token?: string
+        }
+        Relationships: []
+      }
+      organization_members: {
+        Row: {
+          joined_at: string
+          org_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          joined_at?: string
+          org_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          joined_at?: string
+          org_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           cache_creation_input_tokens: number | null
@@ -488,6 +581,36 @@ export type Database = {
     Views: { [_ in never]: never }
     Functions: {
       next_profile_version: { Args: { p_user_id: string }; Returns: number }
+      org_stress_aggregate: {
+        Args: {
+          p_org_id: string
+          p_window_days?: number
+          p_signal_threshold?: number
+        }
+        Returns: {
+          section: string
+          section_label: string
+          members_with_signal: number | null
+          total_members: number
+          intensity_index: number | null
+          suppressed: boolean
+        }[]
+      }
+      org_stress_trend: {
+        Args: {
+          p_org_id: string
+          p_window_days?: number
+          p_signal_threshold?: number
+        }
+        Returns: {
+          section: string
+          section_label: string
+          intensity_now: number | null
+          intensity_prev: number | null
+          delta: number | null
+          suppressed: boolean
+        }[]
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: { [_ in never]: never }

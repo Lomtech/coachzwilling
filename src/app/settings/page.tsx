@@ -13,6 +13,7 @@ import { ProfileViewer } from './ProfileViewer'
 import { ShareProfileSection } from './ShareProfileSection'
 import { TestimonialSection } from './TestimonialSection'
 import { FollowupSection } from './FollowupSection'
+import { OrgSection } from './OrgSection'
 import { IconChevronDown, IconSettings, IconCompare } from '@/components/Icons'
 import { isAdminEmail } from '@/lib/admin-auth'
 
@@ -163,6 +164,8 @@ export default async function SettingsPage() {
         lastSent={profile?.last_followup_at ?? null}
         recentMails={recentFollowups ?? []}
       />
+
+      <OrgSection />
 
       <section className="card mb-4">
         <SectionHeader>Living Memory</SectionHeader>
