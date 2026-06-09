@@ -3,7 +3,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSpeechInput } from './useSpeechInput'
-import { IconMic, IconStop } from '@/components/Icons'
+import { useWhisperInput } from './useWhisperInput'
+import { IconMic, IconStop, IconSpinner } from '@/components/Icons'
 
 interface Message {
   id: string
@@ -98,6 +99,37 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
       speechBaseRef.current = input
       expectSpeechInputRef.current = true
       speech.start()
+    }
+  }
+
+  // Whisper-Fallback für Browser ohne (aktivierte) Web Speech API — z.B.
+  // OpenAI Atlas. Hängt das Transkript hinten an den aktuellen Input an
+  // (Bug-Fix 1-Pattern: KEIN speechBaseRef hier, weil Push-to-talk ohne
+  // Live-Hypothesen läuft).
+  const whisper = useWhisperInput({
+    onTranscript: (text) => {
+      setInput(prev => {
+        const sep = prev && !prev.endsWith(' ') ? ' ' : ''
+        const next = prev + sep + text
+        // Autosize anstoßen — auf nächsten Frame, weil Textarea-Höhe erst
+        // nach Render des neuen Werts korrekt berechnet wird.
+        requestAnimationFrame(() => {
+          const ta = taRef.current
+          if (ta) {
+            ta.style.height = 'auto'
+            ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`
+          }
+        })
+        return next
+      })
+    },
+  })
+
+  function toggleWhisper() {
+    if (whisper.recording) {
+      whisper.stop()
+    } else if (!whisper.transcribing) {
+      void whisper.start()
     }
   }
 
@@ -292,6 +324,22 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
           </div>
         </div>
       )}
+      {whisper.error && (
+        <div className="px-4 pb-2 max-w-2xl w-full mx-auto">
+          <div className="text-xs text-[var(--color-danger)] bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/30 rounded-lg px-3 py-2 flex items-start gap-2">
+            <span className="flex-1 whitespace-pre-line">{whisper.error}</span>
+            <button
+              type="button"
+              onClick={() => whisper.clearError()}
+              className="text-[var(--color-danger)]/60 hover:text-[var(--color-danger)] shrink-0"
+              aria-label="Hinweis ausblenden"
+              title="Ausblenden"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Composer */}
       <div className="border-t border-[var(--color-border)] bg-[var(--color-bg)] safe-bottom">
@@ -302,11 +350,21 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
             value={input}
             onChange={e => { setInput(e.target.value); autosize() }}
             onKeyDown={onKey}
-            placeholder={speech.listening ? 'Sprich jetzt …' : 'Schreibe oder sprich mit deinem Coach …'}
-            disabled={streaming}
+            placeholder={
+              speech.listening ? 'Sprich jetzt …'
+              : whisper.recording ? 'Aufnahme läuft — klick Stop wenn fertig …'
+              : whisper.transcribing ? 'Transkribiere …'
+              : 'Schreibe oder sprich mit deinem Coach …'
+            }
+            disabled={streaming || whisper.transcribing}
             className="!min-h-[48px] !py-3"
             style={{ resize: 'none' }}
           />
+          {/* Mikrofon-Knöpfe — Auswahl-Logik:
+              • Live-Mikro (Web Speech API) wenn supported — primärer Pfad
+              • Whisper-Fallback als zweiter Knopf wenn Live nicht da ist
+                und der Server STT konfiguriert hat (z.B. OpenAI Atlas)
+              • Disabled-Hint nur als allerletzte Stufe */}
           {speech.supported ? (
             <button
               type="button"
@@ -322,6 +380,34 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
               title={speech.listening ? 'Stoppen' : 'Mit dem Coach sprechen (Live-Mikro)'}
             >
               {speech.listening ? <IconStop className="w-5 h-5" /> : <IconMic className="w-5 h-5" />}
+            </button>
+          ) : whisper.supported ? (
+            <button
+              type="button"
+              onClick={toggleWhisper}
+              disabled={streaming || whisper.transcribing}
+              className={
+                'btn inline-flex items-center justify-center ' +
+                (whisper.recording
+                  ? 'bg-[var(--color-danger)] text-white hover:opacity-90 anim-pulse-soft'
+                  : 'btn-ghost')
+              }
+              aria-label={
+                whisper.transcribing ? 'Transkription läuft'
+                : whisper.recording ? 'Aufnahme stoppen'
+                : 'Aufnahme starten (Whisper-Fallback)'
+              }
+              title={
+                whisper.transcribing ? 'Transkribiere …'
+                : whisper.recording ? 'Aufnahme stoppen + transkribieren'
+                : 'Aufnehmen + transkribieren (Whisper) — für Atlas/Firefox empfohlen'
+              }
+            >
+              {whisper.transcribing
+                ? <IconSpinner className="w-5 h-5" />
+                : whisper.recording
+                  ? <IconStop className="w-5 h-5" />
+                  : <IconMic className="w-5 h-5" />}
             </button>
           ) : speech.unsupportedReason ? (
             <button

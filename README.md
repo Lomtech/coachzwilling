@@ -82,6 +82,7 @@ supabase db push
 | `LLM_PROVIDER` | `anthropic` (default), `bedrock` oder `langdock` |
 | `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys (nur für `LLM_PROVIDER=anthropic`) |
 | `LANGDOCK_API_KEY` / `LANGDOCK_REGION` | Langdock-Workspace → API Keys (nur für `LLM_PROVIDER=langdock`) — siehe [docs/LANGDOCK_SETUP.md](docs/LANGDOCK_SETUP.md) |
+| `STT_PROVIDER` / `OPENAI_API_KEY` | Optionaler Whisper-Fallback für Browser ohne Web Speech API (Atlas, Firefox) — siehe [docs/WHISPER_SETUP.md](docs/WHISPER_SETUP.md) |
 | `AWS_REGION` / `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | AWS-Console (nur für `LLM_PROVIDER=bedrock`) |
 | `STRIPE_SECRET_KEY` | Stripe-Dashboard → Developers → API Keys |
 | `STRIPE_WEBHOOK_SECRET` | Stripe → Webhooks → Endpoint signing secret |
