@@ -54,13 +54,20 @@ export function AccountMenu({ email, fullName, isAdmin, showTrialPill, trialDays
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        onDoubleClick={() => setOpen(o => !o)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setOpen(o => !o)
+          }
+        }}
         className={
           'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ' +
           (open ? 'bg-[var(--color-surface-2)]' : 'hover:bg-[var(--color-surface-2)]')
         }
         aria-haspopup="menu"
         aria-expanded={open}
+        title="Doppelklick oder Enter zum Öffnen"
       >
         <div className="w-8 h-8 rounded-full bg-[var(--color-ink)] text-white flex items-center justify-center text-xs font-semibold shrink-0">
           {initials}
