@@ -23,11 +23,7 @@ export function AccountMenu({ email, fullName, isAdmin, showTrialPill, trialDays
   const lastClickAt = useRef(0)
   const handleClick = () => {
     const now = Date.now()
-    const diff = now - lastClickAt.current
-    if (typeof document !== 'undefined') {
-      document.title = `click diff=${diff} last=${lastClickAt.current}`
-    }
-    if (lastClickAt.current > 0 && diff < 500) {
+    if (lastClickAt.current > 0 && now - lastClickAt.current < 500) {
       if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null }
       lastClickAt.current = 0
       setOpen(o => !o)
