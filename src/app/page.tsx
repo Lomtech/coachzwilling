@@ -17,7 +17,10 @@ export default async function HomePage() {
         <div className="max-w-5xl mx-auto px-5 h-16 flex items-center justify-between gap-4">
           <Link href="/" className="font-semibold tracking-tight shrink-0 flex items-center gap-2.5 hover:opacity-90 transition-opacity">
             <LogoMark size={30} />
-            <span className="text-lg">Coaching<span className="text-[var(--color-accent)]">·</span>Zwilling</span>
+            <span className="text-lg">
+              Deepling
+              <span className="text-[var(--color-muted)] font-normal"> — Coaching Zwilling</span>
+            </span>
           </Link>
           <nav className="hidden sm:flex items-center gap-1 text-sm">
             <a    href="#wie"      className="px-3 py-1.5 rounded-full hover:bg-[var(--color-surface-2)] text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">So funktioniert's</a>
