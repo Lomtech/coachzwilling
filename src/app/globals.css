@@ -212,3 +212,113 @@ textarea { resize: vertical; min-height: 110px; }
 .prose-coach p:last-child { margin: 0; }
 .prose-coach strong { font-weight: 600; }
 .prose-coach em { font-style: italic; }
+
+/* ─── Print-Stylesheet für Coach-Profil ───────────────────────────────────
+   ProfileViewer in /settings rendert das Profil mit .print-profile.
+   "Als PDF speichern"-Button ruft window.print() — Browser-Dialog macht
+   PDF-Export. Wir blenden alles außer dem Profil aus und stylen
+   typografisch sauber (Serif, A4-Format, Cover-Page, Footer).
+   ───────────────────────────────────────────────────────────────────── */
+@media print {
+  /* Alles per default ausblenden */
+  body * { visibility: hidden; }
+  /* Profil + Kinder wieder sichtbar */
+  .print-profile, .print-profile * { visibility: visible; }
+  /* Steuerelemente komplett raus */
+  .no-print { display: none !important; }
+  /* Profil aus dem Layout-Container befreien — füllt die Druckseite */
+  .print-profile {
+    position: absolute; top: 0; left: 0; right: 0;
+    width: 100%; max-height: none !important; overflow: visible !important;
+    border: none !important; border-radius: 0 !important;
+    background: white !important; padding: 0 !important; margin: 0;
+  }
+  body, html {
+    background: white !important; color: black !important;
+    font-family: var(--font-serif) !important;
+  }
+  @page {
+    size: A4; margin: 22mm 20mm 22mm 20mm;
+  }
+}
+
+/* Cover-Page + Body-Typo greifen sowohl im Browser-Preview (offene Card)
+   als auch im Print. Browser-View bekommt zusätzlich noch Surface-BG. */
+.print-cover {
+  text-align: center;
+  padding: 12mm 0 20mm;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 12mm;
+}
+.print-logo {
+  font-family: var(--font-serif);
+  font-size: 18pt; font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-ink);
+  margin-bottom: 8mm;
+}
+.print-title {
+  font-family: var(--font-serif);
+  font-size: 28pt; font-weight: 600;
+  line-height: 1.2; margin: 0 0 4mm;
+  color: var(--color-ink);
+}
+.print-subtitle {
+  font-size: 12pt; color: var(--color-ink-2);
+  margin: 0 0 2mm;
+}
+.print-date {
+  font-size: 10pt; color: var(--color-muted);
+  font-style: italic; margin: 0;
+}
+.print-body {
+  font-family: var(--font-serif);
+  font-size: 11.5pt;
+  line-height: 1.65;
+  color: var(--color-ink);
+}
+.print-body h1 {
+  font-size: 22pt; font-weight: 600;
+  margin: 14mm 0 4mm; line-height: 1.2;
+  page-break-after: avoid;
+}
+.print-body h2 {
+  font-size: 16pt; font-weight: 600;
+  margin: 10mm 0 3mm; line-height: 1.3;
+  color: var(--color-ink);
+  page-break-after: avoid;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 2mm;
+}
+.print-body h3 {
+  font-size: 13pt; font-weight: 600;
+  margin: 6mm 0 2mm; line-height: 1.3;
+  color: var(--color-ink);
+  page-break-after: avoid;
+}
+.print-body p {
+  margin: 0 0 4mm;
+  orphans: 3; widows: 3;
+}
+.print-body ul {
+  margin: 0 0 4mm 8mm; padding: 0;
+  list-style: disc;
+}
+.print-body li {
+  margin: 0 0 2mm;
+  orphans: 3; widows: 3;
+}
+.print-body strong { font-weight: 600; }
+.print-body hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 8mm 0;
+}
+
+.print-footer {
+  display: flex; justify-content: space-between;
+  margin-top: 14mm; padding-top: 4mm;
+  border-top: 1px solid var(--color-border);
+  font-size: 9pt; color: var(--color-muted);
+  font-family: var(--font-sans);
+}
