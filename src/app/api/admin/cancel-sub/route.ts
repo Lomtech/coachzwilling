@@ -29,12 +29,16 @@ export async function POST(req: NextRequest) {
     const result = await stripe().subscriptions.update(subId, {
       cancel_at_period_end: true,
     })
+    const r = result as unknown as {
+      id: string; status: string;
+      cancel_at_period_end: boolean; current_period_end?: number;
+    }
     return NextResponse.json({
       ok: true,
-      id: result.id,
-      status: result.status,
-      cancel_at_period_end: result.cancel_at_period_end,
-      current_period_end: result.current_period_end,
+      id: r.id,
+      status: r.status,
+      cancel_at_period_end: r.cancel_at_period_end,
+      current_period_end: r.current_period_end,
     })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
