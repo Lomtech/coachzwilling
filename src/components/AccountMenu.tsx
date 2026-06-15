@@ -16,6 +16,24 @@ export function AccountMenu({ email, fullName, isAdmin, showTrialPill, trialDays
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const ref = useRef<HTMLDivElement>(null)
+  // Click-Counter mit eigenem Doppelklick-Fenster (500ms). Robuster als
+  // native onDoubleClick — der CDP-Pfad in Tests + langsame Touch-Doppeltaps
+  // verfehlen sonst das Browser-eigene dblclick-Timing.
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastClickAt = useRef(0)
+  const handleClick = () => {
+    const now = performance.now()
+    if (now - lastClickAt.current < 500) {
+      // 2. Klick im Fenster → toggle
+      if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null }
+      lastClickAt.current = 0
+      setOpen(o => !o)
+    } else {
+      // 1. Klick → Timer starten, ignoriere wenn kein 2. kommt
+      lastClickAt.current = now
+      clickTimer.current = setTimeout(() => { lastClickAt.current = 0 }, 500)
+    }
+  }
 
   // Außenklick schließt
   useEffect(() => {
@@ -54,7 +72,7 @@ export function AccountMenu({ email, fullName, isAdmin, showTrialPill, trialDays
     <div ref={ref} className="relative">
       <button
         type="button"
-        onDoubleClick={() => setOpen(o => !o)}
+        onClick={handleClick}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
