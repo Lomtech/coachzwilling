@@ -124,7 +124,7 @@ export default async function CoachPage({
       <aside className="hidden md:flex flex-col w-72 border-r border-[var(--color-border)] bg-[var(--color-surface-2)]">
         <div className="px-4 py-4 border-b border-[var(--color-border)]">
           <Link href="/" className="font-semibold text-lg tracking-tight">
-            Coaching<span className="text-[var(--color-accent)]">·</span>Zwilling
+            Deepling
           </Link>
         </div>
         <div className="px-3 py-3">
@@ -166,7 +166,7 @@ export default async function CoachPage({
         {/* Mobile header */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
           <Link href="/" className="font-semibold tracking-tight">
-            Coaching<span className="text-[var(--color-accent)]">·</span>Zwilling
+            Deepling
           </Link>
           <div className="flex gap-2">
             {isAdmin && (

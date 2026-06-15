@@ -12,7 +12,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         >
           <LogoMark size={56} strokeWidth={2.6} />
           <span className="font-semibold text-xl tracking-tight">
-            Coaching<span className="text-[var(--color-accent)]">·</span>Zwilling
+            Deepling
           </span>
         </Link>
       </header>

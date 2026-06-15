@@ -45,7 +45,7 @@ export default async function SharedProfilePage({
       <header className="border-b border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur sticky top-0 z-20">
         <div className="max-w-3xl mx-auto px-5 h-14 flex items-center justify-between">
           <Link href="/" className="font-semibold tracking-tight">
-            Coaching<span className="text-[var(--color-accent)]">·</span>Zwilling
+            Deepling
           </Link>
           <span className="text-xs text-[var(--color-muted)] hidden sm:inline">
             Geteiltes Profil · Read-only

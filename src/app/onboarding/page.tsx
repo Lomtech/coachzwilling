@@ -48,7 +48,7 @@ function Intro() {
     <main className="min-h-dvh flex flex-col px-5 max-w-xl w-full mx-auto">
       <header className="py-4">
         <a href="/" className="font-semibold text-lg tracking-tight">
-          Coaching<span className="text-[var(--color-accent)]">·</span>Zwilling
+          Deepling
         </a>
       </header>
       <div className="flex-1 py-8">

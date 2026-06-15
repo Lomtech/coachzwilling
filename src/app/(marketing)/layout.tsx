@@ -8,7 +8,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         <div className="max-w-3xl mx-auto px-5 h-14 flex items-center justify-between">
           <Link href="/" className="font-semibold tracking-tight flex items-center gap-2">
             <LogoMark size={22} />
-            <span>Coaching<span className="text-[var(--color-accent)]">·</span>Zwilling</span>
+            <span>Deepling</span>
           </Link>
           <Link href="/" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-ink)]">
             Zur Startseite

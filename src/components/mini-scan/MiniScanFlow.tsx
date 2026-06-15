@@ -63,7 +63,7 @@ export function MiniScanFlow() {
       <main className="min-h-dvh flex flex-col px-5 max-w-xl w-full mx-auto">
         <header className="py-4">
           <Link href="/" className="font-semibold text-lg tracking-tight">
-            Coaching<span className="text-[var(--color-accent)]">·</span>Zwilling
+            Deepling
           </Link>
         </header>
         <div className="flex-1 py-8">
@@ -218,7 +218,7 @@ export function MiniScanFlow() {
     <main className="min-h-dvh px-5 py-6 max-w-2xl w-full mx-auto">
       <header className="mb-6 flex items-center justify-between">
         <Link href="/" className="font-semibold text-lg tracking-tight">
-          Coaching<span className="text-[var(--color-accent)]">·</span>Zwilling
+          Deepling
         </Link>
         <span className="text-sm text-[var(--color-muted)]">Mini-Scan</span>
       </header>

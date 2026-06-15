@@ -18,7 +18,7 @@ export default async function BillingPage() {
         <header className="mb-8 flex items-center justify-between">
           <Link href="/" className="font-semibold tracking-tight flex items-center gap-2.5">
             <LogoMark size={26} />
-            <span className="text-lg">Coaching<span className="text-[var(--color-accent)]">·</span>Zwilling</span>
+            <span className="text-lg">Deepling</span>
           </Link>
           {user ? (
             <Link href="/settings" className="btn btn-ghost">Konto</Link>
@@ -79,7 +79,7 @@ export default async function BillingPage() {
       <header className="mb-8 flex items-center justify-between">
         <Link href="/" className="font-semibold tracking-tight flex items-center gap-2.5">
           <LogoMark size={26} />
-          <span className="text-lg">Coaching<span className="text-[var(--color-accent)]">·</span>Zwilling</span>
+          <span className="text-lg">Deepling</span>
         </Link>
         {user ? (
           <Link href="/settings" className="btn btn-ghost">Konto</Link>
