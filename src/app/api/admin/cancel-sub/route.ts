@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
  *
  *   curl -X POST "https://deepling.de/api/admin/cancel-sub?s=<SECRET>&sub=sub_xxx"
  */
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   const secret = url.searchParams.get('s')
   const subId = url.searchParams.get('sub')
