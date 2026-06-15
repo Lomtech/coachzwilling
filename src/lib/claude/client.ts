@@ -110,14 +110,18 @@ function modelFor(
   }
 }
 
+// Langdock-IDs verifiziert via Workspace 0fc11969-... (Stand 2026-06-15):
+// Format mit AT-Zeichen, nicht Bindestrich:
+//   • claude-sonnet-4-6@default
+//   • claude-sonnet-4-5@20250929
+//   • claude-haiku-4-5@20251001
+//   • KEIN Opus 4.7 verfügbar in Langdock — passt zu unserer
+//     Sonnet-Default-Strategie (siehe Profiler-Kommentar unten).
 export const COACH_MODEL = modelFor(
   'CLAUDE_COACH_MODEL',
   'claude-sonnet-4-6',
   'eu.anthropic.claude-sonnet-4-6-20260101-v1:0',
-  // Langdock: aus der offiziellen Doc, Stand 2026-06. Bei Bedarf via Env
-  // überschreiben — die echte Liste ist Workspace-spezifisch
-  // (GET /anthropic/{region}/v1/models).
-  'claude-sonnet-4-6-default',
+  'claude-sonnet-4-6@default',
 )
 
 // Profiler-Default: Sonnet 4.6 statt Opus 4.7. Begründung:
@@ -129,17 +133,18 @@ export const COACH_MODEL = modelFor(
 //     Generation aus klar spezifiziertem Prompt. Opus' Vorteil zieht
 //     v.a. bei langen Reasoning-Ketten, nicht bei "befülle dieses
 //     Template aus diesen Antworten".
-// Wer trotzdem Opus will: CLAUDE_PROFILER_MODEL=claude-opus-4-7 setzen.
+//   • Bonus: Langdock hat Opus 4.7 gar nicht im Workspace freigeschaltet
+//     (Stand 2026-06) — Sonnet-Default funktioniert beide Provider out-of-box.
 export const PROFILER_MODEL = modelFor(
   'CLAUDE_PROFILER_MODEL',
   'claude-sonnet-4-6',
   'eu.anthropic.claude-sonnet-4-6-20260101-v1:0',
-  'claude-sonnet-4-6-default',
+  'claude-sonnet-4-6@default',
 )
 
 export const MEMORY_MODEL = modelFor(
   'CLAUDE_MEMORY_MODEL',
   'claude-haiku-4-5',
   'eu.anthropic.claude-haiku-4-5-20260101-v1:0',
-  'claude-haiku-4-5-default',
+  'claude-haiku-4-5@20251001',
 )
