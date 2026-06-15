@@ -44,9 +44,16 @@ export interface SendResult {
 const RESEND_ENDPOINT = 'https://api.resend.com/emails'
 
 function defaultFrom(): string {
-  // EMAIL_FROM = "Coach <hello@deepling.com>"
+  // EMAIL_FROM = "Deepling <no-reply@deepling.de>"
   // Fallback auf resend.dev-Testdomain, damit Dev/Staging ohne DNS-Setup geht.
   return process.env.EMAIL_FROM ?? 'Deepling <onboarding@resend.dev>'
+}
+
+function defaultReplyTo(): string | undefined {
+  // EMAIL_REPLY_TO = "kontakt@deepling.de" — Empfänger-Antworten landen via
+  // IONOS-Forwarding bei lom + michael. Wenn nicht gesetzt → kein Reply-To
+  // Header, dann erbt der Mail-Client das From als Antwort-Ziel (Bot-Inbox).
+  return process.env.EMAIL_REPLY_TO || undefined
 }
 
 export async function sendEmail(args: SendEmailArgs): Promise<SendResult> {
@@ -64,7 +71,7 @@ export async function sendEmail(args: SendEmailArgs): Promise<SendResult> {
     subject: args.subject,
     html: args.bodyHtml,
     text: args.bodyText,
-    reply_to: args.replyTo,
+    reply_to: args.replyTo ?? defaultReplyTo(),
     headers: {
       // One-Click-Unsubscribe (RFC 8058) — Gmail/Outlook UI zeigt "Abbestellen"-Button
       'List-Unsubscribe': `<${args.unsubscribeUrl}>`,
