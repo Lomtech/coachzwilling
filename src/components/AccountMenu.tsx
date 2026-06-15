@@ -24,7 +24,9 @@ export function AccountMenu({ email, fullName, isAdmin, showTrialPill, trialDays
   const handleClick = () => {
     const now = Date.now()
     const diff = now - lastClickAt.current
-    console.log('[AccountMenu] click', { diff, lastClickAt: lastClickAt.current, now })
+    if (typeof document !== 'undefined') {
+      document.title = `click diff=${diff} last=${lastClickAt.current}`
+    }
     if (lastClickAt.current > 0 && diff < 500) {
       if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null }
       lastClickAt.current = 0
