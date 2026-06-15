@@ -238,7 +238,7 @@ export function MiniScanFlow() {
         <p className="text-sm text-[var(--color-ink-2)] mb-4">
           Der vollständige Scan (50 Fragen, 18-25 Min.) erzeugt ein detailliertes
           Rohprofil + Wissensdatei (A1–A9 plus B1–B15) und schaltet den persönlichen
-          Coaching-Zwilling frei.
+          Deepling frei.
         </p>
         <div className="space-y-2 mb-3">
           <input

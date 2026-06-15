@@ -99,7 +99,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     to: email,
     orgName: orgRes.data.name,
     inviterName: profileRes.data?.full_name ?? null,
-    inviterEmail: profileRes.data?.email ?? user.email ?? 'team@coachzwilling.com',
+    inviterEmail: profileRes.data?.email ?? user.email ?? 'team@deepling.com',
     role,
     acceptUrl,
     expiresAt: new Date(invitation.expires_at),

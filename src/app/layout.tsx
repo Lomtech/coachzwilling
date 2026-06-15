@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Coaching-Zwilling — Dein persönlicher Coach',
+  title: 'Deepling — Dein persönlicher Coach',
   description:
     'Dein persönlicher Coach, der dich wirklich kennt. Stellt Fragen, die jeder andere übersieht. Auf dein Profil zugeschnitten.',
-  applicationName: 'Coaching-Zwilling',
+  applicationName: 'Deepling',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
   openGraph: {
-    title: 'Coaching-Zwilling — Dein persönlicher Coach',
+    title: 'Deepling — Dein persönlicher Coach',
     description:
       'Dein persönlicher Coach, der dich wirklich kennt. Stellt Fragen, die jeder andere übersieht.',
     locale: 'de_DE',

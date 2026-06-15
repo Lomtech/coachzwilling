@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
   const startedAt = Date.now()
   const supa = serviceClient()
 
-  // Base-URL für CTA-Links (z. B. https://coachzwilling.com)
+  // Base-URL für CTA-Links (z. B. https://deepling.com)
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL
     ?? process.env.VERCEL_PROJECT_PRODUCTION_URL
       ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`

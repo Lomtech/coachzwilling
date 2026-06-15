@@ -1,5 +1,5 @@
 // Deep Space — Fragebogen V3 (Stand 5.6.26)
-// Denkhorizonte | Coaching-Zwilling
+// Denkhorizonte | Deepling
 // Scan-Modus: eine Frage nach der anderen, keine Bewertung, keine Kommentierung.
 // An fünf definierten Stellen (Q4, Q21, Q30, Q33, Q40) wird eine einzige
 // Nachfrage gestellt — diese sind hier als `followUp` markiert. Nur dort,
@@ -38,7 +38,7 @@ export const SECTIONS = [
   '8. Coaching-Stil & Veränderung',
   '9. Zukunft & Energie',
   '10. Stärke, Schatten & Entwicklung',
-  '11. Sinn des Coaching-Zwillings',
+  '11. Sinn von Deepling',
   '12. Grenzen',
   '13. Kontext',
 ] as const
@@ -272,7 +272,7 @@ export const QUESTIONS: Question[] = [
   {
     id: 27, section: SECTIONS[7], type: 'single',
     prompt: 'Wie viel Veränderung willst du aktuell wirklich?',
-    helper: 'Stell dir vor, der Coaching-Zwilling verändert in 6 Monaten drei zentrale Dinge in deinem Verhalten. Wie reagierst du innerlich?',
+    helper: 'Stell dir vor, der Deepling verändert in 6 Monaten drei zentrale Dinge in deinem Verhalten. Wie reagierst du innerlich?',
     options: [
       { value: 'genau_will', label: 'Das ist genau das, was ich will' },
       { value: 'umfeld', label: 'Interessant – aber ich frage mich, was das für mein Umfeld bedeutet' },
@@ -352,10 +352,10 @@ export const QUESTIONS: Question[] = [
     prompt: 'Mit welchem Menschentyp würdest du freiwillig niemals ein Unternehmen, Projekt oder Team führen – und warum?',
   },
 
-  // ─── 11. Sinn des Coaching-Zwillings ───────────────────────
+  // ─── 11. Sinn von Deepling ───────────────────────
   {
     id: 40, section: SECTIONS[10], type: 'open',
-    prompt: 'Warum willst du diesen Coaching-Zwilling nutzen – wirklich?',
+    prompt: 'Warum willst du diesen Deepling nutzen – wirklich?',
     followUp: 'Was ist der eigentliche Grund – den du vielleicht noch niemandem so direkt gesagt hast?',
   },
   {

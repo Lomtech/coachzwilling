@@ -127,7 +127,7 @@ export default async function HomePage() {
             <div className="anim-fade-up text-5xl leading-none text-[var(--color-accent)] font-serif mb-1">"</div>
             <blockquote className="anim-fade-up-delay text-lg sm:text-xl leading-relaxed text-[var(--color-ink)] font-medium space-y-4">
               <p>
-                Coaching-Zwilling ist für Führungskräfte, die nicht noch mehr Tipps brauchen.
+                Deepling ist für Führungskräfte, die nicht noch mehr Tipps brauchen.
                 Sondern einen Spiegel, der nicht ausweicht.
               </p>
               <p className="text-base text-[var(--color-ink-2)] font-normal">
@@ -219,7 +219,7 @@ export default async function HomePage() {
           </div>
         </div>
         <div className="max-w-5xl mx-auto mt-8 pt-6 border-t border-[var(--color-border)] text-xs text-[var(--color-muted)] flex flex-wrap justify-between gap-2">
-          <span>© {new Date().getFullYear()} Coaching-Zwilling</span>
+          <span>© {new Date().getFullYear()} Deepling</span>
           <span>Made in Bayern · App in Frankfurt · DB in London</span>
         </div>
       </footer>

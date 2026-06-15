@@ -1,6 +1,6 @@
-# Coaching-Zwilling
+# Deepling
 
-Ein KI-Coaching-Zwilling für Führungskräfte, gebaut auf Next.js 16, Supabase, Stripe und Claude.
+Ein KI-Deepling für Führungskräfte, gebaut auf Next.js 16, Supabase, Stripe und Claude.
 
 **Konzept:** User füllt einen 50-Fragen-Scan aus (Denkhorizonte-Methodik V3, Stand 5.6.26). An fünf festen Stellen (Q4, Q21, Q30, Q33, Q40) gibt es eine Nachfrage. Daraus generiert Claude Sonnet 4.6 in einem Lauf zwei Outputs — Output A (Rohprofil für den Nutzer) + Output B (Wissensdatei B1–B15 als Coach-Anker). Beide bilden zusammen den System-Prompt + Cache-Anker für jeden Coach-Dialog mit Claude Sonnet 4.6. (Profiler war initial Opus 4.7 — auf Sonnet runtergezogen wegen Latenz + Kosten, per `CLAUDE_PROFILER_MODEL=claude-opus-4-7` re-aktivierbar.)
 
@@ -25,7 +25,7 @@ Ein KI-Coaching-Zwilling für Führungskräfte, gebaut auf Next.js 16, Supabase,
 | `/onboarding/start` | Direktstart 1. Frage |
 | `/billing` | Plan wählen / aktiv |
 | `/billing/success` | Post-Checkout Sync |
-| `/coach` | Chat mit Coaching-Zwilling |
+| `/coach` | Chat mit Deepling |
 | `/coach?c=<id>` | Bestimmte Conversation |
 | `/settings` | Konto, Abo, Logout |
 | `/api/auth/callback` `/logout` | Supabase Email-Link + Logout |
@@ -96,7 +96,7 @@ supabase db push
 ### 3. Stripe-Produkt anlegen
 
 Im Stripe-Dashboard:
-1. Produkt `Coaching-Zwilling` anlegen
+1. Produkt `Deepling` anlegen
 2. Zwei Preise dranhängen:
    - Monatlich: 29 € recurring monthly
    - Jährlich: 228 € recurring yearly (entspricht 19 €/Monat)
@@ -146,7 +146,7 @@ Die Prompts sind 1:1 aus dem Deep-Space-Briefing (Stand 5.6.26) übernommen. Än
 8. Coaching-Stil & Veränderung (Q25–Q28)
 9. Zukunft & Energie (Q29–Q31) — Nachfrage bei Q30
 10. Stärke, Schatten & Entwicklung (Q32–Q39, neu in V3) — Nachfrage bei Q33
-11. Sinn des Coaching-Zwillings (Q40–Q42) — Nachfrage bei Q40
+11. Sinn von Deepling (Q40–Q42) — Nachfrage bei Q40
 12. Grenzen (Q43–Q45)
 13. Kontext (Q46–Q50)
 

@@ -36,7 +36,7 @@ Diese Anleitung beschreibt den Wechsel von **Anthropic-Direkt** auf **Langdock**
 ## Schritt 3 — Modelle freischalten
 
 1. **Workspace-Settings → Models** (oder ähnlich — UI kann sich ändern).
-2. Aktiviere die drei Modelle, die der Coaching-Zwilling nutzt:
+2. Aktiviere die drei Modelle, die der Deepling nutzt:
    - **Claude Sonnet 4.6** (Coach-Dialoge — Sweetspot Latenz/Qualität)
    - **Claude Opus 4.7** (Profil-Auswertung — einmalig pro User, mehr Tiefe)
    - **Claude Haiku 4.5** (Memory-Extraktor pro Coach-Turn — schnell, billig)
@@ -50,10 +50,10 @@ Diese Anleitung beschreibt den Wechsel von **Anthropic-Direkt** auf **Langdock**
 ## Schritt 4 — API-Key generieren
 
 1. **Workspace-Settings → API Keys → Create Key**.
-2. Gib dem Key einen Namen (z. B. `coachzwilling-prod`).
+2. Gib dem Key einen Namen (z. B. `deepling-prod`).
 3. Setze ggf. ein Ablaufdatum (Best Practice: max. 12 Monate, dann rotieren).
 4. **Kopiere den Key SOFORT** — er wird nur einmal angezeigt.
-5. Lege parallel einen zweiten Key `coachzwilling-dev` an für lokale Entwicklung.
+5. Lege parallel einen zweiten Key `deepling-dev` an für lokale Entwicklung.
 
 ## Schritt 5 — Lokale `.env.local` setzen
 
@@ -101,7 +101,7 @@ Erwartete Antwort: JSON mit `content[0].text` und `usage.input_tokens` / `usage.
 
 ## Schritt 8 — Prompt-Caching verifizieren (kritisch)
 
-Der Coaching-Zwilling spart Tokens durch `cache_control: ephemeral` auf dem Profil-Block. Bei Anthropic-Direkt sieht das in der `messages`-Tabelle so aus:
+Der Deepling spart Tokens durch `cache_control: ephemeral` auf dem Profil-Block. Bei Anthropic-Direkt sieht das in der `messages`-Tabelle so aus:
 
 | Turn | `input_tokens` | `cache_creation_input_tokens` | `cache_read_input_tokens` |
 |---|---|---|---|

@@ -1,6 +1,6 @@
 # Server-STT — Setup-Anleitung
 
-Server-side Speech-to-Text für den Coaching-Zwilling. Diese Anleitung zeigt **drei Varianten**, sortiert nach DSGVO-Konformität:
+Server-side Speech-to-Text für den Deepling. Diese Anleitung zeigt **drei Varianten**, sortiert nach DSGVO-Konformität:
 
 1. **Speechmatics (Variante A)** — EU-Hosting, AVV, ISO 27001. **Empfohlen.**
 2. **OpenAI Whisper (Variante B)** — US-Hosting. Pragmatisch wenn EU egal.
@@ -33,9 +33,9 @@ Wenn du DSGVO-strikt willst, **musst** du beide Pfade fixen: Web Speech API auss
 ### Schritt 2 — API-Key generieren
 
 1. **Settings → API Keys → Create new key**
-2. Name z.B. `coachzwilling-prod`
+2. Name z.B. `deepling-prod`
 3. Kopieren — wird nur einmal angezeigt.
-4. Zweiten Key `coachzwilling-dev` für lokal anlegen.
+4. Zweiten Key `deepling-dev` für lokal anlegen.
 
 API-Keys sind nicht region-gebunden — die Region steuerst du über die Endpoint-URL (siehe `SPEECHMATICS_REGION` Env-Var).
 

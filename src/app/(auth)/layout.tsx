@@ -8,7 +8,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <Link
           href="/"
           className="flex flex-col items-center gap-2.5 hover:opacity-90 transition-opacity"
-          aria-label="Coaching-Zwilling Startseite"
+          aria-label="Deepling Startseite"
         >
           <LogoMark size={56} strokeWidth={2.6} />
           <span className="font-semibold text-xl tracking-tight">

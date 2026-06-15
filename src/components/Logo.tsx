@@ -31,7 +31,7 @@ export function LogoWordmark({
     <span className={`inline-flex items-center gap-2.5 font-semibold tracking-tight ${className}`}>
       <LogoMark size={size} />
       <span className={textClass}>
-        Coaching<span className="text-[var(--color-accent)]">·</span>Zwilling
+        Deepling
       </span>
     </span>
   )

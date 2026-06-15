@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'AGB',
-  description: 'Allgemeine Geschäftsbedingungen des Coaching-Zwilling.',
+  description: 'Allgemeine Geschäftsbedingungen von Deepling.',
   alternates: { canonical: '/agb' },
   robots: { index: true, follow: true },
 }

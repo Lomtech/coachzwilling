@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Coaching-Zwilling — Organisations-Einladungen
+-- Deepling — Organisations-Einladungen
 --
 -- Workflow:
 --   1. Owner/HR-Admin der Org legt via /org/[id]/manage eine Invitation an

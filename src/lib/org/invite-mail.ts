@@ -20,13 +20,13 @@ export async function sendOrgInviteMail(args: OrgInviteMailArgs): Promise<SendRe
   const roleLabel = args.role === 'hr_admin' ? 'HR-Admin' : 'Mitglied'
   const expires = args.expiresAt.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })
 
-  const subject = `Einladung: ${args.orgName} — Coaching-Zwilling`
+  const subject = `Einladung: ${args.orgName} — Deepling`
 
   const bodyText = [
     `Hallo,`,
     ``,
     `${inviter} lädt dich ein, der Organisation „${args.orgName}" im`,
-    `Coaching-Zwilling als ${roleLabel} beizutreten.`,
+    `Deepling als ${roleLabel} beizutreten.`,
     ``,
     `Einladung annehmen:`,
     args.acceptUrl,
@@ -37,14 +37,14 @@ export async function sendOrgInviteMail(args: OrgInviteMailArgs): Promise<SendRe
     ``,
     `Wenn du diese Einladung nicht erwartest, ignoriere die E-Mail einfach.`,
     ``,
-    `— Coaching-Zwilling`,
+    `— Deepling`,
   ].join('\n')
 
   const bodyHtml = `<!doctype html>
 <html><body style="font-family: -apple-system, system-ui, sans-serif; color: #1a1d24; max-width: 560px; margin: 0 auto; padding: 24px;">
   <p>Hallo,</p>
   <p><strong>${escapeHtml(inviter)}</strong> lädt dich ein, der Organisation
-  <strong>${escapeHtml(args.orgName)}</strong> im Coaching-Zwilling als
+  <strong>${escapeHtml(args.orgName)}</strong> im Deepling als
   <strong>${roleLabel}</strong> beizutreten.</p>
   <p style="margin: 32px 0;">
     <a href="${args.acceptUrl}" style="display: inline-block; background: #1a1d24; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 12px; font-weight: 500;">

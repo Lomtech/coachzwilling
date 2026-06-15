@@ -1,8 +1,8 @@
 {
-  "name": "fuehrungs-coach",
+  "name": "deepling",
   "version": "0.1.0",
   "private": true,
-  "description": "Personalisierter KI Coaching-Zwilling für Führungskräfte (Claude API)",
+  "description": "Deepling — personalisierter KI-Coach für Führungskräfte (Claude API)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

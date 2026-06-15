@@ -79,9 +79,9 @@ export async function POST(req: NextRequest) {
       filename,
       language: language || undefined,
       // Coaching-Kontext als Prompt — verbessert die Erkennung von
-      // domain-spezifischen Wörtern wie "Coaching-Zwilling", "Denkhorizonte"
+      // domain-spezifischen Wörtern wie "Deepling", "Denkhorizonte"
       // ohne dass der User die explizit aussprechen muss.
-      prompt: 'Coaching-Zwilling Sitzung, deutsche Reflexion über Führung, Stress, Selbstbild, Motivation.',
+      prompt: 'Deepling Sitzung, deutsche Reflexion über Führung, Stress, Selbstbild, Motivation.',
     })
     return NextResponse.json({
       text: result.text,

@@ -1,20 +1,20 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Auswertungs-Prompt — Deep Space V5 (Stand 5.6.26)
-// Denkhorizonte | Coaching-Zwilling
+// Denkhorizonte | Deepling
 // Läuft einmalig nach Abschluss des Fragebogens (50 Fragen).
 // Erzeugt zwei Outputs in einem zusammenhängenden Markdown:
 //   OUTPUT A — Rohprofil-Inhalt (für das HTML-Dokument an den Nutzer)
-//   OUTPUT B — Wissensdatei für den Coaching-Zwilling (Coach-Anker)
+//   OUTPUT B — Wissensdatei für den Deepling (Coach-Anker)
 // Der System-Prompt-Builder schickt das gesamte Markdown als Kalibrierungs-
 // grundlage an den Coach — Output A liefert dabei zusätzlichen Kontext,
 // Output B trägt die direkten Verhaltensanweisungen.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const PROFILER_PROMPT = `Deep Space – Auswertungs-Prompt V5
-Denkhorizonte | Coaching-Zwilling
+Denkhorizonte | Deepling
 
 Läuft einmalig nach Abschluss des Fragebogens (50 Fragen). Produziert zwei Outputs:
-(A) Rohprofil-Inhalt für das HTML-Dokument, (B) Wissensdatei für den Coaching-Zwilling.
+(A) Rohprofil-Inhalt für das HTML-Dokument, (B) Wissensdatei für den Deepling.
 
 ══════════════════════════════════════════════════════════════════════════════
 GRUNDREGELN (gelten für beide Outputs)
@@ -127,7 +127,7 @@ Abschluss: Zwei direkte Zitate aus dem Scan — "Was du dir erhofft hast"
 (Frage 41) und "Wovor er dich schützt" (Frage 42).
 
 ══════════════════════════════════════════════════════════════════════════════
-OUTPUT B – Wissensdatei für den Coaching-Zwilling
+OUTPUT B – Wissensdatei für den Deepling
 ══════════════════════════════════════════════════════════════════════════════
 
 Wird als Wissensdatei in den Coach geladen. Kein Coaching, keine Analyse,
@@ -584,12 +584,12 @@ Reines Markdown. Genau diese Reihenfolge, ohne Einleitung oder Meta-Kommentar:
 Beginne direkt mit "## A1. Kernmuster". Keine Einleitung, keine Meta-Kommentare.`
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Coaching-Zwilling — System-Prompt V4 (Stand 5.6.26)
+// Deepling — System-Prompt V4 (Stand 5.6.26)
 // Läuft dauerhaft bei jedem Gespräch.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const COACH_SYSTEM_PROMPT = `Deep Space – System-Prompt V4
-Denkhorizonte | Coaching-Zwilling
+Denkhorizonte | Deepling
 Läuft dauerhaft bei jedem Gespräch.
 
 ══════════════════════════════════════════════════════════════════════════════
@@ -620,7 +620,7 @@ Die Wissensdatei enthält folgende Abschnitte — lies sie vollständig:
 ROLLE
 ══════════════════════════════════════════════════════════════════════════════
 
-Du bist ein persönlicher Coaching-Zwilling. Du kennst die Person, mit der du
+Du bist ein persönlicher Deepling. Du kennst die Person, mit der du
 sprichst — ihr Profil liegt in der Wissensdatei. Du nutzt es, ohne es zu
 erwähnen.
 

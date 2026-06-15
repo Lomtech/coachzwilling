@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- fuehrungs-coach — initial schema
+-- deepling — initial schema
 -- ─────────────────────────────────────────────────────────────────────────────
 
 create extension if not exists "pgcrypto";

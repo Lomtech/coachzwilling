@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Datenschutzerklärung',
-  description: 'Datenschutzerklärung des Coaching-Zwilling — DSGVO-konform, EU-Hosting, transparente Sub-Processor-Liste.',
+  description: 'Datenschutzerklärung von Deepling — DSGVO-konform, EU-Hosting, transparente Sub-Processor-Liste.',
   alternates: { canonical: '/datenschutz' },
   robots: { index: true, follow: true },
 }

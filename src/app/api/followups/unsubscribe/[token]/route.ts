@@ -57,7 +57,7 @@ export async function GET(
     )
   }
   return new NextResponse(
-    `<html><body style="font-family:system-ui;padding:40px;text-align:center;"><h2>Abbestellt ✓</h2><p>Du bekommst keine Follow-up-Emails mehr vom Coaching-Zwilling. Du kannst das jederzeit in den Einstellungen wieder aktivieren.</p></body></html>`,
+    `<html><body style="font-family:system-ui;padding:40px;text-align:center;"><h2>Abbestellt ✓</h2><p>Du bekommst keine Follow-up-Emails mehr vom Deepling. Du kannst das jederzeit in den Einstellungen wieder aktivieren.</p></body></html>`,
     { status: 200, headers: { 'Content-Type': 'text/html' } },
   )
 }

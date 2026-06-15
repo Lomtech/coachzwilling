@@ -35,7 +35,7 @@ export default async function OrgIndexPage() {
               Du bist aktuell in keiner Organisation Mitglied.
             </p>
             <p className="mt-2 text-sm text-[var(--color-muted)]">
-              Wenn dein Unternehmen den Coaching-Zwilling lizenziert, lade dich
+              Wenn dein Unternehmen den Deepling lizenziert, lade dich
               die HR-Verantwortlichen per E-Mail-Einladung in eure Organisation
               ein — oder lege selbst eine an, wenn du HR-Verantwortlicher bist.
             </p>

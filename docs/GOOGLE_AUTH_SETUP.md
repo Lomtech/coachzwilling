@@ -8,7 +8,7 @@ Code-Seite ist fertig (Google-Button auf `/login` und `/signup`, Trigger zieht d
 2. **OAuth Consent Screen** konfigurieren:
    - APIs & Services → OAuth consent screen
    - User Type: `External` (für öffentliche App) oder `Internal` (falls Workspace-Domain)
-   - App-Name: `Coaching-Zwilling`
+   - App-Name: `Deepling`
    - User support email: deine
    - Authorized domains: `vercel.app` (+ deine Custom-Domain wenn vorhanden)
    - Scopes: `email`, `profile`, `openid` reichen
@@ -16,7 +16,7 @@ Code-Seite ist fertig (Google-Button auf `/login` und `/signup`, Trigger zieht d
 3. **OAuth 2.0 Client ID** erstellen:
    - APIs & Services → Credentials → Create credentials → OAuth client ID
    - Application type: **Web application**
-   - Name: `Coaching-Zwilling Web`
+   - Name: `Deepling Web`
    - **Authorized redirect URIs** (kritisch — exakt so eintragen):
      ```
      https://wlxolfkhkxembiuofmfa.supabase.co/auth/v1/callback

@@ -44,9 +44,9 @@ export interface SendResult {
 const RESEND_ENDPOINT = 'https://api.resend.com/emails'
 
 function defaultFrom(): string {
-  // EMAIL_FROM = "Coach <hello@coachzwilling.com>"
+  // EMAIL_FROM = "Coach <hello@deepling.com>"
   // Fallback auf resend.dev-Testdomain, damit Dev/Staging ohne DNS-Setup geht.
-  return process.env.EMAIL_FROM ?? 'Coaching-Zwilling <onboarding@resend.dev>'
+  return process.env.EMAIL_FROM ?? 'Deepling <onboarding@resend.dev>'
 }
 
 export async function sendEmail(args: SendEmailArgs): Promise<SendResult> {

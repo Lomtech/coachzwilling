@@ -68,7 +68,7 @@ export async function speechmaticsTranscribe(args: TranscribeArgs): Promise<Tran
       language: args.language ?? 'de',
       operating_point: opPoint,
       // Coaching-Kontext als Vokabular-Hint (verbessert Erkennung von
-      // Worten wie "Coaching-Zwilling", "Denkhorizonte" etc.) —
+      // Worten wie "Deepling", "Denkhorizonte" etc.) —
       // Speechmatics nennt das "additional_vocab".
       ...(args.prompt
         ? {

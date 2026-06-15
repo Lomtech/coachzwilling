@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Impressum',
-  description: 'Impressum des Coaching-Zwilling — Angaben gemäß §5 TMG.',
+  description: 'Impressum von Deepling — Angaben gemäß §5 TMG.',
   alternates: { canonical: '/impressum' },
   robots: { index: true, follow: true },
 }

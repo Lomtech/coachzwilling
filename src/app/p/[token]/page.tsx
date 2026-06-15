@@ -5,7 +5,7 @@ import { serviceClient } from '@/lib/supabase/service'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Coach-Profil — Coaching-Zwilling',
+  title: 'Coach-Profil — Deepling',
   description: 'Geteiltes Coach-Profil zur gemeinsamen Besprechung.',
   robots: { index: false, follow: false }, // nie indexieren
 }
@@ -69,7 +69,7 @@ export default async function SharedProfilePage({
         </article>
 
         <div className="mt-8 card bg-[var(--color-accent-soft)]/30 border-[var(--color-accent)]/30">
-          <h2 className="font-semibold mb-2">Was ist der Coaching-Zwilling?</h2>
+          <h2 className="font-semibold mb-2">Was ist der Deepling?</h2>
           <p className="text-sm text-[var(--color-ink-2)] mb-4">
             Ein personalisierter KI-Coach, der aus 50 Fragen ein präzises Profil
             ableitet — und in jeder Antwort exakt im Stil dieser Person agiert.

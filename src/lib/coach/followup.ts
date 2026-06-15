@@ -258,13 +258,13 @@ function renderHtml(args: {
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;margin:0 auto;">
     <tr><td>
       <div style="font-size:14px;color:#888;margin-bottom:24px;">
-        Coaching·Zwilling${args.fullName ? ` · für ${args.fullName.split(' ')[0]}` : ''}
+        Deepling${args.fullName ? ` · für ${args.fullName.split(' ')[0]}` : ''}
       </div>
       <div style="font-size:16px;">
         ${paragraphs}
       </div>
       <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e5e0;font-size:12px;color:#999;">
-        Diese Mail ist Teil deiner Follow-ups vom Coaching-Zwilling.
+        Diese Mail ist Teil deiner Follow-ups vom Deepling.
         <a href="${args.ctaUrl}" style="color:#999;">Einstellungen</a> ·
         in der Mail-App findest du oben den "Abbestellen"-Link für sofortiges Pausieren.
       </div>

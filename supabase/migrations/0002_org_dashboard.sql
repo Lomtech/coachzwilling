@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Coaching-Zwilling — B2B Organizations + anonymes HR-Dashboard
+-- Deepling — B2B Organizations + anonymes HR-Dashboard
 --
 -- Ziel:
 --   Geschäftsführer / HR-Verantwortliche eines Kundenunternehmens sehen
