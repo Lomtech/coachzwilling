@@ -109,7 +109,7 @@ export default function AgbPage() {
           <p>
             Wir streben eine Verfügbarkeit von 99 % im Jahresmittel an, geben darauf jedoch keine
             Garantie. Wartungsarbeiten, Software-Updates oder Ausfälle externer Anbieter (insbesondere
-            Supabase, Vercel, Anthropic, Stripe) können zu vorübergehenden Unterbrechungen führen.
+            Supabase, Vercel, Anthropic) können zu vorübergehenden Unterbrechungen führen.
           </p>
         </section>
 

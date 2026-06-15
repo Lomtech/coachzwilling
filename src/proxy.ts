@@ -105,7 +105,7 @@ export async function proxy(request: NextRequest) {
     const billingEnabled = process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true'
 
     if (billingEnabled) {
-      // Zugang erlaubt wenn: aktive Sub ODER Trial läuft ODER DEMO_USER
+      // Zugang erlaubt wenn: aktive Sub ODER Trial ODER DEMO_USER ODER Org-Member
       const subActive = sub?.status === 'active' || sub?.status === 'trialing'
       const trialActive = !!profile?.trial_until && new Date(profile.trial_until) > new Date()
       const demoAllowed =
@@ -116,7 +116,20 @@ export async function proxy(request: NextRequest) {
           .map(s => s.trim().toLowerCase())
           .includes(user.email.toLowerCase())
 
+      // B2B-Bypass: User ist Member einer Organization → Org hat Lom/Michael
+      // bezahlt, dieser User braucht keine eigene Stripe-Sub.
+      let isOrgMember = false
       if (!subActive && !trialActive && !demoAllowed) {
+        const { data: membership } = await supabase
+          .from('organization_members')
+          .select('org_id')
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle()
+        isOrgMember = !!membership
+      }
+
+      if (!subActive && !trialActive && !demoAllowed && !isOrgMember) {
         const url = request.nextUrl.clone()
         url.pathname = '/billing'
         return NextResponse.redirect(url)

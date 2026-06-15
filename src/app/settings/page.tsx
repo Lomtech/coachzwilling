@@ -107,12 +107,11 @@ export default async function SettingsPage() {
                 }
               />
             )}
-            {/* Primärer Block: Profil ansehen + Tiefen-Analyse.
-                ProfileViewer ist standardmässig ausgeblendet (wartet auf
-                schöne PDF-Variante). Per NEXT_PUBLIC_SHOW_PROFILE_VIEWER=true
-                wieder aktivierbar (z.B. für Admin-User oder Test-Phase). */}
+            {/* Profil-Viewer NUR für Admins sichtbar — normale Kunden
+                bekommen das Profil als PDF nur per E-Mail-Anfrage an Lom
+                oder Michael. Tiefen-Analyse-Button bleibt für alle. */}
             <div className="mt-4 pt-4 border-t border-[var(--color-border)] space-y-2">
-              {process.env.NEXT_PUBLIC_SHOW_PROFILE_VIEWER === 'true' && (
+              {isAdminEmail(user.email) && (
                 <ProfileViewer profile={{
                   id: cp.id,
                   version: cp.version,

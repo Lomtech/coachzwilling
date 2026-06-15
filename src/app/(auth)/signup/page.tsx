@@ -18,15 +18,21 @@ function SignupInner() {
   const router = useRouter()
   const search = useSearchParams()
   const next = search.get('next') ?? '/onboarding'
+  // B2B-Activation-Code: kommt entweder aus URL (?code=...) oder /join/[code]
+  // redirect, oder User trägt ihn manuell ein. Default leer.
+  const codeFromUrl = (search.get('code') ?? '').trim().toUpperCase()
   const [fullName, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [activationCode, setActivationCode] = useState(codeFromUrl)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [codeWarning, setCodeWarning] = useState<string | null>(null)
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    setCodeWarning(null)
     setLoading(true)
     try {
       // Server-side Signup mit Auto-Confirm (umgeht Email-Bestätigungs-Dance).
@@ -35,9 +41,18 @@ function SignupInner() {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, fullName }),
+        body: JSON.stringify({
+          email,
+          password,
+          fullName,
+          activationCode: activationCode.trim() || undefined,
+        }),
       })
-      const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null
+      const json = (await res.json().catch(() => null)) as {
+        ok?: boolean
+        error?: string
+        org?: { ok: boolean; orgId?: string; error?: string }
+      } | null
       if (!res.ok || !json?.ok) {
         const errCode = json?.error ?? `HTTP ${res.status}`
         if (errCode === 'email-already-exists') {
@@ -46,6 +61,17 @@ function SignupInner() {
           setError(errCode)
         }
         return
+      }
+      // Org-Code-Redeem-Status: User ist angelegt, aber Code evtl. ungültig.
+      // Wir loggen ihn trotzdem ein — er kann den Code später manuell nachreichen.
+      if (activationCode && json.org && !json.org.ok) {
+        const reason = ({
+          'code-not-found': 'Code wurde nicht gefunden.',
+          'code-inactive':  'Code ist deaktiviert.',
+          'code-expired':   'Code ist abgelaufen.',
+          'code-full':      'Code ist bereits ausgeschöpft (alle Plätze vergeben).',
+        } as Record<string, string>)[json.org.error ?? ''] ?? 'Code konnte nicht eingelöst werden.'
+        setCodeWarning(reason + ' Dein Account ist trotzdem aktiv — bitte melde dich bei deinem Ansprechpartner.')
       }
       // Direkt einloggen (User ist bereits confirmed)
       const supabase = createClient()
@@ -90,8 +116,42 @@ function SignupInner() {
           placeholder="Passwort (min. 8 Zeichen)"
           value={password} onChange={e => setPassword(e.target.value)}
         />
+        {/* B2B-Code: nur sichtbar wenn Code aus URL kam ODER User klickt
+            "Geschäftlicher Zugang? Code eingeben". */}
+        {(codeFromUrl || activationCode) ? (
+          <div className="space-y-1">
+            <label className="text-xs text-[var(--color-muted)] uppercase tracking-wider">
+              Unternehmenscode
+            </label>
+            <input
+              type="text"
+              placeholder="DEEPLING-XXX-XXXX"
+              value={activationCode}
+              onChange={e => setActivationCode(e.target.value.toUpperCase())}
+              className="font-mono"
+              autoComplete="off"
+            />
+          </div>
+        ) : (
+          <details className="text-sm text-[var(--color-muted)]">
+            <summary className="cursor-pointer hover:text-[var(--color-ink)]">
+              Geschäftlicher Zugang? Code eingeben
+            </summary>
+            <input
+              type="text"
+              placeholder="DEEPLING-XXX-XXXX"
+              value={activationCode}
+              onChange={e => setActivationCode(e.target.value.toUpperCase())}
+              className="font-mono mt-2"
+              autoComplete="off"
+            />
+          </details>
+        )}
         {error && (
           <div className="text-sm text-[var(--color-danger)]">{error}</div>
+        )}
+        {codeWarning && (
+          <div className="text-sm text-[var(--color-warning)]">{codeWarning}</div>
         )}
         <button type="submit" disabled={loading} className="btn btn-primary btn-block">
           {loading ? 'Wird erstellt …' : 'Account erstellen'}
