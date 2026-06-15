@@ -15,8 +15,11 @@ import { AnthropicBedrock } from '@anthropic-ai/bedrock-sdk'
 // in profiler.ts / memory.ts / chat-route.ts bleibt unverändert.
 //
 // Wichtige Hinweise zu Langdock:
-//   • Endpoint:        https://api.langdock.com/anthropic/{region}/v1
+//   • Endpoint:        https://api.langdock.com/anthropic/{region}
 //                      ({region} = "eu" oder "us"; Default "eu")
+//                      ACHTUNG: KEIN /v1 am Ende der baseURL — das Anthropic-SDK
+//                      (Version 0.40.x) hängt /v1/messages selbst dran. baseURL
+//                      mit /v1 würde Doppel-/v1/v1/messages → 404 erzeugen.
 //   • Auth-Header:     Authorization: Bearer <LANGDOCK_API_KEY>
 //                      (nicht x-api-key wie bei Anthropic-Direkt)
 //   • Modell-IDs:      hängen vom Workspace ab. Die offizielle Doc nennt
@@ -68,8 +71,9 @@ export function anthropic(): Anthropic {
     if (region !== 'eu' && region !== 'us') {
       throw new Error(`LANGDOCK_REGION muss "eu" oder "us" sein, war "${region}"`)
     }
+    // KEIN /v1 — das SDK hängt /v1/messages selbst an die baseURL.
     const baseURL = process.env.LANGDOCK_BASE_URL
-      ?? `https://api.langdock.com/anthropic/${region}/v1`
+      ?? `https://api.langdock.com/anthropic/${region}`
 
     // Langdock erwartet `Authorization: Bearer <key>` statt `x-api-key`.
     // Das offizielle @anthropic-ai/sdk unterstützt das über die `authToken`-
