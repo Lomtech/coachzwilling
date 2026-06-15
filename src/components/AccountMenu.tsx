@@ -22,14 +22,14 @@ export function AccountMenu({ email, fullName, isAdmin, showTrialPill, trialDays
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastClickAt = useRef(0)
   const handleClick = () => {
-    const now = performance.now()
-    if (now - lastClickAt.current < 500) {
-      // 2. Klick im Fenster → toggle
+    const now = Date.now()
+    const diff = now - lastClickAt.current
+    console.log('[AccountMenu] click', { diff, lastClickAt: lastClickAt.current, now })
+    if (lastClickAt.current > 0 && diff < 500) {
       if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null }
       lastClickAt.current = 0
       setOpen(o => !o)
     } else {
-      // 1. Klick → Timer starten, ignoriere wenn kein 2. kommt
       lastClickAt.current = now
       clickTimer.current = setTimeout(() => { lastClickAt.current = 0 }, 500)
     }
