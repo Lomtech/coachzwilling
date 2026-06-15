@@ -100,7 +100,11 @@ export async function streamCoachProfile(
 
   const stream = await anthropic().messages.stream({
     model: PROFILER_MODEL,
-    max_tokens: 6144, // knapp gehalten — Profile passen erfahrungsgemäss in 5-6k
+    // V5-Profile mit A1–A9 + B1–B15 brauchen ~6–8k Output-Tokens. Verifiziert
+    // 2026-06-15 mit Sonnet 4.6: 6144 tokens reichten nur bis B11 — Stream
+    // endete vor B14 (Tonprofil-Echo) und B15 (Sprach-Mirror), wodurch der
+    // Extractor null lieferte und der Coach generisch wurde.
+    max_tokens: 8192,
     system: PROFILER_PROMPT,
     messages: [{ role: 'user', content: userMessage }],
   })
