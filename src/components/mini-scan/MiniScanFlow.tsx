@@ -80,7 +80,7 @@ export function MiniScanFlow() {
             <li>• Dauer: ~2 Minuten</li>
             <li>• Ergebnis sofort auf dem Bildschirm</li>
             <li>• Optional per E-Mail zugeschickt</li>
-            <li>• Du entscheidest danach, ob du den vollen 42-Fragen-Scan willst</li>
+            <li>• Du entscheidest danach, ob du den vollen 50-Fragen-Scan willst</li>
           </ul>
           <button
             onClick={() => setStep('questions')}
@@ -225,7 +225,7 @@ export function MiniScanFlow() {
 
       <h1 className="text-2xl font-semibold tracking-tight mb-2">Dein Kurzprofil</h1>
       <p className="text-sm text-[var(--color-ink-2)] mb-6">
-        Erstellt aus deinen 5 Antworten. Der vollständige 42-Fragen-Scan geht ~10x tiefer.
+        Erstellt aus deinen 5 Antworten. Der vollständige 50-Fragen-Scan geht ~10x tiefer.
       </p>
 
       <div className="card mb-6 whitespace-pre-wrap leading-relaxed">

@@ -67,7 +67,7 @@ export function RegenerateProfileButton() {
       <button
         onClick={() => setStep('confirm')}
         className="btn btn-ghost btn-block flex items-center justify-center gap-2 text-sm"
-        aria-label="Profil aus 42 Onboarding-Antworten komplett neu generieren"
+        aria-label="Profil aus 50 Onboarding-Antworten komplett neu generieren"
       >
         <IconRefresh className="w-4 h-4" />
         <span>Profil neu aus Antworten generieren</span>

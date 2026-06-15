@@ -44,7 +44,7 @@ export function RestartOnboardingButton() {
     return (
       <div className="space-y-3">
         <p className="text-sm text-[var(--color-ink-2)]">
-          Du startest den 42-Fragen-Scan komplett neu — mit den intelligenten
+          Du startest den 50-Fragen-Scan komplett neu — mit den intelligenten
           Vertiefungsfragen für kurze Antworten. Dein aktuelles Coach-Profil
           und deine Chat-Historie bleiben unverändert, bis du den neuen Scan
           abgeschlossen hast. Beim Abschluss wird das neue Profil aktiv geschaltet
@@ -67,7 +67,7 @@ export function RestartOnboardingButton() {
       <button
         onClick={() => setStep('confirm')}
         className="btn btn-ghost btn-block flex items-center justify-center gap-2 text-sm"
-        aria-label="Den 42-Fragen-Scan komplett neu durchgehen"
+        aria-label="Den 50-Fragen-Scan komplett neu durchgehen"
       >
         <IconPencil className="w-4 h-4" />
         <span>Fragebogen komplett neu machen</span>

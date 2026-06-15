@@ -42,71 +42,28 @@ export default function AgbPage() {
         </section>
 
         <section>
-          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§3 Vertragsschluss und Probezeit</h2>
-          <p className="mb-3">
-            Der Vertrag kommt mit Registrierung des Nutzer-Accounts zustande. Mit Abschluss eines
-            kostenpflichtigen Abonnements via Stripe erhältst du eine{' '}
-            <strong>7-tägige kostenlose Probezeit</strong>. Während der Probezeit wird deine
-            hinterlegte Zahlungsmethode nicht belastet.
-          </p>
+          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§3 Vertragsschluss und Nutzung</h2>
           <p>
-            Kündigst du innerhalb der Probezeit, entstehen keine Kosten. Andernfalls beginnt nach
-            Ablauf der Probezeit automatisch die kostenpflichtige Laufzeit gemäß §4.
+            Der Vertrag kommt mit Registrierung des Nutzer-Accounts zustande. Die Nutzung des
+            Dienstes ist in der aktuellen Phase kostenfrei. Sobald ein kostenpflichtiges
+            Angebot eingeführt wird, informieren wir dich rechtzeitig per E-Mail; eine
+            Fortsetzung der Nutzung ist dann nur nach ausdrücklicher Bestätigung des
+            Preismodells durch dich möglich.
           </p>
         </section>
 
         <section>
-          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§4 Preise und Laufzeit</h2>
-          <p className="mb-3">
-            Der Dienst wird in zwei Abrechnungsmodellen angeboten:
-          </p>
-          <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong>Monatlich</strong>: 29 € pro Monat. Monatlich zum Periodenende kündbar.</li>
-            <li><strong>Jährlich</strong>: 228 € pro Jahr (entspricht 19 € pro Monat).
-                Jährlich zum Periodenende kündbar.</li>
-          </ul>
-          <p className="mt-3">
-            Gemäß §19 UStG (Kleinunternehmerregelung) wird keine Umsatzsteuer ausgewiesen.
-            Die Zahlung erfolgt über Stripe per Kreditkarte, SEPA-Lastschrift oder weitere
-            in Stripe verfügbare Zahlungsmethoden. Verlängerungen werden automatisch
-            zum Periodenende abgebucht, sofern nicht zuvor gekündigt.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§5 Widerrufsrecht für Verbraucher</h2>
-          <p className="mb-3">
-            Verbrauchern steht ein 14-tägiges Widerrufsrecht gemäß §355 BGB zu.
-            Die Widerrufsfrist beginnt mit Vertragsschluss.
-          </p>
-          <p className="mb-3">
-            <strong>Vorzeitiger Beginn der Leistung:</strong> Mit Aktivierung deines Coach-Profils und
-            der ersten Coach-Antwort beginnt die Vertragsleistung. Du stimmst ausdrücklich zu, dass
-            wir mit der Vertragsleistung vor Ablauf der Widerrufsfrist beginnen. Du bestätigst zudem
-            deine Kenntnis, dass dein Widerrufsrecht mit vollständiger Vertragserfüllung erlischt
-            (§356 Abs. 4 BGB).
-          </p>
+          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§4 Account-Löschung</h2>
           <p>
-            Widerruf an:{' '}
-            <a href="mailto:oss@osss.pro" className="text-[var(--color-accent)] underline">oss@osss.pro</a>.
-            Bei wirksamem Widerruf erstatten wir bereits geleistete Zahlungen unverzüglich.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§6 Kündigung</h2>
-          <p>
-            Du kannst dein Abonnement jederzeit über das Stripe-Kundenportal (zugänglich über
-            „Einstellungen → Abo verwalten") kündigen. Die Kündigung wird zum Ende des laufenden
-            Abrechnungszeitraums wirksam. Bereits gezahlte Beträge werden nicht anteilig erstattet.
-            Eine Löschung deines Accounts ist jederzeit unter{' '}
+            Du kannst dein Konto und alle gespeicherten Daten jederzeit unter{' '}
             <a href="mailto:oss@osss.pro" className="text-[var(--color-accent)] underline">oss@osss.pro</a>{' '}
-            möglich.
+            löschen lassen. Die Löschung erfolgt innerhalb von 14 Tagen nach Eingang
+            deiner Anfrage, soweit keine gesetzlichen Aufbewahrungspflichten entgegenstehen.
           </p>
         </section>
 
         <section>
-          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§7 Nutzungsregeln</h2>
+          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§5 Nutzungsregeln</h2>
           <p className="mb-3">Bei der Nutzung des Dienstes verpflichtest du dich:</p>
           <ul className="list-disc pl-5 space-y-1.5">
             <li>nur eigene oder einwilligungsbasierte Inhalte einzugeben</li>
@@ -125,7 +82,7 @@ export default function AgbPage() {
         </section>
 
         <section>
-          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§8 KI-Inhalte und Haftungsbegrenzung</h2>
+          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§6 KI-Inhalte und Haftungsbegrenzung</h2>
           <p className="mb-3">
             Die Coach-Antworten werden durch ein Large-Language-Model („Claude") generiert.
             Sie sind <strong>kein Ersatz</strong> für eine professionelle psychologische,
@@ -148,7 +105,7 @@ export default function AgbPage() {
         </section>
 
         <section>
-          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§9 Verfügbarkeit</h2>
+          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§7 Verfügbarkeit</h2>
           <p>
             Wir streben eine Verfügbarkeit von 99 % im Jahresmittel an, geben darauf jedoch keine
             Garantie. Wartungsarbeiten, Software-Updates oder Ausfälle externer Anbieter (insbesondere
@@ -157,7 +114,7 @@ export default function AgbPage() {
         </section>
 
         <section>
-          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§10 Datenschutz</h2>
+          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§8 Datenschutz</h2>
           <p>
             Hinweise zur Datenverarbeitung findest du in unserer{' '}
             <Link href="/datenschutz" className="text-[var(--color-accent)] underline">
@@ -167,7 +124,7 @@ export default function AgbPage() {
         </section>
 
         <section>
-          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§11 Änderungen dieser AGB</h2>
+          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§9 Änderungen dieser AGB</h2>
           <p>
             Wir können diese AGB anpassen, wenn dies aus rechtlichen, technischen oder wirtschaftlichen
             Gründen erforderlich ist. Wir informieren dich mindestens 30 Tage vor Inkrafttreten per
@@ -177,7 +134,7 @@ export default function AgbPage() {
         </section>
 
         <section>
-          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§12 Schlussbestimmungen</h2>
+          <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§10 Schlussbestimmungen</h2>
           <p className="mb-3">
             Es gilt deutsches Recht unter Ausschluss des UN-Kaufrechts. Ist der Nutzer Kaufmann,
             juristische Person des öffentlichen Rechts oder öffentlich-rechtliches Sondervermögen,

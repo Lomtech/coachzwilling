@@ -107,16 +107,20 @@ export default async function SettingsPage() {
                 }
               />
             )}
-            {/* Primärer Block: Profil ansehen + Tiefen-Analyse — die zwei
-                Aktionen die jeder User braucht. */}
+            {/* Primärer Block: Profil ansehen + Tiefen-Analyse.
+                ProfileViewer ist standardmässig ausgeblendet (wartet auf
+                schöne PDF-Variante). Per NEXT_PUBLIC_SHOW_PROFILE_VIEWER=true
+                wieder aktivierbar (z.B. für Admin-User oder Test-Phase). */}
             <div className="mt-4 pt-4 border-t border-[var(--color-border)] space-y-2">
-              <ProfileViewer profile={{
-                id: cp.id,
-                version: cp.version,
-                source: cp.source,
-                generatedAt: cp.generated_at,
-                configMd: cp.config_md,
-              }} />
+              {process.env.NEXT_PUBLIC_SHOW_PROFILE_VIEWER === 'true' && (
+                <ProfileViewer profile={{
+                  id: cp.id,
+                  version: cp.version,
+                  source: cp.source,
+                  generatedAt: cp.generated_at,
+                  configMd: cp.config_md,
+                }} />
+              )}
               <RefineProfileButton hasMemories={(memoryCount ?? 0) > 0} />
             </div>
 
@@ -130,9 +134,9 @@ export default async function SettingsPage() {
                 <RegenerateProfileButton />
                 <RestartOnboardingButton />
                 <p className="text-xs text-[var(--color-muted)] pt-2">
-                  „Neu generieren" baut das Profil ausschließlich aus deinen 42 Onboarding-Antworten —
+                  „Neu generieren" baut das Profil ausschließlich aus deinen 50 Onboarding-Antworten —
                   Memory + Chat-Verlauf bleiben erhalten, fließen aber nicht ein. „Fragebogen neu machen"
-                  startet den 42-Fragen-Scan komplett neu — sinnvoll wenn sich deine Situation grundlegend
+                  startet den 50-Fragen-Scan komplett neu — sinnvoll wenn sich deine Situation grundlegend
                   geändert hat.
                 </p>
               </div>
@@ -167,10 +171,12 @@ export default async function SettingsPage() {
 
       <OrgSection />
 
-      <section className="card mb-4">
-        <SectionHeader>Living Memory</SectionHeader>
-        <MemoryView initialItems={memoryItems} />
-      </section>
+      {process.env.NEXT_PUBLIC_SHOW_MEMORY === 'true' && (
+        <section className="card mb-4">
+          <SectionHeader>Living Memory</SectionHeader>
+          <MemoryView initialItems={memoryItems} />
+        </section>
+      )}
 
       {process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true' && (
       <section className="card mb-4">

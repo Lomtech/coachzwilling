@@ -60,12 +60,16 @@ export default async function HomePage() {
           <div>
             <div className="chip mb-5 anim-fade-up">Für Führungskräfte</div>
             <h1 className="anim-fade-up text-[2.4rem] sm:text-5xl lg:text-6xl font-semibold leading-[1.04] tracking-tight">
-              Dein Coach. <br />
-              <span className="text-[var(--color-ink-2)]">Der dich wirklich kennt.</span>
+              Deepling. <br />
+              <span className="text-[var(--color-ink-2)]">Nur Ihr beide. Für alles, was du sonst nicht laut aussprichst.</span>
             </h1>
             <p className="anim-fade-up-delay mt-5 text-lg text-[var(--color-ink-2)] max-w-xl">
-              Ein Coach, der nicht alle 5 Minuten dieselbe Frage stellt wie jeder andere.
-              Er kennt dein Stressmuster, dein Selbstbild, deine Ausweichbewegungen — und nutzt das.
+              Dein Profil. Dein Coach. Ganz auf dich zugeschnitten: Deepling kennt deine
+              Stärken, deine Ziele — aber auch deine blinden Flecken und Ausweichmuster.
+            </p>
+            <p className="anim-fade-up-delay mt-3 text-lg text-[var(--color-ink-2)] max-w-xl">
+              Starte mit dem Fragebogen, erhalte deine 10-seitige Profilanalyse —
+              und nutze dann Deepling im Chat.
             </p>
             <div className="anim-fade-up-delay2 mt-7 flex flex-col sm:flex-row gap-3">
               <Link href="/signup" className="btn btn-primary btn-block sm:w-auto">
@@ -92,7 +96,7 @@ export default async function HomePage() {
       {/* How it works */}
       <section id="wie" className="scroll-mt-20 px-5 py-14 bg-[var(--color-surface-2)] border-y border-[var(--color-border)]">
         <div className="max-w-3xl w-full mx-auto">
-          <h2 className="text-2xl font-semibold tracking-tight mb-6">So entsteht dein Zwilling</h2>
+          <h2 className="text-2xl font-semibold tracking-tight mb-6">So entsteht dein Deepling</h2>
           <ol className="space-y-4">
             <Step n={1} title="50 Fragen im Scan-Modus">
               Eine Frage pro Bildschirm. Keine Bewertung, an fünf festen Stellen eine Nachfrage —
@@ -102,7 +106,7 @@ export default async function HomePage() {
               Aus deinen Antworten wird ein individuelles Coach-Profil mit Tonprofil,
               Einstiegsmodus und Gesehen-Signal — automatisch.
             </Step>
-            <Step n={3} title="Chat mit deinem Zwilling">
+            <Step n={3} title="Chat mit deinem Deepling">
               Du sprichst mit einem Coach, der dein Profil kennt. Eine Frage pro Antwort.
               Keine Listen. Keine Therapie-Floskeln.
             </Step>
@@ -130,8 +134,8 @@ export default async function HomePage() {
             <div className="anim-fade-up text-5xl leading-none text-[var(--color-accent)] font-serif mb-1">"</div>
             <blockquote className="anim-fade-up-delay text-lg sm:text-xl leading-relaxed text-[var(--color-ink)] font-medium space-y-4">
               <p>
-                Deepling ist für Führungskräfte, die nicht noch mehr Tipps brauchen.
-                Sondern einen Spiegel, der nicht ausweicht.
+                Deepling ist für alle erfolgreichen Menschen, die nicht noch mehr Tipps brauchen.
+                Dein Spiegel, der nicht ausweicht.
               </p>
               <p className="text-base text-[var(--color-ink-2)] font-normal">
                 Denn die schwierigsten Themen besprichst du oft mit niemandem wirklich offen.
@@ -139,16 +143,18 @@ export default async function HomePage() {
                 mit dir selbst.
               </p>
               <p className="text-base text-[var(--color-ink-2)] font-normal">
-                Er stresstestet deine Entscheidungen. Sortiert Gedanken, die du nicht laut sagen
-                kannst. Zeigt Muster, bevor sie wieder teuer werden. Er hilft dir, in Krisen
-                nicht aus Reflex zu handeln, sondern aus Klarheit. Und stellt die Frage, die im
-                Alltag oft untergeht: <strong>Optimierst du das Richtige — oder nur das, was
-                am lautesten ist?</strong>
+                Er stresstestet deine Entscheidungen, statt dich nur zu bestätigen. Sortiert
+                Gedanken, die du nicht laut sagen kannst. Zeigt Muster, bevor sie wieder teuer
+                werden. Er hilft dir, in Krisen nicht aus Reflex zu handeln, sondern aus Klarheit.
+              </p>
+              <p className="text-base text-[var(--color-ink-2)] font-normal">
+                Und Deepling stellt die Frage, die im Alltag oft untergeht:{' '}
+                <strong>Optimierst du das Richtige — oder nur das, was am lautesten ist?</strong>
               </p>
               <p className="text-base text-[var(--color-ink-2)] font-normal italic">
-                Kein Chatbot. Kein digitales Notizbuch.
-                Ein stiller, präziser Denkraum für die Momente, in denen du sonst
-                nirgends sprichst — bevor Muster teuer werden.
+                Kein Chatbot. Kein digitales Notizbuch. Ein stiller, präziser Denkraum für die
+                Momente, in denen du sonst mit niemandem sprechen kannst. Auch nachts um 3 Uhr,
+                wenn die Decke zu Beton wird.
               </p>
             </blockquote>
             <div className="anim-fade-up-delay2 mt-6 pt-5 border-t border-[var(--color-border)] flex items-center justify-end gap-3 flex-wrap">
@@ -195,7 +201,7 @@ export default async function HomePage() {
           <div>
             <Link href="/" className="inline-flex items-center gap-2.5 font-semibold tracking-tight text-lg mb-3">
               <LogoMark size={28} />
-              <span>Coaching<span className="text-[var(--color-accent)]">·</span>Zwilling</span>
+              <span>Deepling</span>
             </Link>
             <p className="text-sm text-[var(--color-ink-2)] max-w-sm">
               Ein Coach, der nicht ausweicht. Auf dein Profil zugeschnitten.

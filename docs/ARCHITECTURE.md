@@ -7,7 +7,7 @@ Signup → profiles.onboarding_state = 'pending'
    ↓
 Onboarding-Intro (/onboarding)
    ↓ [User klickt "Los geht's"]
-Scan (42 Fragen, eine pro Bildschirm)
+Scan (50 Fragen, eine pro Bildschirm)
    ↓ [Auto-Save → questionnaire_responses.answers (JSONB)]
    ↓ [Letzte Frage → POST /api/onboarding/finalize]
 Profiler (Claude Sonnet 4.6 — per env `CLAUDE_PROFILER_MODEL` auf Opus 4.7 umstellbar)

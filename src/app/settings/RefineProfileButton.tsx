@@ -78,7 +78,7 @@ export function RefineProfileButton({ hasMemories }: { hasMemories: boolean }) {
       <div className="space-y-3">
         <p className="text-sm text-[var(--color-ink-2)]">
           <strong>Tiefen-Analyse:</strong> Opus 4.7 liest dein bestehendes Profil,
-          deine 42 Onboarding-Antworten, alle gespeicherten Memory-Einträge und
+          deine 50 Onboarding-Antworten, alle gespeicherten Memory-Einträge und
           den vollständigen Chat-Verlauf — und baut daraus eine komplett neu
           durchdachte Profil-Version. Dauert ~60–120 Sekunden. Memory + Chat-Historie
           bleiben unverändert.

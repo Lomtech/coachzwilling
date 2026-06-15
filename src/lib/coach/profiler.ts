@@ -142,7 +142,7 @@ export async function streamCoachProfile(
  *
  * Quellen:
  *   1. oldConfigMd       — aktuelles Profil (Ausgangspunkt)
- *   2. scanRaw           — die 42 Onboarding-Antworten roh (Selbstbild)
+ *   2. scanRaw           — die 50 Onboarding-Antworten roh (Selbstbild)
  *   3. memories          — Haiku-Beobachtungen aus dem Coaching (Destillat)
  *   4. transcript        — der vollständige Roh-Chat-Verlauf (Evidenz)
  *

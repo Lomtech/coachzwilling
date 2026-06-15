@@ -3,7 +3,7 @@ import { serviceClient } from '@/lib/supabase/service'
 
 // Token-Budget für den Transcript-Block im Refine-Call.
 // Opus 4.7 hat 200k Kontext — wir lassen Luft für altes Profil (~10k),
-// Memories (~5-10k) und 42 Onboarding-Antworten (~3-5k).
+// Memories (~5-10k) und 50 Onboarding-Antworten (~3-5k).
 const TRANSCRIPT_TOKEN_BUDGET = 120_000
 
 // Konservative Schätzung: deutsches Markdown ~3.5 Zeichen pro Token
@@ -122,7 +122,7 @@ export async function buildFullTranscript(userId: string): Promise<TranscriptRes
 }
 
 /**
- * Formatiert die 42 Onboarding-Antworten als Roh-Block für den Refine-Prompt.
+ * Formatiert die 50 Onboarding-Antworten als Roh-Block für den Refine-Prompt.
  * Gibt null zurück wenn keine completed response existiert.
  */
 export async function loadOnboardingRaw(userId: string): Promise<string | null> {
