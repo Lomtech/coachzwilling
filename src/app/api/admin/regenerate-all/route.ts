@@ -5,7 +5,7 @@ import { TOTAL_QUESTIONS, QUESTIONS } from '@/data/questionnaire'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-export const maxDuration = 800 // Vercel Pro
+export const maxDuration = 300 // Vercel Hobby cap
 
 /**
  * One-shot: regeneriert ALLE aktiven Coach-Profile mit dem aktuell
@@ -15,6 +15,10 @@ export const maxDuration = 800 // Vercel Pro
  *
  * Auth: Secret-Query-Param. Wird nach Run entfernt.
  *   GET /api/admin/regenerate-all?s=<SECRET>
+ *   GET /api/admin/regenerate-all?s=<SECRET>&modelHint=claude-sonnet-4-6
+ *     → skip User, deren aktives Profil bereits dieses Modell hat. Damit
+ *       kann der Endpoint mehrfach gegen das 300s-Hobby-Timeout-Limit
+ *       laufen, ohne fertige User doppelt zu generieren.
  */
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
@@ -24,16 +28,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
+  const modelHint = url.searchParams.get('modelHint')
   const supa = serviceClient()
 
-  // Alle User mit aktivem Profil holen (deduped per user_id)
+  // Alle User mit aktivem Profil holen (deduped per user_id, optional gefiltert)
   const { data: rows, error: selErr } = await supa
     .from('coach_profiles')
-    .select('user_id')
+    .select('user_id, model')
     .eq('is_active', true)
   if (selErr) return NextResponse.json({ error: selErr.message }, { status: 500 })
 
-  const userIds = Array.from(new Set((rows ?? []).map(r => r.user_id))) as string[]
+  const filtered = (rows ?? []).filter(r => {
+    if (!modelHint) return true
+    // Skip wenn aktives Profil bereits dieses Modell hat
+    return !r.model?.startsWith(modelHint)
+  })
+  const userIds = Array.from(new Set(filtered.map(r => r.user_id))) as string[]
+  const startedAt = Date.now()
 
   const results: Array<{
     userId: string
@@ -44,6 +55,18 @@ export async function GET(req: NextRequest) {
   }> = []
 
   for (const userId of userIds) {
+    // Hard-Timeout: bei 270s aufhören, restliche User landen im "remaining"
+    if (Date.now() - startedAt > 270_000) {
+      return NextResponse.json({
+        total: userIds.length,
+        ok: results.filter(r => r.ok).length,
+        failed: results.filter(r => !r.ok && !r.skipReason).length,
+        skipped: results.filter(r => r.skipReason).length,
+        remainingUserIds: userIds.slice(results.length),
+        results,
+        note: '270s-Timeout, retry mit &modelHint=claude-sonnet-4-6 für Rest.',
+      })
+    }
     try {
       // Letzte completed Antwort des Users
       const { data: response, error: rErr } = await supa
