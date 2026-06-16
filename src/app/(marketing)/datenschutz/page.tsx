@@ -12,14 +12,24 @@ interface Processor { name: string; desc: string; link?: string }
 
 const PROCESSORS: Processor[] = [
   {
+    name: 'Langdock GmbH',
+    desc: 'KI-Vermittlungsschicht für Coach-Profil-Generation und Coach-Antworten. Vertragspartner: Langdock GmbH, Greifswalder Straße 212, 10405 Berlin, Deutschland. Ausführungsregion: EU/Frankfurt. Genutzte Modelle: Claude Sonnet 4.5 (Profiler + Coach) und Claude Haiku 4.5 (Followup-Komposition) — bereitgestellt durch Anthropic, durchgeleitet von Langdock. Zertifizierungen: ISO 27001, SOC 2 Type II. Auftragsverarbeitungsvertrag nach Art. 28 DSGVO mit Langdock besteht (einsehbar über das Langdock Trust Center). Langdock und sein Unter-Auftragsverarbeiter Anthropic verwenden API-Eingaben standardmäßig NICHT zum Modelltraining (Zero-Retention für Trainingszwecke); kurzfristige Speicherung erfolgt ausschließlich zur Missbrauchserkennung und wird anschließend gelöscht.',
+    link: 'https://trust.langdock.com/',
+  },
+  {
     name: 'Supabase Inc.',
     desc: 'Datenbank, Authentifizierung. Datenstandort: London (UK, eu-west-2). Vertragspartner: Supabase Inc., USA. Schutzmaßnahme: EU-Angemessenheitsbeschluss 2021/1772 für UK (gültig bis 27.06.2031) sowie EU-Standardvertragsklauseln für die US-Vertragsbeziehung.',
     link: 'https://supabase.com/privacy',
   },
   {
-    name: 'Anthropic PBC',
-    desc: 'KI-Modell für Coach-Profil-Generation (Claude Opus 4.7) und Coach-Antworten (Claude Sonnet 4.6). Datenstandort: USA. Schutzmaßnahme: EU-Standardvertragsklauseln. Anthropic verwendet API-Eingaben standardmäßig NICHT für Modelltraining (Zero-Retention-Vereinbarung, 30 Tage Verarbeitungs-Aufbewahrung zur Missbrauchserkennung).',
-    link: 'https://www.anthropic.com/legal/privacy',
+    name: 'Resend, Inc.',
+    desc: 'Versand transaktionaler E-Mails (Coach-Followup-Mails, Org-Einladungen). Ausführungsregion: Irland (eu-west-1). Vertragspartner: Resend, Inc., USA. Schutzmaßnahme: EU-Standardvertragsklauseln. Verarbeitet werden Empfänger-Adresse, Betreff, Inhalt und Zustellstatus zum Zweck der Mail-Übermittlung.',
+    link: 'https://resend.com/legal/privacy-policy',
+  },
+  {
+    name: 'IONOS SE',
+    desc: 'Domain- und E-Mail-Hosting (deepling.de, lom@deepling.de, michael@deepling.de, kontakt@deepling.de). Vertragspartner: IONOS SE, Elgendorfer Straße 57, 56410 Montabaur, Deutschland. Datenstandort: Deutschland.',
+    link: 'https://www.ionos.de/terms-gtc/terms-privacy/',
   },
   {
     name: 'Stripe Payments Europe Ltd. / Stripe Inc.',
@@ -42,7 +52,7 @@ export default function DatenschutzPage() {
   return (
     <main className="max-w-2xl mx-auto px-5 py-12 sm:py-16">
       <h1 className="text-3xl font-semibold tracking-tight mb-2">Datenschutzerklärung</h1>
-      <p className="text-sm text-[var(--color-muted)] mb-10">Stand: Mai 2026</p>
+      <p className="text-sm text-[var(--color-muted)] mb-10">Stand: Juni 2026</p>
 
       <div className="space-y-8 text-sm text-[var(--color-ink-2)] leading-relaxed">
 
@@ -65,7 +75,7 @@ export default function DatenschutzPage() {
           <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">2. Welche Daten werden verarbeitet?</h2>
           <ul className="list-disc pl-5 space-y-1.5">
             <li>Account-Daten: E-Mail-Adresse, Passwort-Hash (bzw. OAuth-Provider-ID bei Google-Login), Name (optional)</li>
-            <li>Onboarding-Antworten der 42 Scan-Fragen (Freitext und Auswahl-Werte)</li>
+            <li>Onboarding-Antworten der 50 Scan-Fragen (Freitext und Auswahl-Werte)</li>
             <li>Generiertes Coach-Profil (Markdown, basierend auf deinen Antworten)</li>
             <li>Chat-Verlauf mit dem KI-Coach (deine Nachrichten + Coach-Antworten + Zeitstempel)</li>
             <li>Token-Telemetrie pro Chat-Antwort (technische Metadaten zur Caching-Effizienz)</li>
@@ -97,15 +107,21 @@ export default function DatenschutzPage() {
           <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">5. Übermittlung an die KI (besondere Aufmerksamkeit)</h2>
           <p className="mb-3">
             Damit dein KI-Coach individuell antworten kann, werden bei jeder Chat-Anfrage folgende Daten an{' '}
-            <strong>Anthropic PBC (USA)</strong> übermittelt: dein aktuell generiertes Coach-Profil (Markdown),
-            der bisherige Chat-Verlauf dieses Gesprächs sowie deine neue Nachricht.
-            Bei der erstmaligen Profil-Erstellung werden die 42 Scan-Antworten an Anthropic gesendet.
+            <strong>Langdock GmbH (Deutschland, EU/Frankfurt)</strong> übermittelt: dein aktuell
+            generiertes Coach-Profil (Markdown), der bisherige Chat-Verlauf dieses Gesprächs sowie deine
+            neue Nachricht. Bei der erstmaligen Profil-Erstellung werden die 50 Scan-Antworten an
+            Langdock gesendet. Langdock leitet die Anfrage an das Modell <strong>Claude Sonnet 4.5</strong>{' '}
+            (Profiler und Coach) bzw. <strong>Claude Haiku 4.5</strong> (Followup-Komposition) des
+            US-Anbieters <strong>Anthropic PBC</strong> weiter — als Unter-Auftragsverarbeiter im Sinne
+            der DSGVO.
           </p>
           <p className="mb-3">
-            <strong>Wichtig:</strong> Anthropic verwendet API-Eingaben standardmäßig{' '}
-            <strong>nicht zum Training</strong> der Modelle (Zero-Retention für Trainingszwecke).
-            Eingaben werden bis zu 30 Tage zur Missbrauchserkennung gespeichert und anschließend
-            gelöscht. Schutzmaßnahme: EU-Standardvertragsklauseln zwischen uns und Anthropic.
+            <strong>DSGVO-Stand:</strong> Mit Langdock besteht ein Auftragsverarbeitungsvertrag nach
+            Art. 28 DSGVO. Langdock ist nach ISO 27001 und SOC 2 Type II zertifiziert und hostet die
+            Schnittstelle in der EU. Weder Langdock noch Anthropic verwenden API-Eingaben zum
+            Modelltraining (Zero-Retention für Trainingszwecke). Eingaben werden bis zu 30 Tage zur
+            Missbrauchserkennung gespeichert und anschließend gelöscht. Für die Weiterleitung an
+            Anthropic (USA) durch Langdock gelten EU-Standardvertragsklauseln.
           </p>
           <p>
             <strong>Was du tun kannst:</strong> Du entscheidest selbst, welche Inhalte du im Chat
@@ -144,7 +160,7 @@ export default function DatenschutzPage() {
             <li>Chat-Historie: bis zur Löschung durch dich (einzeln oder gesamt)</li>
             <li>Technische Logs: 30 Tage</li>
             <li>Zahlungsbelege: 10 Jahre (gesetzliche Aufbewahrungspflicht §257 HGB)</li>
-            <li>Anthropic-API-Logs: bis zu 30 Tage bei Anthropic (siehe §5)</li>
+            <li>KI-Eingaben bei Langdock und Anthropic: bis zu 30 Tage (siehe §5)</li>
           </ul>
         </section>
 

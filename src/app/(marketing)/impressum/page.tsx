@@ -88,7 +88,7 @@ export default function ImpressumPage() {
         <section>
           <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">Hinweis zu KI-generierten Inhalten</h2>
           <p className="text-[var(--color-muted)]">
-            Die Coach-Antworten dieses Dienstes werden durch ein Large-Language-Model (Claude, Anthropic PBC)
+            Die Coach-Antworten dieses Dienstes werden durch ein Large-Language-Model (Claude, Anthropic PBC, bereitgestellt über Langdock GmbH, EU-Hosting)
             generiert. Sie ersetzen keine professionelle psychologische, medizinische oder rechtliche
             Beratung. In Krisensituationen wende dich bitte an die Telefonseelsorge unter{' '}
             <a href="tel:0800-1110111" className="text-[var(--color-accent)] underline">0800 111 0 111</a>{' '}
