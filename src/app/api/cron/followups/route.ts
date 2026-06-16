@@ -46,11 +46,16 @@ export async function GET(req: NextRequest) {
   const startedAt = Date.now()
   const supa = serviceClient()
 
-  // Base-URL für CTA-Links (z. B. https://deepling.com)
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-    ?? process.env.VERCEL_PROJECT_PRODUCTION_URL
+  // Base-URL für CTA-Links (z.B. https://deepling.de).
+  // Operator-Precedence-Bug-Fix: vorher wurde wegen `??` höherer Bindung
+  // als `?:` IMMER der Template-Pfad gewählt, sobald NEXT_PUBLIC_APP_URL gesetzt
+  // war — egal ob als deepling.de oder vercel.app. Resultat: Mails mit
+  // fuehrungs-coach.vercel.app-Links. Jetzt sauber per Klammerung.
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL
+    ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL
       ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : 'https://fuehrungs-coach.vercel.app'
+      : 'https://deepling.de')
 
   // Selektion: alle opted-in Kandidaten holen + zusätzlich aktive
   // Coach-Profile checken. Wir nutzen NICHT mehr nur den state-Filter
