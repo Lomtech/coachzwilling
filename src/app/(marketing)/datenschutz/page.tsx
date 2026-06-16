@@ -13,7 +13,7 @@ interface Processor { name: string; desc: string; link?: string }
 const PROCESSORS: Processor[] = [
   {
     name: 'Langdock GmbH',
-    desc: 'KI-Vermittlungsschicht für Coach-Profil-Generation und Coach-Antworten. Vertragspartner: Langdock GmbH, Greifswalder Straße 212, 10405 Berlin, Deutschland. Ausführungsregion: EU/Frankfurt. Genutzte Modelle: Claude Sonnet 4.5 (Profiler + Coach) und Claude Haiku 4.5 (Followup-Komposition) — bereitgestellt durch Anthropic, durchgeleitet von Langdock. Zertifizierungen: ISO 27001, SOC 2 Type II. Auftragsverarbeitungsvertrag nach Art. 28 DSGVO mit Langdock besteht (einsehbar über das Langdock Trust Center). Langdock und sein Unter-Auftragsverarbeiter Anthropic verwenden API-Eingaben standardmäßig NICHT zum Modelltraining (Zero-Retention für Trainingszwecke); kurzfristige Speicherung erfolgt ausschließlich zur Missbrauchserkennung und wird anschließend gelöscht.',
+    desc: 'KI-Vermittlungsschicht für Coach-Profil-Generation und Coach-Antworten. Vertragspartner: Langdock GmbH, Greifswalder Straße 212, 10405 Berlin, Deutschland. Ausführungsregion: EU/Frankfurt. Genutzte Modelle: Claude Sonnet 4.6 (Profiler + Coach) und Claude Haiku 4.5 (Followup-Komposition) — bereitgestellt durch Anthropic, durchgeleitet von Langdock. Zertifizierungen: ISO 27001, SOC 2 Type II. Auftragsverarbeitungsvertrag nach Art. 28 DSGVO mit Langdock besteht (einsehbar über das Langdock Trust Center). Langdock und sein Unter-Auftragsverarbeiter Anthropic verwenden API-Eingaben standardmäßig NICHT zum Modelltraining (Zero-Retention für Trainingszwecke); kurzfristige Speicherung erfolgt ausschließlich zur Missbrauchserkennung und wird anschließend gelöscht.',
     link: 'https://trust.langdock.com/',
   },
   {
@@ -110,7 +110,7 @@ export default function DatenschutzPage() {
             <strong>Langdock GmbH (Deutschland, EU/Frankfurt)</strong> übermittelt: dein aktuell
             generiertes Coach-Profil (Markdown), der bisherige Chat-Verlauf dieses Gesprächs sowie deine
             neue Nachricht. Bei der erstmaligen Profil-Erstellung werden die 50 Scan-Antworten an
-            Langdock gesendet. Langdock leitet die Anfrage an das Modell <strong>Claude Sonnet 4.5</strong>{' '}
+            Langdock gesendet. Langdock leitet die Anfrage an das Modell <strong>Claude Sonnet 4.6</strong>{' '}
             (Profiler und Coach) bzw. <strong>Claude Haiku 4.5</strong> (Followup-Komposition) des
             US-Anbieters <strong>Anthropic PBC</strong> weiter — als Unter-Auftragsverarbeiter im Sinne
             der DSGVO.
