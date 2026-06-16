@@ -16,22 +16,6 @@ export function AccountMenu({ email, fullName, isAdmin, showTrialPill, trialDays
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const ref = useRef<HTMLDivElement>(null)
-  // Click-Counter mit eigenem Doppelklick-Fenster (800ms). Robuster als
-  // native onDoubleClick — der CDP-Pfad in Tests + langsame Touch-Doppeltaps
-  // verfehlen sonst das Browser-eigene dblclick-Timing.
-  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const lastClickAt = useRef(0)
-  const handleClick = () => {
-    const now = Date.now()
-    if (lastClickAt.current > 0 && now - lastClickAt.current < 800) {
-      if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null }
-      lastClickAt.current = 0
-      setOpen(o => !o)
-    } else {
-      lastClickAt.current = now
-      clickTimer.current = setTimeout(() => { lastClickAt.current = 0 }, 800)
-    }
-  }
 
   // Außenklick schließt
   useEffect(() => {
@@ -70,20 +54,13 @@ export function AccountMenu({ email, fullName, isAdmin, showTrialPill, trialDays
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={handleClick}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            setOpen(o => !o)
-          }
-        }}
+        onClick={() => setOpen(o => !o)}
         className={
           'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ' +
           (open ? 'bg-[var(--color-surface-2)]' : 'hover:bg-[var(--color-surface-2)]')
         }
         aria-haspopup="menu"
         aria-expanded={open}
-        title="Doppelklick oder Enter zum Öffnen"
       >
         <div className="w-8 h-8 rounded-full bg-[var(--color-ink)] text-white flex items-center justify-center text-xs font-semibold shrink-0">
           {initials}
