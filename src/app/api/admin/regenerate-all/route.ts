@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
   }
 
   const modelHint = url.searchParams.get('modelHint')
+  const singleUserId = url.searchParams.get('userId')
   const supa = serviceClient()
 
   // Alle User mit aktivem Profil holen (deduped per user_id, optional gefiltert)
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest) {
   if (selErr) return NextResponse.json({ error: selErr.message }, { status: 500 })
 
   const filtered = (rows ?? []).filter(r => {
+    if (singleUserId) return r.user_id === singleUserId
     if (!modelHint) return true
     // Skip wenn aktives Profil bereits dieses Modell hat
     return !r.model?.startsWith(modelHint)
