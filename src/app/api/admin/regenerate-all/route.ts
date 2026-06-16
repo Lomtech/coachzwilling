@@ -88,7 +88,11 @@ export async function GET(req: NextRequest) {
 
       const answers = (response.answers ?? {}) as Record<string, string>
       const answered = QUESTIONS.filter(q => Boolean(answers[String(q.id)])).length
-      if (answered < TOTAL_QUESTIONS) {
+      // V4-Toleranz: 42 Antworten reichen für V5-Profil. Sektionen B9/B10
+      // entstehen dünner aus dem vorhandenen Material — besser als
+      // Modell-Sprung-Outage. Vollständige V5-Profile gibt's für Neu-Onboarder.
+      const MIN_ANSWERS = 42
+      if (answered < MIN_ANSWERS) {
         results.push({ userId, ok: false, skipReason: `incomplete-${answered}/${TOTAL_QUESTIONS}` })
         continue
       }
