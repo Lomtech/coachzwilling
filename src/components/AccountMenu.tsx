@@ -16,20 +16,20 @@ export function AccountMenu({ email, fullName, isAdmin, showTrialPill, trialDays
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const ref = useRef<HTMLDivElement>(null)
-  // Click-Counter mit eigenem Doppelklick-Fenster (500ms). Robuster als
+  // Click-Counter mit eigenem Doppelklick-Fenster (800ms). Robuster als
   // native onDoubleClick — der CDP-Pfad in Tests + langsame Touch-Doppeltaps
   // verfehlen sonst das Browser-eigene dblclick-Timing.
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastClickAt = useRef(0)
   const handleClick = () => {
     const now = Date.now()
-    if (lastClickAt.current > 0 && now - lastClickAt.current < 500) {
+    if (lastClickAt.current > 0 && now - lastClickAt.current < 800) {
       if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null }
       lastClickAt.current = 0
       setOpen(o => !o)
     } else {
       lastClickAt.current = now
-      clickTimer.current = setTimeout(() => { lastClickAt.current = 0 }, 500)
+      clickTimer.current = setTimeout(() => { lastClickAt.current = 0 }, 800)
     }
   }
 
