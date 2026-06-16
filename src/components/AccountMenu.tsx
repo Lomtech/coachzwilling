@@ -56,8 +56,11 @@ export function AccountMenu({ email, fullName, isAdmin, showTrialPill, trialDays
         type="button"
         onClick={() => setOpen(o => !o)}
         className={
-          'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ' +
-          (open ? 'bg-[var(--color-surface-2)]' : 'hover:bg-[var(--color-surface-2)]')
+          'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ' +
+          'ring-1 ring-transparent ' +
+          (open
+            ? 'bg-[var(--color-surface-2)] ring-[var(--color-border)]'
+            : 'hover:bg-[var(--color-surface-2)] hover:ring-[var(--color-border)]')
         }
         aria-haspopup="menu"
         aria-expanded={open}
