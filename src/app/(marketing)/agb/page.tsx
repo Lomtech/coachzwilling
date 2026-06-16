@@ -21,7 +21,7 @@ export default function AgbPage() {
           <p>
             Anbieter dieses Dienstes ist Lom-Ali Imadaev, Kreuzstraße 1, 82276 Adelshofen
             (im Folgenden „Anbieter"). Kontakt:{' '}
-            <a href="mailto:oss@osss.pro" className="text-[var(--color-accent)] underline">oss@osss.pro</a>.
+            <a href="mailto:kontakt@deepling.de" className="text-[var(--color-accent)] underline">kontakt@deepling.de</a>.
             Diese AGB regeln das Vertragsverhältnis zwischen dem Anbieter und dem Nutzer
             (im Folgenden „du" oder „Nutzer").
           </p>
@@ -56,7 +56,7 @@ export default function AgbPage() {
           <h2 className="font-semibold text-[var(--color-ink)] text-base mb-3">§4 Account-Löschung</h2>
           <p>
             Du kannst dein Konto und alle gespeicherten Daten jederzeit unter{' '}
-            <a href="mailto:oss@osss.pro" className="text-[var(--color-accent)] underline">oss@osss.pro</a>{' '}
+            <a href="mailto:kontakt@deepling.de" className="text-[var(--color-accent)] underline">kontakt@deepling.de</a>{' '}
             löschen lassen. Die Löschung erfolgt innerhalb von 14 Tagen nach Eingang
             deiner Anfrage, soweit keine gesetzlichen Aufbewahrungspflichten entgegenstehen.
           </p>

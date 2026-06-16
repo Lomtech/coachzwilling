@@ -54,8 +54,8 @@ export default function DatenschutzPage() {
             <p>Kreuzstraße 1</p>
             <p>82276 Adelshofen</p>
             <p>
-              <a href="mailto:oss@osss.pro" className="text-[var(--color-accent)] underline">
-                oss@osss.pro
+              <a href="mailto:kontakt@deepling.de" className="text-[var(--color-accent)] underline">
+                kontakt@deepling.de
               </a>
             </p>
           </div>
@@ -161,7 +161,7 @@ export default function DatenschutzPage() {
           </ul>
           <p className="mt-3">
             Anfragen richte bitte an:{' '}
-            <a href="mailto:oss@osss.pro" className="text-[var(--color-accent)] underline">oss@osss.pro</a>.
+            <a href="mailto:kontakt@deepling.de" className="text-[var(--color-accent)] underline">kontakt@deepling.de</a>.
             Wir antworten innerhalb von 30 Tagen.
           </p>
         </section>

@@ -31,14 +31,14 @@ export default function ImpressumPage() {
           <div className="space-y-1">
             <p>
               E-Mail:{' '}
-              <a href="mailto:oss@osss.pro" className="text-[var(--color-accent)] underline">
-                oss@osss.pro
+              <a href="mailto:kontakt@deepling.de" className="text-[var(--color-accent)] underline">
+                kontakt@deepling.de
               </a>
             </p>
             <p>
               Support:{' '}
-              <a href="mailto:oss@osss.pro" className="text-[var(--color-accent)] underline">
-                oss@osss.pro
+              <a href="mailto:kontakt@deepling.de" className="text-[var(--color-accent)] underline">
+                kontakt@deepling.de
               </a>
             </p>
           </div>
