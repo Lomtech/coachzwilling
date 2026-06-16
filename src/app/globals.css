@@ -226,19 +226,23 @@ textarea { resize: vertical; min-height: 110px; }
   .print-profile, .print-profile * { visibility: visible; }
   /* Steuerelemente komplett raus */
   .no-print { display: none !important; }
-  /* Profil aus dem Layout-Container befreien — füllt die Druckseite */
+  /* Profil aus dem Layout-Container befreien — füllt die Druckseite.
+     Padding statt @page-margin, weil sonst der Browser-eigene Header/Footer
+     (URL, Datum, Titel) in den freien Rand reingedruckt wird. Mit @page
+     margin:0 hat der Browser keinen Platz mehr und lässt sie zuverlässig weg. */
   .print-profile {
     position: absolute; top: 0; left: 0; right: 0;
     width: 100%; max-height: none !important; overflow: visible !important;
     border: none !important; border-radius: 0 !important;
-    background: white !important; padding: 0 !important; margin: 0;
+    background: white !important;
+    padding: 22mm 20mm !important; margin: 0;
   }
   body, html {
     background: white !important; color: black !important;
     font-family: var(--font-serif) !important;
   }
   @page {
-    size: A4; margin: 22mm 20mm 22mm 20mm;
+    size: A4; margin: 0;
   }
 }
 
