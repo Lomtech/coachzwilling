@@ -11,13 +11,27 @@ export default async function HomePage({
 }: {
   searchParams: Promise<{ code?: string }>
 }) {
-  // B2B-Activation-Code-Links zeigen teils auf die Root (deepling.de/?code=…)
-  // — z.B. nach Domain-Umzug von der alten Vercel-URL. An /join/[code]
-  // weiterreichen: das löst den Code für eingeloggte User direkt ein und
-  // schickt neue User zur Registrierung. So funktioniert der Link für beide.
+  // ?code= auf der Root kann ZWEIERLEI sein:
+  //  1) Ein OAuth/PKCE-Auth-Code (UUID-Format). Der landet hier nur, weil
+  //     Supabase als Redirect-Fallback die Site-URL (= Root) nutzt, statt den
+  //     in GoogleButton gesetzten /api/auth/callback. Solche Codes MÜSSEN an
+  //     den Callback weitergereicht werden — sonst wird die Session nie
+  //     erzeugt (exchangeCodeForSession läuft nie) und der User hängt in einer
+  //     Login-Schleife, die ihn als „neuen Mitarbeiter" auf /signup wirft.
+  //     Sauberer Langzeit-Fix: https://deepling.de/** in den Supabase-Auth-
+  //     Redirect-URLs erlauben; dieser Guard ist die robuste Absicherung.
+  //  2) Ein B2B-Unternehmenscode (z.B. DEEPLING-ACME-7B3K) aus einem
+  //     Einladungslink → an /join/[code] weiterreichen (löst für eingeloggte
+  //     User direkt ein, schickt neue User zur Registrierung).
   const { code } = await searchParams
-  if (code?.trim()) {
-    redirect(`/join/${encodeURIComponent(code.trim())}`)
+  const trimmed = code?.trim()
+  if (trimmed) {
+    const isOAuthCode = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)
+    redirect(
+      isOAuthCode
+        ? `/api/auth/callback?code=${encodeURIComponent(trimmed)}`
+        : `/join/${encodeURIComponent(trimmed)}`
+    )
   }
 
   const supabase = await createClient()
