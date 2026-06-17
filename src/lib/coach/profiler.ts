@@ -127,31 +127,39 @@ export async function streamCoachProfile(
   let inputTokens = 0
   let outputTokens = 0
 
-  // Retry nur auf dem Stream-Aufbau (429 kommt beim Connect, bevor Bytes
-  // fließen). Sobald der Stream läuft, brechen wir nicht mehr ab.
-  const stream = await withRateLimitRetry(() => anthropic().messages.stream({
-    model: PROFILER_MODEL,
-    // V5-Profile mit A1–A9 + B1–B15 brauchen ~6–8k Output-Tokens. Verifiziert
-    // 2026-06-15 mit Sonnet 4.6: 6144 tokens reichten nur bis B11 — Stream
-    // endete vor B14 (Tonprofil-Echo) und B15 (Sprach-Mirror), wodurch der
-    // Extractor null lieferte und der Coach generisch wurde.
-    max_tokens: 8192,
-    system: PROFILER_PROMPT,
-    messages: [{ role: 'user', content: userMessage }],
-  }), 'streamCoachProfile')
+  // Retry um den GESAMTEN Stream-Konsum: Der 429 (Vertex RESOURCE_EXHAUSTED)
+  // kommt beim Iterieren, nicht beim .stream()-Aufbau. Bei Retry setzen wir
+  // acc zurück — die UI sieht das Profil dann einfach von vorne streamen.
+  // onChunk muss damit umgehen können (ChatView/Finalize nutzen totalSoFar,
+  // nicht inkrementelle Akkumulation auf Client-Seite → idempotent).
+  await withRateLimitRetry(async () => {
+    acc = ''
+    inputTokens = 0
+    outputTokens = 0
+    const stream = anthropic().messages.stream({
+      model: PROFILER_MODEL,
+      // V5-Profile mit A1–A9 + B1–B15 brauchen ~6–8k Output-Tokens. Verifiziert
+      // 2026-06-15 mit Sonnet 4.6: 6144 tokens reichten nur bis B11 — Stream
+      // endete vor B14 (Tonprofil-Echo) und B15 (Sprach-Mirror), wodurch der
+      // Extractor null lieferte und der Coach generisch wurde.
+      max_tokens: 8192,
+      system: PROFILER_PROMPT,
+      messages: [{ role: 'user', content: userMessage }],
+    })
 
-  for await (const ev of stream) {
-    if (ev.type === 'content_block_delta' && ev.delta.type === 'text_delta') {
-      const t = ev.delta.text
-      acc += t
-      onChunk(t, acc.length)
-    } else if (ev.type === 'message_start' && ev.message.usage) {
-      inputTokens = ev.message.usage.input_tokens ?? 0
-      modelId = ev.message.model ?? PROFILER_MODEL
-    } else if (ev.type === 'message_delta' && ev.usage) {
-      outputTokens = ev.usage.output_tokens ?? outputTokens
+    for await (const ev of stream) {
+      if (ev.type === 'content_block_delta' && ev.delta.type === 'text_delta') {
+        const t = ev.delta.text
+        acc += t
+        onChunk(t, acc.length)
+      } else if (ev.type === 'message_start' && ev.message.usage) {
+        inputTokens = ev.message.usage.input_tokens ?? 0
+        modelId = ev.message.model ?? PROFILER_MODEL
+      } else if (ev.type === 'message_delta' && ev.usage) {
+        outputTokens = ev.usage.output_tokens ?? outputTokens
+      }
     }
-  }
+  }, 'streamCoachProfile')
 
   const cleaned = acc.trim()
   const { tone, language } = extractToneAndLanguage(cleaned)
