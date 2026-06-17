@@ -174,8 +174,10 @@ export default async function SettingsPage() {
 
       <OrgSection />
 
-      {/* Unternehmenscode einlösen — nur für User OHNE Org-Zugang */}
-      {!isOrgMember && (
+      {/* Unternehmenscode einlösen — nur für normale User ohne Org-Zugang.
+          Admins (Betreiber) brauchen keinen Code; sie haben vollen Zugang
+          über den Admin-Bypass. */}
+      {!isOrgMember && !isAdminEmail(user.email) && (
         <section className="card mb-4">
           <SectionHeader>Unternehmenszugang</SectionHeader>
           <RedeemCodeSection isOrgMember={isOrgMember} />
