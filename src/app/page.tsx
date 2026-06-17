@@ -26,7 +26,7 @@ export default async function HomePage() {
             <a    href="#wie"      className="px-3 py-1.5 rounded-full hover:bg-[var(--color-surface-2)] text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">So funktioniert's</a>
             <a    href="#ueber-uns" className="px-3 py-1.5 rounded-full hover:bg-[var(--color-surface-2)] text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Über uns</a>
             {process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true' && (
-              <Link href="/billing"   className="px-3 py-1.5 rounded-full hover:bg-[var(--color-surface-2)] text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Preise</Link>
+              <Link href="/billing"   className="px-3 py-1.5 rounded-full hover:bg-[var(--color-surface-2)] text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Für Unternehmen</Link>
             )}
             {isAdmin && (
               <>
@@ -73,9 +73,7 @@ export default async function HomePage() {
             </p>
             <div className="anim-fade-up-delay2 mt-7 flex flex-col sm:flex-row gap-3">
               <Link href="/signup" className="btn btn-primary btn-block sm:w-auto">
-                {process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true'
-                  ? 'Profil erstellen — 7 Tage kostenlos'
-                  : 'Kostenlos starten'}
+                Profil erstellen
               </Link>
               <a href="#wie" className="btn btn-secondary btn-block sm:w-auto">
                 So funktioniert's
@@ -177,11 +175,11 @@ export default async function HomePage() {
       <section className="px-5 py-14 max-w-3xl w-full mx-auto text-center border-t border-[var(--color-border)]">
         {process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true' ? (
           <>
-            <h2 className="text-2xl font-semibold tracking-tight mb-3">7 Tage gratis testen</h2>
-            <p className="text-[var(--color-ink-2)] mb-6">Keine Kreditkarte für die Probezeit. Jederzeit kündbar.</p>
+            <h2 className="text-2xl font-semibold tracking-tight mb-3">Deepling für dein Team</h2>
+            <p className="text-[var(--color-ink-2)] mb-6">Coaching-Zugänge für Führungskräfte — individuell eingerichtet, gebündelt abgerechnet.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
               <Link href="/signup" className="btn btn-primary btn-block sm:flex-1">Profil erstellen</Link>
-              <Link href="/billing" className="btn btn-secondary btn-block sm:flex-1">Preise ansehen</Link>
+              <Link href="/billing" className="btn btn-secondary btn-block sm:flex-1">Für Unternehmen</Link>
             </div>
           </>
         ) : (
@@ -213,7 +211,7 @@ export default async function HomePage() {
               <li><a href="#wie" className="text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">So funktioniert's</a></li>
               <li><a href="#ueber-uns" className="text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Über uns</a></li>
               {process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true' && (
-                <li><Link href="/billing" className="text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Preise</Link></li>
+                <li><Link href="/billing" className="text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Für Unternehmen</Link></li>
               )}
               <li><Link href="/signup" className="text-[var(--color-ink-2)] hover:text-[var(--color-ink)]">Profil erstellen</Link></li>
             </ul>

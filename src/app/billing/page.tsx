@@ -123,45 +123,64 @@ export default async function BillingPage() {
 function ChooseTier({ showTestPlan, isLoggedIn }: { showTestPlan: boolean; isLoggedIn: boolean }) {
   return (
     <>
-      <h1 className="text-3xl font-semibold tracking-tight mb-2">
-        {isLoggedIn ? 'Plan wählen' : 'Preise'}
-      </h1>
+      <h1 className="text-3xl font-semibold tracking-tight mb-2">Für Unternehmen</h1>
       <p className="text-[var(--color-ink-2)] mb-7">
-        7 Tage kostenlos. Karte wird in der Probezeit nicht belastet — jederzeit kündbar.
+        Deepling ist ein Coaching-Werkzeug für Führungskräfte — angeboten als
+        Zugang für dein Team. Wir richten euch individuell ein: Anzahl der
+        Plätze, Onboarding und Abrechnung stimmen wir direkt mit dir ab.
       </p>
 
+      <div className="card space-y-5">
+        <div>
+          <h2 className="font-semibold text-[var(--color-ink)] text-lg mb-2">So läuft es ab</h2>
+          <ul className="space-y-2.5 text-sm text-[var(--color-ink-2)]">
+            <li className="flex gap-2.5">
+              <span className="text-[var(--color-accent)] font-semibold shrink-0">1.</span>
+              <span>Du sagst uns, wie viele Plätze du für dein Team brauchst.</span>
+            </li>
+            <li className="flex gap-2.5">
+              <span className="text-[var(--color-accent)] font-semibold shrink-0">2.</span>
+              <span>Wir schicken dir einen Zugangscode, den du an deine Leute verteilst.</span>
+            </li>
+            <li className="flex gap-2.5">
+              <span className="text-[var(--color-accent)] font-semibold shrink-0">3.</span>
+              <span>Jede Person legt in 30 Sekunden ein Konto an und startet sofort.</span>
+            </li>
+            <li className="flex gap-2.5">
+              <span className="text-[var(--color-accent)] font-semibold shrink-0">4.</span>
+              <span>Die Rechnung kommt gebündelt an dein Unternehmen — kein Self-Checkout für deine Mitarbeiter.</span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="pt-1">
+          <a href="mailto:kontakt@deepling.de?subject=Deepling%20f%C3%BCr%20mein%20Team" className="btn btn-primary btn-block">
+            Unverbindlich anfragen →
+          </a>
+          <p className="mt-3 text-center text-xs text-[var(--color-muted)]">
+            Schreib uns an{' '}
+            <a href="mailto:kontakt@deepling.de" className="underline">kontakt@deepling.de</a>
+            {' '}— wir melden uns innerhalb eines Werktags.
+          </p>
+        </div>
+      </div>
+
       {!isLoggedIn && (
-        <div className="mb-6 card bg-[var(--color-accent-soft)] border-[var(--color-accent)] border-opacity-30">
+        <div className="mt-6 card bg-[var(--color-accent-soft)] border-[var(--color-accent)] border-opacity-30">
           <p className="text-sm text-[var(--color-ink)]">
-            <strong>Du brauchst ein Profil, um zu starten.</strong> Bei einem Klick auf einen Plan
-            legen wir zuerst dein Konto an — das geht in 30 Sekunden.
+            <strong>Du hast schon einen Zugangscode?</strong>{' '}
+            <Link href="/signup" className="text-[var(--color-accent)] underline">Konto anlegen</Link>{' '}
+            und Code beim Registrieren eingeben.
           </p>
         </div>
       )}
 
-      <div className="space-y-3">
-        <PlanCard
-          plan="yearly"
-          label="Jährlich"
-          price="19 €"
-          subPrice="228 € pro Jahr"
-          period="/ Monat"
-          save="Spart 120 € gegenüber monatlich"
-          trial="7 Tage gratis"
-          cta={isLoggedIn ? 'Jährlich starten →' : 'Profil anlegen & jährlich →'}
-          highlight
-          isLoggedIn={isLoggedIn}
-        />
-        <PlanCard
-          plan="monthly"
-          label="Monatlich"
-          price="29 €"
-          period="/ Monat"
-          trial="7 Tage gratis"
-          cta={isLoggedIn ? 'Monatlich starten →' : 'Profil anlegen & monatlich →'}
-          isLoggedIn={isLoggedIn}
-        />
-        {showTestPlan && (
+      {/* Self-Service-Checkout bleibt im Code (PlanCard/CheckoutButton) für
+          späteres Self-Service-Pricing, ist aber bewusst nicht gerendert.
+          showTestPlan-Param weiterhin akzeptiert für interne E2E-Tests. */}
+      {showTestPlan && (
+        <div className="mt-6 space-y-3">
+          <p className="text-xs text-[var(--color-warning)] uppercase tracking-wider">Intern · nur Demo-Accounts</p>
           <PlanCard
             plan="test"
             label="🧪 E2E-Test (intern)"
@@ -173,13 +192,8 @@ function ChooseTier({ showTestPlan, isLoggedIn }: { showTestPlan: boolean; isLog
             test
             isLoggedIn={isLoggedIn}
           />
-        )}
-      </div>
-
-      <div className="mt-6 text-xs text-[var(--color-muted)] text-center">
-        Sichere Zahlung via <a href="https://stripe.com" target="_blank" rel="noopener noreferrer" className="underline">Stripe</a> ·
-        Karte, SEPA, Apple Pay & Google Pay
-      </div>
+        </div>
+      )}
     </>
   )
 }
