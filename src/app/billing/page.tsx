@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ACTIVE_STATUSES } from '@/types/database'
 import { LogoMark } from '@/components/Logo'
+import { isAdminEmail } from '@/lib/admin-auth'
 import { CheckoutButton } from './CheckoutButton'
 import { ManageButton } from './ManageButton'
 
@@ -65,14 +66,12 @@ export default async function BillingPage() {
       trialDaysLeft = Math.max(0, Math.ceil(ms / 86_400_000))
     }
 
-    const demoEmailList = (process.env.DEMO_USER_EMAILS ?? '')
-      .split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
-    demoAllowed =
-      process.env.DEMO_MODE === 'true' &&
-      typeof user.email === 'string' &&
-      demoEmailList.includes(user.email.toLowerCase())
+    // Test-Plan (1 €) nur für Admins sichtbar — interner Webhook-Test.
+    demoAllowed = isAdminEmail(user.email)
   }
-  const trialActive = trialDaysLeft > 0
+  // trialDaysLeft bleibt für interne Logik, wird aber NICHT mehr als
+  // "X Tage gratis" angezeigt (Geschäftsmodell ist B2B-Direktverkauf).
+  void trialDaysLeft
 
   return (
     <main className="min-h-dvh px-5 py-6 max-w-2xl w-full mx-auto">
@@ -87,25 +86,6 @@ export default async function BillingPage() {
           <Link href="/login?next=/billing" className="btn btn-ghost">Login</Link>
         )}
       </header>
-
-      {/* Trial-Banner wenn aktiver Trial ohne Sub */}
-      {user && trialActive && !isActive && (
-        <div className="card mb-6 bg-[var(--color-accent-soft)] border-[var(--color-accent)]/30">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">🎁</span>
-            <div>
-              <div className="font-semibold text-[var(--color-ink)] mb-1">
-                Du hast noch {trialDaysLeft} {trialDaysLeft === 1 ? 'Tag' : 'Tage'} gratis
-              </div>
-              <p className="text-sm text-[var(--color-ink-2)]">
-                Volle Funktionalität bis {new Date(trialUntil!).toLocaleDateString('de-DE')}.
-                Danach geht es nur mit einem Abo weiter — wähle jetzt deinen Plan oder warte
-                bis zum Ende der Probezeit.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {isActive && sub ? (
         <ActiveCard

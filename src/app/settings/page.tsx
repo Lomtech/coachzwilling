@@ -177,47 +177,22 @@ export default async function SettingsPage() {
         </section>
       )}
 
-      {process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true' && (
+      {/* Abo-Section nur für zahlende Sub-Kunden. Trial-Anzeige ("X Tage
+          gratis") komplett entfernt — Geschäftsmodell ist B2B-Direktverkauf,
+          kein Self-Service-Trial. */}
+      {process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true' && sub && subActive && (
       <section className="card mb-4">
         <SectionHeader>Abo</SectionHeader>
-        {trialActive && (
-          <>
-            <Row label="Status" value={<span className="chip">Probezeit gratis</span>} />
-            <Row label="Verbleibend" value={`${trialDaysLeft} ${trialDaysLeft === 1 ? 'Tag' : 'Tage'}`} />
-            <Row label="Endet am" value={formatDate(profile?.trial_until ?? null)} />
-            <p className="text-sm text-[var(--color-ink-2)] mt-3">
-              Du nutzt aktuell die kostenlose 7-Tage-Probezeit. Danach brauchst du ein Abo
-              für weiteren Zugriff.
-            </p>
-            <div className="mt-4">
-              <Link href="/billing" className="btn btn-primary btn-block">Plan ansehen</Link>
-            </div>
-          </>
+        <Row label="Status" value={statusBadge(sub.status)} />
+        <Row label="Nächste Verlängerung" value={formatDate(sub.current_period_end)} />
+        {sub.cancel_at_period_end && (
+          <p className="text-sm text-[var(--color-warning)] mt-2">
+            Wird zum Periodenende gekündigt.
+          </p>
         )}
-        {sub && subActive && (
-          <>
-            <Row label="Status" value={statusBadge(sub.status)} />
-            <Row label="Nächste Verlängerung" value={formatDate(sub.current_period_end)} />
-            {sub.cancel_at_period_end && (
-              <p className="text-sm text-[var(--color-warning)] mt-2">
-                Wird zum Periodenende gekündigt.
-              </p>
-            )}
-            <div className="mt-4">
-              <ManageButton />
-            </div>
-          </>
-        )}
-        {!trialActive && !subActive && (
-          <>
-            <p className="text-sm text-[var(--color-ink-2)] mb-3">
-              {trialDaysLeft === 0 && profile?.trial_until
-                ? 'Deine Probezeit ist abgelaufen.'
-                : 'Kein aktives Abo.'}
-            </p>
-            <Link href="/billing" className="btn btn-primary btn-block">Plan wählen</Link>
-          </>
-        )}
+        <div className="mt-4">
+          <ManageButton />
+        </div>
       </section>
       )}
 

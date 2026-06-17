@@ -70,13 +70,7 @@ export function AccountMenu({ email, fullName, isAdmin, showTrialPill, trialDays
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium text-[var(--color-ink)] truncate">{displayName}</div>
-          {showTrialPill && trialDaysLeft && trialDaysLeft > 0 ? (
-            <div className="text-xs text-[var(--color-accent)] truncate">
-              🎁 noch {trialDaysLeft} {trialDaysLeft === 1 ? 'Tag' : 'Tage'} gratis
-            </div>
-          ) : (
-            <div className="text-xs text-[var(--color-muted)] truncate">{email}</div>
-          )}
+          <div className="text-xs text-[var(--color-muted)] truncate">{email}</div>
         </div>
         <svg
           width="14" height="14" viewBox="0 0 16 16" fill="none"

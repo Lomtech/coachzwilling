@@ -22,6 +22,20 @@ const CSRF_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 const CSRF_WHITELIST_PREFIXES = ['/api/stripe/webhook']
 
 export async function proxy(request: NextRequest) {
+  // 0) Canonical-Host-Redirect: alte Vercel-Alias-Domain → deepling.de.
+  //    Greift NUR für den exakten Production-Alias "fuehrungs-coach.vercel.app",
+  //    nicht für Preview-Deploys (fuehrungs-coach-<hash>.vercel.app) — sonst
+  //    bräche das Testen frischer Deployments. Query + Pfad bleiben erhalten,
+  //    damit ?code=…-Signup-Links weiter funktionieren.
+  const host = request.headers.get('host')
+  if (host === 'fuehrungs-coach.vercel.app') {
+    const url = request.nextUrl.clone()
+    url.protocol = 'https:'
+    url.host = 'deepling.de'
+    url.port = ''
+    return NextResponse.redirect(url, 308)
+  }
+
   // 1) CSRF
   const csrfBlock = checkCsrf(request)
   if (csrfBlock) return csrfBlock
