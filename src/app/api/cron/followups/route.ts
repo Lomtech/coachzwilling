@@ -151,9 +151,10 @@ export async function GET(req: NextRequest) {
       })
       const ctaUrl = `${baseUrl}/api/followups/click/${clickToken}`
       const unsubscribeUrl = `${baseUrl}/api/followups/unsubscribe/${unsubscribeToken}`
+      const settingsUrl = `${baseUrl}/settings`
 
       // Haiku komponiert
-      const composed = await composeFollowup({ candidate, ctaUrl })
+      const composed = await composeFollowup({ candidate, ctaUrl, settingsUrl })
       if (!composed) {
         results.failed++
         results.details.push({ userId: p.id, status: 'failed', reason: 'compose failed' })

@@ -30,8 +30,13 @@ export default async function CoachPage({
       .eq('user_id', user.id)
       .maybeSingle()
     if (fu) {
-      // Coach-Turn-Text: Subject + Body ohne den CTA-Link am Ende
-      const cleanBody = fu.body_text.replace(/Schreib hier rein:.*$/s, '').trim()
+      // Coach-Turn-Text: Subject + Body ohne den CTA-Link am Ende.
+      // Strippt beide Varianten: alt "Schreib hier rein: …" + neu
+      // "→ Gespräch eröffnen: …" (siehe composeFollowup bodyTextWithCta).
+      const cleanBody = fu.body_text
+        .replace(/→\s*Gespräch eröffnen:.*$/s, '')
+        .replace(/Schreib hier rein:.*$/s, '')
+        .trim()
       const coachText = `${fu.subject}\n\n${cleanBody}`
       // Neue Conv anlegen + Coach-Message persistieren
       const { data: newConv } = await supabase

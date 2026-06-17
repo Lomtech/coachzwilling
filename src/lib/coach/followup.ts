@@ -54,7 +54,7 @@ REGELN
 OUTPUT-FORMAT — reines JSON, keine Markdown-Wrapper, keine Erklärung:
 {
   "subject": "<4-8 Wörter>",
-  "body": "<3-4 Sätze, plain text, mit \\n\\n zwischen Absätzen, am Ende: 'Schreib hier rein: {LINK}'>",
+  "body": "<3-4 Sätze, plain text, mit \\n\\n zwischen Absätzen. KEINEN Link und KEINE Handlungsaufforderung wie 'Schreib hier rein' einbauen — der Button kommt automatisch darunter.>",
   "source_summary": "<1 Satz auf Deutsch: was war der Hauptanker für diese Mail?>"
 }`
 
@@ -156,6 +156,7 @@ export async function loadCandidate(userId: string): Promise<CandidateForFollowu
 export async function composeFollowup(args: {
   candidate: CandidateForFollowup
   ctaUrl: string
+  settingsUrl: string
 }): Promise<ComposedFollowup | null> {
   const c = args.candidate
 
@@ -212,16 +213,22 @@ export async function composeFollowup(args: {
 
   if (!parsed.subject || !parsed.body) return null
 
+  // Falls Haiku doch noch {LINK} schreibt: durch den nackten Link ersetzen
+  // (für die Plain-Text-Variante). Der HTML-Button kommt ohnehin separat.
   const bodyText = parsed.body.replace('{LINK}', args.ctaUrl).trim()
+  // Plain-Text bekommt den CTA als eigene Zeile angehängt, damit auch der
+  // Text-Part einen klaren Handlungsaufruf hat (manche Clients zeigen den).
+  const bodyTextWithCta = `${bodyText}\n\n→ Gespräch eröffnen: ${args.ctaUrl}`
   const bodyHtml = renderHtml({
     bodyText,
     ctaUrl: args.ctaUrl,
+    settingsUrl: args.settingsUrl,
     fullName: c.fullName,
   })
 
   return {
     subject: parsed.subject.slice(0, 200),
-    bodyText,
+    bodyText: bodyTextWithCta,
     bodyHtml,
     sourceSummary: (parsed.source_summary ?? '').slice(0, 500),
   }
@@ -230,6 +237,7 @@ export async function composeFollowup(args: {
 function renderHtml(args: {
   bodyText: string
   ctaUrl: string
+  settingsUrl: string
   fullName: string | null
 }): string {
   // Plain-Text mit Auto-Links in HTML konvertieren. Bewusst minimal:
@@ -240,6 +248,7 @@ function renderHtml(args: {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
 
+  // Falls der ctaUrl doch im Text steht (Haiku-Altverhalten), als Inline-Link.
   const withLinkBtn = escaped.replace(
     args.ctaUrl,
     `<a href="${args.ctaUrl}" style="color:#1a1a1a;font-weight:600;text-decoration:underline;">→ Im Coach öffnen</a>`,
@@ -263,9 +272,18 @@ function renderHtml(args: {
       <div style="font-size:16px;">
         ${paragraphs}
       </div>
+      <div style="margin-top:28px;">
+        <a href="${args.ctaUrl}"
+           style="display:inline-block;background:#1a1a1a;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:14px 28px;border-radius:10px;">
+          Gespräch eröffnen →
+        </a>
+      </div>
+      <div style="margin-top:12px;font-size:13px;color:#888;">
+        Der Button bringt dich direkt in ein neues Coach-Gespräch zu genau diesem Thema.
+      </div>
       <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e5e0;font-size:12px;color:#999;">
         Diese Mail ist Teil deiner Follow-ups vom Deepling.
-        <a href="${args.ctaUrl}" style="color:#999;">Einstellungen</a> ·
+        <a href="${args.settingsUrl}" style="color:#999;">Einstellungen</a> ·
         in der Mail-App findest du oben den "Abbestellen"-Link für sofortiges Pausieren.
       </div>
     </td></tr>
