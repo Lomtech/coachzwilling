@@ -1,11 +1,25 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { LogoMark, LogoWatermark } from '@/components/Logo'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string }>
+}) {
+  // B2B-Activation-Code-Links zeigen teils auf die Root (deepling.de/?code=…)
+  // — z.B. nach Domain-Umzug von der alten Vercel-URL. Den Code an /signup
+  // durchreichen, sonst geht er verloren, der User registriert sich ohne
+  // Org-Zuordnung und hängt am Billing-Gate fest ("schreitet nicht voran").
+  const { code } = await searchParams
+  if (code?.trim()) {
+    redirect(`/signup?code=${encodeURIComponent(code.trim())}`)
+  }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const isAdmin = isAdminEmail(user?.email)
