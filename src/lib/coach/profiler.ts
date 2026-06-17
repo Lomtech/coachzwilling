@@ -3,6 +3,35 @@ import { anthropic, PROFILER_MODEL } from '@/lib/claude/client'
 import { PROFILER_PROMPT, PROFILE_REFINE_PROMPT, MEMORY_SECTION_LABELS } from '@/lib/coach/prompts'
 import { answersToScanText } from '@/data/questionnaire'
 
+/**
+ * Retry-Wrapper gegen transiente Rate-Limits. Sonnet 4.6 läuft bei Langdock
+ * teils über Google Vertex AI, das bei Last `429 RESOURCE_EXHAUSTED` wirft
+ * (anders als Anthropic-direkt mit großzügigeren Quotas). Profil-Generation
+ * ist ein einmaliger, nicht-zeitkritischer Akt — ein paar Sekunden Backoff
+ * sind besser als ein Fehler im Onboarding-Flow.
+ *
+ * Backoff: 3 Versuche, 2s → 6s → 18s. Nur bei 429/529/503 (transient).
+ * Andere Fehler (400, Auth, 404) werden sofort durchgereicht.
+ */
+async function withRateLimitRetry<T>(fn: () => Promise<T>, label = 'profiler'): Promise<T> {
+  const delaysMs = [2000, 6000, 18000]
+  let lastErr: unknown
+  for (let attempt = 0; attempt <= delaysMs.length; attempt++) {
+    try {
+      return await fn()
+    } catch (e: unknown) {
+      lastErr = e
+      const status = (e as { status?: number })?.status
+      const transient = status === 429 || status === 529 || status === 503
+      if (!transient || attempt === delaysMs.length) throw e
+      const wait = delaysMs[attempt]
+      console.warn(`[${label}] rate-limited (${status}), retry in ${wait}ms (attempt ${attempt + 1})`)
+      await new Promise(r => setTimeout(r, wait))
+    }
+  }
+  throw lastErr
+}
+
 export interface ProfilerResult {
   configMd: string
   toneOneliner: string | null      // aus Sektion 10 extrahiert
@@ -53,12 +82,12 @@ export async function generateCoachProfile(
   const scanText = answersToScanText(answers)
   const userMessage = `SCAN-OUTPUT:\n\n${scanText}`
 
-  const res = await anthropic().messages.create({
+  const res = await withRateLimitRetry(() => anthropic().messages.create({
     model: PROFILER_MODEL,
     max_tokens: 8192, // Profile haben ~5-7k Output — 4096 hat alle 4 Profile bei Punkt 8/9 abgeschnitten
     system: PROFILER_PROMPT,
     messages: [{ role: 'user', content: userMessage }],
-  })
+  }), 'generateCoachProfile')
 
   const text = res.content
     .filter((b): b is Anthropic.TextBlock => b.type === 'text')
@@ -98,7 +127,9 @@ export async function streamCoachProfile(
   let inputTokens = 0
   let outputTokens = 0
 
-  const stream = await anthropic().messages.stream({
+  // Retry nur auf dem Stream-Aufbau (429 kommt beim Connect, bevor Bytes
+  // fließen). Sobald der Stream läuft, brechen wir nicht mehr ab.
+  const stream = await withRateLimitRetry(() => anthropic().messages.stream({
     model: PROFILER_MODEL,
     // V5-Profile mit A1–A9 + B1–B15 brauchen ~6–8k Output-Tokens. Verifiziert
     // 2026-06-15 mit Sonnet 4.6: 6144 tokens reichten nur bis B11 — Stream
@@ -107,7 +138,7 @@ export async function streamCoachProfile(
     max_tokens: 8192,
     system: PROFILER_PROMPT,
     messages: [{ role: 'user', content: userMessage }],
-  })
+  }), 'streamCoachProfile')
 
   for await (const ev of stream) {
     if (ev.type === 'content_block_delta' && ev.delta.type === 'text_delta') {
