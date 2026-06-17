@@ -11,13 +11,13 @@ export const dynamic = 'force-dynamic'
 export default async function CoachPage({
   searchParams,
 }: {
-  searchParams: Promise<{ c?: string; followup?: string }>
+  searchParams: Promise<{ c?: string; followup?: string; welcome?: string }>
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/coach')
 
-  const { c: convId, followup: followupId } = await searchParams
+  const { c: convId, followup: followupId, welcome } = await searchParams
 
   // Follow-up-Email-Klick: User kommt aus seiner Mail. Wir erstellen eine
   // neue Conversation in der die Email-Frage als erster Coach-Turn vorgefüllt
@@ -181,6 +181,18 @@ export default async function CoachPage({
             <Link href="/settings" className="btn btn-ghost px-3 py-1 text-sm">Konto</Link>
           </div>
         </header>
+
+        {/* B2B-Willkommensbanner nach Code-Einlösung (?welcome=Orgname) */}
+        {welcome && (
+          <div className="px-4 pt-3">
+            <div className="card bg-[var(--color-accent-soft)] border-[var(--color-accent)]/30 flex items-center gap-3 py-3">
+              <span className="text-xl">✓</span>
+              <p className="text-sm text-[var(--color-ink)]">
+                Du bist jetzt über <strong>{welcome}</strong> freigeschaltet. Dein Coach ist startklar.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* key forciert Re-Mount bei Conversation-Wechsel — Chat-Verlauf wird so frisch geladen */}
         <ChatView

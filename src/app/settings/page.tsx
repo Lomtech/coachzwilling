@@ -14,6 +14,8 @@ import { ShareProfileSection } from './ShareProfileSection'
 import { TestimonialSection } from './TestimonialSection'
 import { FollowupSection } from './FollowupSection'
 import { OrgSection } from './OrgSection'
+import { RedeemCodeSection } from './RedeemCodeSection'
+import { listMyOrgs } from '@/lib/org/auth'
 import { IconChevronDown, IconSettings, IconCompare } from '@/components/Icons'
 import { isAdminEmail } from '@/lib/admin-auth'
 
@@ -67,6 +69,8 @@ export default async function SettingsPage() {
   const trialMs = profile?.trial_until ? new Date(profile.trial_until).getTime() - Date.now() : 0
   const trialDaysLeft = Math.max(0, Math.ceil(trialMs / 86_400_000))
   const trialActive = trialDaysLeft > 0 && !subActive
+  const myOrgs = await listMyOrgs()
+  const isOrgMember = myOrgs.length > 0
 
   return (
     <main className="min-h-dvh px-5 py-6 max-w-xl w-full mx-auto">
@@ -169,6 +173,14 @@ export default async function SettingsPage() {
       />
 
       <OrgSection />
+
+      {/* Unternehmenscode einlösen — nur für User OHNE Org-Zugang */}
+      {!isOrgMember && (
+        <section className="card mb-4">
+          <SectionHeader>Unternehmenszugang</SectionHeader>
+          <RedeemCodeSection isOrgMember={isOrgMember} />
+        </section>
+      )}
 
       {process.env.NEXT_PUBLIC_SHOW_MEMORY === 'true' && (
         <section className="card mb-4">

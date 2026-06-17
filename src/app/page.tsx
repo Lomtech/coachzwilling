@@ -12,12 +12,12 @@ export default async function HomePage({
   searchParams: Promise<{ code?: string }>
 }) {
   // B2B-Activation-Code-Links zeigen teils auf die Root (deepling.de/?code=…)
-  // — z.B. nach Domain-Umzug von der alten Vercel-URL. Den Code an /signup
-  // durchreichen, sonst geht er verloren, der User registriert sich ohne
-  // Org-Zuordnung und hängt am Billing-Gate fest ("schreitet nicht voran").
+  // — z.B. nach Domain-Umzug von der alten Vercel-URL. An /join/[code]
+  // weiterreichen: das löst den Code für eingeloggte User direkt ein und
+  // schickt neue User zur Registrierung. So funktioniert der Link für beide.
   const { code } = await searchParams
   if (code?.trim()) {
-    redirect(`/signup?code=${encodeURIComponent(code.trim())}`)
+    redirect(`/join/${encodeURIComponent(code.trim())}`)
   }
 
   const supabase = await createClient()

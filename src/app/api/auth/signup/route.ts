@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { redeemActivationCode, type RedeemResult } from '@/lib/org/redeem'
 
 export const runtime = 'nodejs'
 
@@ -39,75 +40,6 @@ interface Body {
    * eingetragen und kann den Coach ohne Stripe-Sub nutzen.
    */
   activationCode?: string
-}
-
-interface CodeRedemption {
-  ok: boolean
-  orgId?: string
-  error?: string
-}
-
-interface ActivationCodeRow {
-  id: string
-  org_id: string
-  max_seats: number
-  used_seats: number
-  expires_at: string | null
-  active: boolean
-}
-
-/** Atomic redeem unter Service-Role (admin client). Imitiert die RPC
- *  redeem_activation_code, übergeben aber user_id explizit (admin hat
- *  keine auth.uid()). Race-safe via FOR UPDATE auf der code-Row.
- *
- *  Note: org_activation_codes ist in den auto-generierten DB-Types noch
- *  nicht enthalten (Migration 0004 frisch). Wir umgehen das mit
- *  `from(... as any)` — TS-Inferenz ist hier verzichtbar weil wir den
- *  Row-Type explizit angeben. */
-async function redeemCodeAsAdmin(
-  admin: ReturnType<typeof createAdminClient<Database>>,
-  userId: string,
-  code: string,
-): Promise<CodeRedemption> {
-  // Schritt 1: Code holen
-  const { data: codeRow, error: codeErr } = await admin
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .from('org_activation_codes' as any)
-    .select('id, org_id, max_seats, used_seats, expires_at, active')
-    .ilike('code', code.trim())
-    .maybeSingle<ActivationCodeRow>()
-  if (codeErr) return { ok: false, error: codeErr.message }
-  if (!codeRow) return { ok: false, error: 'code-not-found' }
-  if (!codeRow.active) return { ok: false, error: 'code-inactive' }
-  if (codeRow.expires_at && new Date(codeRow.expires_at) < new Date()) {
-    return { ok: false, error: 'code-expired' }
-  }
-  if (codeRow.used_seats >= codeRow.max_seats) return { ok: false, error: 'code-full' }
-
-  // Schritt 2: Idempotenz — User schon Member?
-  const { data: existingMember } = await admin
-    .from('organization_members')
-    .select('org_id')
-    .eq('org_id', codeRow.org_id)
-    .eq('user_id', userId)
-    .maybeSingle()
-  if (existingMember) return { ok: true, orgId: codeRow.org_id }
-
-  // Schritt 3: Membership eintragen + Seat-Counter incrementieren.
-  // Achtung: kein echtes Multi-Row-Transaction möglich via supabase-js;
-  // schlimmster Fall ist Over-Booking um 1 Seat bei Race.
-  const { error: memErr } = await admin
-    .from('organization_members')
-    .insert({ org_id: codeRow.org_id, user_id: userId, role: 'member' })
-  if (memErr) return { ok: false, error: memErr.message }
-
-  await admin
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .from('org_activation_codes' as any)
-    .update({ used_seats: codeRow.used_seats + 1 })
-    .eq('id', codeRow.id)
-
-  return { ok: true, orgId: codeRow.org_id }
 }
 
 export async function POST(req: NextRequest) {
@@ -167,9 +99,9 @@ export async function POST(req: NextRequest) {
   // Optional: Org-Code einlösen (B2B-Bulk-Activation).
   // Fehler bei Code-Redeem brechen den Signup NICHT ab — User ist trotzdem
   // angelegt, kann später Code via /api/org/redeem nachreichen.
-  let orgRedemption: CodeRedemption | null = null
+  let orgRedemption: RedeemResult | null = null
   if (body.activationCode?.trim() && data.user) {
-    orgRedemption = await redeemCodeAsAdmin(admin, data.user.id, body.activationCode.trim())
+    orgRedemption = await redeemActivationCode(admin, data.user.id, body.activationCode.trim())
     if (!orgRedemption.ok) {
       console.warn('[auth/signup] org code redeem failed', orgRedemption.error)
     }
