@@ -92,7 +92,7 @@ export async function proxy(request: NextRequest) {
     // sie längst ein Profil + Chat-Historie haben. (Bug-Report dreadflicker
     // 2026-05-25: State war "questionnaire" trotz 90 Messages + Profile.)
     const [{ data: profile }, { data: sub }, { data: activeCoachProfile }] = await Promise.all([
-      supabase.from('profiles').select('onboarding_state, trial_until').eq('id', user.id).maybeSingle(),
+      supabase.from('profiles').select('onboarding_state, trial_until, grandfathered').eq('id', user.id).maybeSingle(),
       supabase.from('subscriptions').select('status').eq('user_id', user.id).maybeSingle(),
       supabase
         .from('coach_profiles')
@@ -119,7 +119,13 @@ export async function proxy(request: NextRequest) {
     const billingEnabled = process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true'
 
     if (billingEnabled) {
-      // Zugang erlaubt wenn: aktive Sub ODER Trial ODER DEMO_USER ODER Org-Member
+      // Zugang erlaubt wenn: Bestandsnutzer ODER aktive Sub ODER Trial ODER
+      // DEMO_USER ODER Org-Member.
+      // Bestandsnutzer-Bypass: Alle User die VOR dem B2B-Gating registriert
+      // waren (profiles.grandfathered=true) behalten dauerhaft Zugang — sie
+      // sollen durchs Umstellen auf Direktverkauf nicht ausgesperrt werden.
+      // Neuanmeldungen haben grandfathered=false und durchlaufen das Gate.
+      const grandfathered = profile?.grandfathered === true
       const subActive = sub?.status === 'active' || sub?.status === 'trialing'
       const trialActive = !!profile?.trial_until && new Date(profile.trial_until) > new Date()
       const demoAllowed =
@@ -133,7 +139,7 @@ export async function proxy(request: NextRequest) {
       // B2B-Bypass: User ist Member einer Organization → Org hat Lom/Michael
       // bezahlt, dieser User braucht keine eigene Stripe-Sub.
       let isOrgMember = false
-      if (!subActive && !trialActive && !demoAllowed) {
+      if (!grandfathered && !subActive && !trialActive && !demoAllowed) {
         const { data: membership } = await supabase
           .from('organization_members')
           .select('org_id')
@@ -143,7 +149,7 @@ export async function proxy(request: NextRequest) {
         isOrgMember = !!membership
       }
 
-      if (!subActive && !trialActive && !demoAllowed && !isOrgMember) {
+      if (!grandfathered && !subActive && !trialActive && !demoAllowed && !isOrgMember) {
         const url = request.nextUrl.clone()
         url.pathname = '/billing'
         return NextResponse.redirect(url)

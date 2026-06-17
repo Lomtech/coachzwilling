@@ -447,6 +447,7 @@ export type Database = {
           followup_frequency_days: number
           followup_unsubscribed_at: string | null
           full_name: string | null
+          grandfathered: boolean
           id: string
           last_followup_at: string | null
           onboarding_state: string
@@ -460,6 +461,7 @@ export type Database = {
           followup_frequency_days?: number
           followup_unsubscribed_at?: string | null
           full_name?: string | null
+          grandfathered?: boolean
           id: string
           last_followup_at?: string | null
           onboarding_state?: string
@@ -473,6 +475,7 @@ export type Database = {
           followup_frequency_days?: number
           followup_unsubscribed_at?: string | null
           full_name?: string | null
+          grandfathered?: boolean
           id?: string
           last_followup_at?: string | null
           onboarding_state?: string

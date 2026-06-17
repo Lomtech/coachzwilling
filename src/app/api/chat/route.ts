@@ -29,12 +29,16 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-  // Access-Gate (nur aktiv wenn Billing eingeschaltet)
+  // Access-Gate (nur aktiv wenn Billing eingeschaltet).
+  // WICHTIG: dieselben Bypässe wie im Proxy-Gate (proxy.ts), sonst kommt ein
+  // User zwar auf /coach, bekommt aber beim Senden 402. Bestandsnutzer
+  // (grandfathered) UND Org-Member müssen hier genauso durch.
   if (process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true') {
     const [{ data: sub }, { data: profile }] = await Promise.all([
       supabase.from('subscriptions').select('status').eq('user_id', user.id).maybeSingle(),
-      supabase.from('profiles').select('trial_until').eq('id', user.id).maybeSingle(),
+      supabase.from('profiles').select('trial_until, grandfathered').eq('id', user.id).maybeSingle(),
     ])
+    const grandfathered = profile?.grandfathered === true
     const subActive = !!sub && ACTIVE_STATUSES.has(sub.status)
     const trialActive = !!profile?.trial_until && new Date(profile.trial_until) > new Date()
     const demoAllowed =
@@ -44,7 +48,21 @@ export async function POST(req: NextRequest) {
         .split(',')
         .map(s => s.trim().toLowerCase())
         .includes(user.email.toLowerCase())
-    if (!subActive && !trialActive && !demoAllowed) {
+
+    // B2B-Bypass: Org-Member (die Org hat bezahlt). Fehlte hier bisher — nur
+    // der Proxy hatte ihn, was Org-User beim Chatten ausgesperrt hätte.
+    let isOrgMember = false
+    if (!grandfathered && !subActive && !trialActive && !demoAllowed) {
+      const { data: membership } = await supabase
+        .from('organization_members')
+        .select('org_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle()
+      isOrgMember = !!membership
+    }
+
+    if (!grandfathered && !subActive && !trialActive && !demoAllowed && !isOrgMember) {
       return NextResponse.json({ error: 'trial expired' }, { status: 402 })
     }
   }
