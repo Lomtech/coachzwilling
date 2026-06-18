@@ -47,7 +47,6 @@ export default async function HomePage({
             <LogoMark size={30} />
             <span className="text-lg">
               Deepling
-              <span className="text-[var(--color-muted)] font-normal"> — Coaching Zwilling</span>
             </span>
           </Link>
           <nav className="hidden sm:flex items-center gap-1 text-sm">
@@ -107,9 +106,7 @@ export default async function HomePage({
               </a>
             </div>
             <p className="anim-fade-up-delay3 mt-3 text-sm text-[var(--color-muted)]">
-              {process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true'
-                ? 'Keine Kreditkarte für Trial. Jederzeit kündbar.'
-                : 'Offene Testphase — keine Zahlung, kein Limit.'}
+              Vertraulich — nur zwischen euch beiden.
             </p>
           </div>
 
