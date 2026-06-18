@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { serviceClient } from '@/lib/supabase/service'
 import { streamCoachProfile } from '@/lib/coach/profiler'
+import { notifyAdminsNewProfile } from '@/lib/email/admin-notify'
 import { TOTAL_QUESTIONS, QUESTIONS } from '@/data/questionnaire'
 
 export const runtime = 'nodejs'
@@ -163,6 +164,24 @@ export async function POST(req: NextRequest) {
             .update(profileUpdate)
             .eq('id', user.id),
         ])
+
+        // Betreiber-Benachrichtigung: neues Profil ist fertig → Lom/Michael
+        // können direkt das PDF erstellen + versenden. Best-effort, darf den
+        // Onboarding-Abschluss niemals blockieren oder verzögern-scheitern.
+        try {
+          const { data: p } = await supa
+            .from('profiles')
+            .select('full_name, email')
+            .eq('id', user.id)
+            .maybeSingle()
+          await notifyAdminsNewProfile({
+            name: p?.full_name ?? null,
+            email: p?.email ?? user.email ?? 'unbekannt',
+            userId: user.id,
+          })
+        } catch (notifyErr) {
+          console.error('[finalize] admin-notify failed (ignored)', notifyErr)
+        }
 
         sse('done', {
           ok: true,

@@ -86,10 +86,9 @@ export default async function HomePage({
         <div className="relative grid grid-cols-1 md:grid-cols-[1.2fr_1fr] gap-10 md:gap-14 items-center">
           {/* LINKS: Text */}
           <div>
-            <div className="chip mb-5 anim-fade-up">Für Führungskräfte</div>
             <h1 className="anim-fade-up text-[2.4rem] sm:text-5xl lg:text-6xl font-semibold leading-[1.04] tracking-tight">
               Deepling. <br />
-              <span className="text-[var(--color-ink-2)]">Nur Ihr beide. Für alles, was du sonst nicht laut aussprichst.</span>
+              <span className="text-[var(--color-ink-2)]">Nur Ihr beide.<br />Für alles, was du sonst nicht laut aussprichst.</span>
             </h1>
             <p className="anim-fade-up-delay mt-5 text-lg text-[var(--color-ink-2)] max-w-xl">
               Dein Profil. Dein Coach. Ganz auf dich zugeschnitten: Deepling kennt deine
