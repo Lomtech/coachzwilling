@@ -360,12 +360,14 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
             className="!min-h-[48px] !py-3"
             style={{ resize: 'none' }}
           />
-          {/* Mikrofon-Knöpfe — Auswahl-Logik:
-              • Live-Mikro (Web Speech API) wenn supported — primärer Pfad
-              • Whisper-Fallback als zweiter Knopf wenn Live nicht da ist
-                und der Server STT konfiguriert hat (z.B. OpenAI Atlas)
-              • Disabled-Hint nur als allerletzte Stufe */}
-          {speech.supported ? (
+          {/* Mikrofon-Knöpfe — Auswahl-Logik (Server-STT priorisiert):
+              • Server-STT (Speechmatics, EU, push-to-talk) — PRIMÄR, sobald
+                /api/transcribe enabled ist: DSGVO-konform, browserunabhängig,
+                „funktioniert wie bei allen LLM-Anbietern" (aufnehmen → Text).
+              • Web Speech API (Live-Mikro) nur noch Fallback, wenn KEIN Server-STT
+                konfiguriert ist.
+              • Disabled-Hint nur als allerletzte Stufe. */}
+          {speech.supported && !whisper.supported ? (
             <button
               type="button"
               onClick={toggleSpeech}
@@ -395,12 +397,12 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
               aria-label={
                 whisper.transcribing ? 'Transkription läuft'
                 : whisper.recording ? 'Aufnahme stoppen'
-                : 'Aufnahme starten (Whisper-Fallback)'
+                : 'Aufnahme starten'
               }
               title={
                 whisper.transcribing ? 'Transkribiere …'
                 : whisper.recording ? 'Aufnahme stoppen + transkribieren'
-                : 'Aufnehmen + transkribieren (Whisper) — für Atlas/Firefox empfohlen'
+                : 'Mit dem Coach sprechen (aufnehmen → Text)'
               }
             >
               {whisper.transcribing
