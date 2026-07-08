@@ -52,6 +52,8 @@ export type Database = {
       coach_profiles: {
         Row: {
           config_md: string
+          deepspace_generated_at: string | null
+          deepspace_json: Json | null
           einstiegsmodus_md: string | null
           generated_at: string
           id: string
@@ -71,6 +73,8 @@ export type Database = {
         }
         Insert: {
           config_md: string
+          deepspace_generated_at?: string | null
+          deepspace_json?: Json | null
           einstiegsmodus_md?: string | null
           generated_at?: string
           id?: string
@@ -90,6 +94,8 @@ export type Database = {
         }
         Update: {
           config_md?: string
+          deepspace_generated_at?: string | null
+          deepspace_json?: Json | null
           einstiegsmodus_md?: string | null
           generated_at?: string
           id?: string
