@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ACTIVE_STATUSES } from '@/types/database'
 import { MEMORY_SECTION_LABELS } from '@/lib/coach/prompts'
 import { LogoutButton } from './LogoutButton'
+import { SetPasswordForm } from '@/components/auth/SetPasswordForm'
 import { ManageButton } from '../billing/ManageButton'
 import { MemoryView } from './MemoryView'
 import { RegenerateProfileButton } from './RegenerateProfileButton'
@@ -231,6 +232,17 @@ export default async function SettingsPage() {
 
       <section className="card">
         <SectionHeader>Sicherheit</SectionHeader>
+
+        <details className="mb-4 group">
+          <summary className="cursor-pointer list-none flex items-center justify-between text-sm font-medium hover:text-[var(--color-ink)]">
+            <span>Passwort setzen / ändern</span>
+            <IconChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="mt-3">
+            <SetPasswordForm submitLabel="Passwort speichern" />
+          </div>
+        </details>
+
         <LogoutButton />
       </section>
     </main>
