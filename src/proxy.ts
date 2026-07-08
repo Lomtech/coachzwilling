@@ -19,7 +19,11 @@ const COACH_PREFIX = '/coach'
 const AUTH_REDIRECT_PATHS = ['/login', '/signup']
 
 const CSRF_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
-const CSRF_WHITELIST_PREFIXES = ['/api/stripe/webhook']
+// /api/stripe/webhook: Stripe-signiert (HMAC statt Origin).
+// /api/followups/unsubscribe/: RFC-8058 One-Click-Unsubscribe — Gmail/Outlook
+//   POSTen serverseitig OHNE Origin/Referer; die Route ist per signiertem
+//   HMAC-Token geschützt, braucht also keinen CSRF-Origin-Check.
+const CSRF_WHITELIST_PREFIXES = ['/api/stripe/webhook', '/api/followups/unsubscribe/']
 
 export async function proxy(request: NextRequest) {
   // 0) Canonical-Host-Redirect: alte Vercel-Alias-Domain → deepling.de.

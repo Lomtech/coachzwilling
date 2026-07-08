@@ -3,7 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { refineProfileForUser } from '@/lib/coach/refine'
 
 export const runtime = 'nodejs'
-export const maxDuration = 120
+// 300s deckungsgleich mit vercel.json + den Schwester-Routen (finalize, cron).
+// War 120 → langer Sonnet-Refine (bis ~120k Input) konnte 504en.
+export const maxDuration = 300
 
 export async function POST() {
   const supabase = await createClient()

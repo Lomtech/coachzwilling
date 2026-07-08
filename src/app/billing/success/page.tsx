@@ -19,7 +19,16 @@ export default async function BillingSuccessPage({
   if (params.session_id) {
     try {
       const session = await stripe().checkout.sessions.retrieve(params.session_id)
-      if (session.subscription && typeof session.subscription === 'string') {
+      // Ownership-Check gegen IDOR: nur die EIGENE Checkout-Session syncen.
+      // Ohne diesen Guard könnte eine fremde session_id ein fremdes Abo auf den
+      // eingeloggten User buchen → Gratis-Zugang. Jede legitime Session trägt
+      // metadata.user_id (in /api/stripe/checkout gesetzt); der autoritative
+      // Sync läuft ohnehin über den signierten checkout.session.completed-Webhook.
+      if (
+        session.metadata?.user_id === user.id &&
+        session.subscription &&
+        typeof session.subscription === 'string'
+      ) {
         await syncSubscriptionFromStripe(session.subscription, user.id)
       }
     } catch (e) {

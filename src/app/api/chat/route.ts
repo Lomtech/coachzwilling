@@ -123,13 +123,16 @@ export async function POST(req: NextRequest) {
     { role: 'user' as const, content: body.message.trim() },
   ]
 
-  // User-Message persistieren (vor dem Stream)
-  await supa.from('messages').insert({
+  // User-Message persistieren (vor dem Stream). id merken, damit wir sie bei
+  // einem gescheiterten Turn (leere Assistant-Antwort) wieder entfernen können
+  // — sonst bliebe eine verwaiste User-Message + die History würde vergiftet.
+  const { data: userMsgRow } = await supa.from('messages').insert({
     conversation_id: conversationId,
     user_id: user.id,
     role: 'user',
     content: body.message.trim(),
-  })
+  }).select('id').single()
+  const userMsgId = userMsgRow?.id ?? null
 
   // Living Memory laden (kann leer sein bei ersten Sessions)
   const memoryMd = await loadMemoryForCoach(user.id)
@@ -354,20 +357,35 @@ export async function POST(req: NextRequest) {
         // So kann der Client die Placeholder-UUID gegen die echte Message-ID
         // austauschen und sofortiges Feedback (👍/👎) auslösen ohne Refresh.
         let insertedMsgId: string | null = null
-        try {
-          const { data: insertedMsg } = await supa.from('messages').insert({
-            conversation_id: convIdFinal,
-            user_id: user.id,
-            role: 'assistant',
-            content: finalText,
-            input_tokens: inputTokens,
-            output_tokens: outputTokens,
-            cache_read_input_tokens: cacheRead,
-            cache_creation_input_tokens: cacheCreate,
-          }).select('id').single()
-          insertedMsgId = insertedMsg?.id ?? null
-        } catch (e) {
-          console.error('[chat] assistant persist failed', e)
+        if (finalText.trim().length > 0) {
+          try {
+            const { data: insertedMsg } = await supa.from('messages').insert({
+              conversation_id: convIdFinal,
+              user_id: user.id,
+              role: 'assistant',
+              content: finalText,
+              input_tokens: inputTokens,
+              output_tokens: outputTokens,
+              cache_read_input_tokens: cacheRead,
+              cache_creation_input_tokens: cacheCreate,
+            }).select('id').single()
+            insertedMsgId = insertedMsg?.id ?? null
+          } catch (e) {
+            console.error('[chat] assistant persist failed', e)
+          }
+        } else {
+          // Turn gescheitert (LLM-Fehler vor dem ersten Token): KEINE leere
+          // Assistant-Message speichern — die würde in jedem Folge-Turn einen
+          // 400 auslösen ("non-empty content") und die Conversation dauerhaft
+          // töten. Stattdessen die vorab gespeicherte User-Message wieder
+          // entfernen, damit die History sauber alternierend bleibt.
+          if (userMsgId) {
+            try {
+              await supa.from('messages').delete().eq('id', userMsgId)
+            } catch (e) {
+              console.error('[chat] orphan user-message cleanup failed', e)
+            }
+          }
         }
 
         try {
