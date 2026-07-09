@@ -45,6 +45,9 @@ interface UseWhisperInputResult {
   transcribing: boolean
   /** Benutzerfreundliche Fehlerbeschreibung. */
   error: string | null
+  /** Art des Fehlers — steuert die Darstellung: 'blocked' zeigt einen ruhigen
+   *  Hinweis mit Diktier-Tipp statt einer roten Fehlerwand. */
+  errorKind: 'blocked' | 'no-device' | 'other' | null
   start: () => Promise<void>
   stop: () => void
   clearError: () => void
@@ -84,6 +87,7 @@ export function useWhisperInput(args: UseWhisperInputArgs): UseWhisperInputResul
   const [recording, setRecording] = useState(false)
   const [transcribing, setTranscribing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [errorKind, setErrorKind] = useState<'blocked' | 'no-device' | 'other' | null>(null)
 
   const recorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -122,11 +126,12 @@ export function useWhisperInput(args: UseWhisperInputArgs): UseWhisperInputResul
     }
   }, [])
 
-  function clearError() { setError(null) }
+  function clearError() { setError(null); setErrorKind(null) }
 
   async function start(): Promise<void> {
     if (recording || transcribing) return
     setError(null)
+    setErrorKind(null)
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -147,6 +152,7 @@ export function useWhisperInput(args: UseWhisperInputArgs): UseWhisperInputResul
       }
       rec.onerror = (ev: Event) => {
         const err = (ev as unknown as { error?: { message?: string } }).error
+        setErrorKind('other')
         setError(err?.message ?? 'Aufnahme fehlgeschlagen')
         cleanup()
       }
@@ -160,16 +166,18 @@ export function useWhisperInput(args: UseWhisperInputArgs): UseWhisperInputResul
     } catch (e: unknown) {
       const name = (e as { name?: string })?.name ?? ''
       if (name === 'NotAllowedError' || name === 'SecurityError') {
+        setErrorKind('blocked')
         setError(
-          'Mikrofon-Zugriff blockiert. So freischalten:\n' +
-          '• Chrome/Edge: 🔒-Symbol in der Adresszeile → Mikrofon → Erlauben\n' +
-          '• OpenAI Atlas: Settings → Web Browsing and security → Site settings → Microphone → diese Seite auf „Allow" setzen\n' +
-          '• Safari: Einstellungen für diese Website → Mikrofon „Erlauben"\n' +
-          'Danach Mikro-Button erneut drücken.'
+          'Kein Mikrofon-Zugriff — aber sprechen geht trotzdem: nutz einfach das Diktat deines Geräts direkt in diesem Feld.\n' +
+          '• Mac: ins Feld klicken, dann 2× die 🌐/fn-Taste drücken und sprechen.\n' +
+          '• iPhone / Android: das Mikro-Symbol auf der Bildschirm-Tastatur.\n' +
+          'Oder den Button-Zugriff freigeben: Adressleiste → Website-Einstellungen → Mikrofon → „Zulassen". Bleibt der Zugriff danach aus, ist es die System-Mikrofon-Einstellung deines Geräts.'
         )
       } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-        setError('Kein Mikrofon gefunden. Prüfe die System-Einstellungen.')
+        setErrorKind('no-device')
+        setError('Kein Mikrofon gefunden. Du kannst stattdessen das Diktat deines Geräts nutzen (Mac: 2× fn) oder einfach tippen.')
       } else {
+        setErrorKind('other')
         setError(e instanceof Error ? e.message : 'Mikrofon konnte nicht gestartet werden')
       }
       cleanup()
@@ -238,6 +246,7 @@ export function useWhisperInput(args: UseWhisperInputArgs): UseWhisperInputResul
       const text = (json.text ?? '').trim()
       if (text) onTranscriptRef.current(text)
     } catch (e: unknown) {
+      setErrorKind('other')
       setError(e instanceof Error ? e.message : 'Transkription fehlgeschlagen')
     } finally {
       setTranscribing(false)
@@ -252,5 +261,5 @@ export function useWhisperInput(args: UseWhisperInputArgs): UseWhisperInputResul
     setRecording(false)
   }
 
-  return { supported, recording, transcribing, error, start, stop, clearError }
+  return { supported, recording, transcribing, error, errorKind, start, stop, clearError }
 }
