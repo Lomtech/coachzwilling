@@ -46,10 +46,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Lead in DB ablegen (nur wenn email — sonst nur Profil zurückgeben ohne Persistierung)
+  let previewUrl: string | null = null
   if (email) {
     const supa = serviceClient()
     const userAgent = req.headers.get('user-agent') ?? null
-    const { error: insErr } = await supa.from('leads').insert({
+    const { data: lead, error: insErr } = await supa.from('leads').insert({
       email,
       name: body.name?.toString().trim() || null,
       source: 'mini_scan',
@@ -57,10 +58,13 @@ export async function POST(req: NextRequest) {
       short_profile: shortProfile,
       utm: body.utm ?? null,
       user_agent: userAgent,
-    })
+    }).select('id').single()
     if (insErr) {
       console.error('[mini-scan] lead insert failed', insErr)
       // Trotzdem das Profil zurückgeben — der Lead ist wichtig genug
+    } else if (lead?.id) {
+      // Deep-Space-Vorschau wird auf /vorschau/[leadId] on-demand gerendert.
+      previewUrl = `/vorschau/${lead.id}`
     }
   }
 
@@ -68,5 +72,6 @@ export async function POST(req: NextRequest) {
     ok: true,
     shortProfile,
     storedAsLead: !!email,
+    previewUrl,
   })
 }

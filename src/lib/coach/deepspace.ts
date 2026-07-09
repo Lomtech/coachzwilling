@@ -94,27 +94,39 @@ const DOC_TOOL = {
   },
 }
 
-const SYSTEM = `Du bist Redakteur für Deepling. Du bekommst ein INTERNES Rohprofil (config_md, Deep Space V5) einer Person und wandelst dessen Abschnitte A1–A9 in den Inhalt für ein kundenseitiges Vorschau-Dokument.
+const SYSTEM = `Du bist Redakteur für Deepling. Du bekommst Rohmaterial über eine Person und wandelst es in den Inhalt für ein kundenseitiges Vorschau-Dokument.
 
 Strenge Regeln:
-- Nutze ausschließlich, was im Profil steht. Erfinde KEINE Fakten, keine Zahlen, keine Biografie dazu.
+- Nutze ausschließlich, was im Rohmaterial steht/erkennbar ist. Erfinde KEINE Fakten, keine Zahlen, keine Biografie dazu.
 - Schreib in Du-Form, präzise, unaufgeregt. Kein Coaching-Sprech, keine Floskeln, keine Listen im Fließtext.
-- Kernmuster kommen aus A1 (Stärke/Kehrseite-Paare). Blinder Fleck aus A5 + A6.
-- pullQuote und eigeneWorte sind pointierte Ich/Du-Sätze, die die zentrale Spannung treffen — im Ton des Profils.
+- Kernmuster als Stärke/Kehrseite-Paare; blinder Fleck als „was du willst" / „was passiert" plus ein zugespitzter „eigene Worte"-Satz.
+- pullQuote und eigeneWorte sind pointierte Ich/Du-Sätze, die die zentrale Spannung treffen — im Ton der Person.
 - Gib das Ergebnis ausschließlich über das Tool "deepspace_doc" zurück.`
 
 interface BuildOpts {
   name: string
   /** 'full' liefert zusätzlich schatten + orientierung. */
   variant: 'mini' | 'full'
+  /**
+   * 'profile' (default): Input ist ein volles config_md (A1–A9).
+   * 'scan': Input sind nur kurze Mini-Scan-Antworten → vorsichtig ableiten,
+   *   keine Ferndiagnose behaupten.
+   */
+  kind?: 'profile' | 'scan'
 }
 
-export async function buildDeepSpaceDoc(configMd: string, opts: BuildOpts): Promise<DeepSpaceDoc> {
-  const userMsg = `Vorname der Person (für die Titelseite): ${opts.name || 'Unbekannt'}
-Dokument-Variante: ${opts.variant === 'full' ? 'VOLL (schatten + orientierung mitliefern)' : 'MINI-Vorschau (schatten/orientierung optional)'}
+export async function buildDeepSpaceDoc(source: string, opts: BuildOpts): Promise<DeepSpaceDoc> {
+  const kind = opts.kind ?? 'profile'
+  const sourceNote = kind === 'scan'
+    ? `Rohmaterial: KURZE Scan-Antworten (nur wenige Antworten, KEIN volles Profil). Leite vorsichtig 2 plausible Kernmuster (Stärke/Kehrseite) + 1 blinden Fleck ab — es ist eine kostenlose Vorschau, keine Ferndiagnose. Nicht übertreiben; bleib nah an den Worten. schatten/orientierung weglassen.`
+    : `Rohmaterial: internes Rohprofil (config_md, Abschnitte A1–A9). Kernmuster aus A1, blinder Fleck aus A5 + A6.${opts.variant === 'full' ? ' Für die VOLLE Variante zusätzlich schatten (A4) + orientierung (A8) mitliefern.' : ''}`
 
-── Internes Rohprofil (config_md) ──
-${configMd}`
+  const userMsg = `Vorname der Person (für die Titelseite): ${opts.name || 'Unbekannt'}
+Dokument-Variante: ${opts.variant === 'full' ? 'VOLL' : 'MINI-Vorschau'}
+${sourceNote}
+
+── Rohmaterial ──
+${source}`
 
   const res = await anthropic().messages.create({
     model: PROFILER_MODEL,

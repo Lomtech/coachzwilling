@@ -44,10 +44,15 @@ export function MiniScanFlow() {
         }),
       })
       const json = (await res.json().catch(() => null)) as
-        | { ok?: boolean; shortProfile?: string | null; error?: string }
+        | { ok?: boolean; shortProfile?: string | null; error?: string; previewUrl?: string | null }
         | null
       if (!res.ok || !json) {
         throw new Error(json?.error ?? 'Profil konnte nicht erstellt werden')
+      }
+      // Mit E-Mail: direkt zur schönen Deep-Space-Vorschau (Lead-Magnet mit Paywall).
+      if (json.previewUrl) {
+        window.location.href = json.previewUrl
+        return
       }
       setShortProfile(json.shortProfile ?? null)
       setStep('result')
