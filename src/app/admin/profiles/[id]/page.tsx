@@ -57,12 +57,30 @@ export default async function AdminProfileDetailPage({ params }: { params: Promi
             {profile.memories_used_count} Memories
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <a
+            href={`/admin/profiles/${profile.id}/deepspace?variant=mini`}
+            target="_blank"
+            rel="noopener"
+            className="btn btn-primary text-xs px-3 py-1.5"
+            title="Deep-Space-Kundendokument (Vorschau mit Paywall). Öffnet im neuen Tab → Cmd/Strg+P → als PDF speichern."
+          >
+            ✦ Deep-Space PDF · Vorschau
+          </a>
+          <a
+            href={`/admin/profiles/${profile.id}/deepspace?variant=full`}
+            target="_blank"
+            rel="noopener"
+            className="btn btn-secondary text-xs px-3 py-1.5"
+            title="Vollständiges Rohprofil im Deep-Space-Design (ohne Paywall)."
+          >
+            Vollständig
+          </a>
           <Link
             href={`/admin/compare?a=${profile.id}`}
             className="btn btn-secondary text-xs px-3 py-1.5"
           >
-            ⇆ Mit anderem vergleichen
+            ⇆ Vergleichen
           </Link>
           <CopyButton md={profile.config_md} />
         </div>
