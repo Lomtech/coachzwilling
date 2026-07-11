@@ -64,7 +64,13 @@ export default async function HomePage({
           </nav>
           <div className="flex items-center gap-1.5">
             {user ? (
-              <Link href="/coach" className="btn btn-primary text-sm px-3 py-1.5">Zum Coach</Link>
+              <>
+                {/* „Konto" gibt eingeloggten Usern einen Weg zu Einstellungen +
+                    Abmelden — sonst sitzt man (z.B. im falschen/leeren Konto)
+                    ohne Logout auf der Startseite fest. */}
+                <Link href="/settings" className="btn btn-ghost text-sm px-3 py-1.5">Konto</Link>
+                <Link href="/coach" className="btn btn-primary text-sm px-3 py-1.5">Zum Coach</Link>
+              </>
             ) : (
               <>
                 <Link href="/login"  className="btn btn-ghost   text-sm px-3 py-1.5">Login</Link>
