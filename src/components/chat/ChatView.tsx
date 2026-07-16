@@ -2,9 +2,6 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSpeechInput } from './useSpeechInput'
-import { useWhisperInput } from './useWhisperInput'
-import { IconMic, IconStop, IconSpinner } from '@/components/Icons'
 
 interface Message {
   id: string
@@ -27,14 +24,6 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
   const [error, setError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const taRef = useRef<HTMLTextAreaElement>(null)
-  // Speech-Input: getrennt halten von `input` damit interim-Hypothesen
-  // den finalen Text nicht überschreiben können.
-  const speechBaseRef = useRef<string>('')
-  // User-Intent für Speech-Input: true zwischen "Mikro an" und send()/stop().
-  // Verhindert dass in-flight onTranscript-Events nach dem Senden den
-  // gerade geleerten Input mit dem alten Text wieder befüllen
-  // (Web Speech API liefert final-Hypothesen oft 200–800ms verzögert).
-  const expectSpeechInputRef = useRef<boolean>(false)
   // Initial-Scroll-Tracking: erster Scroll instant (kein Animation-Lag bei
   // langen Conversations), danach smooth wenn neue Messages reinkommen.
   const hasInitiallyScrolledRef = useRef(false)
@@ -64,87 +53,10 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
     }
   }, [messages, streaming])
 
-  const speech = useSpeechInput({
-    onTranscript: (text, isFinal) => {
-      // Bug-Fix: in-flight Events nach send()/stop() ignorieren.
-      // Web Speech API kann nach rec.stop() noch final-Hypothesen feuern,
-      // die sonst den gerade geleerten Input mit dem alten Text befüllen.
-      if (!expectSpeechInputRef.current) return
-
-      // Live-Hypothesen werden angehängt, finales Segment ersetzt die Hypothese
-      // und wird zur neuen Basis.
-      const sep = speechBaseRef.current && !speechBaseRef.current.endsWith(' ') ? ' ' : ''
-      const next = speechBaseRef.current + sep + text
-      setInput(next)
-      if (isFinal) {
-        speechBaseRef.current = next
-      }
-      // Auto-resize anstoßen
-      requestAnimationFrame(() => {
-        const ta = taRef.current
-        if (ta) {
-          ta.style.height = 'auto'
-          ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`
-        }
-      })
-    },
-  })
-
-  function toggleSpeech() {
-    if (speech.listening) {
-      expectSpeechInputRef.current = false
-      speech.stop()
-    } else {
-      // Aktuelles Input als Basis übernehmen, dann starten
-      speechBaseRef.current = input
-      expectSpeechInputRef.current = true
-      speech.start()
-    }
-  }
-
-  // Whisper-Fallback für Browser ohne (aktivierte) Web Speech API — z.B.
-  // OpenAI Atlas. Hängt das Transkript hinten an den aktuellen Input an
-  // (Bug-Fix 1-Pattern: KEIN speechBaseRef hier, weil Push-to-talk ohne
-  // Live-Hypothesen läuft).
-  const whisper = useWhisperInput({
-    onTranscript: (text) => {
-      setInput(prev => {
-        const sep = prev && !prev.endsWith(' ') ? ' ' : ''
-        const next = prev + sep + text
-        // Autosize anstoßen — auf nächsten Frame, weil Textarea-Höhe erst
-        // nach Render des neuen Werts korrekt berechnet wird.
-        requestAnimationFrame(() => {
-          const ta = taRef.current
-          if (ta) {
-            ta.style.height = 'auto'
-            ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`
-          }
-        })
-        return next
-      })
-    },
-  })
-
-  function toggleWhisper() {
-    if (whisper.recording) {
-      whisper.stop()
-    } else if (!whisper.transcribing) {
-      void whisper.start()
-    }
-  }
-
   async function send() {
     const text = input.trim()
     if (!text || streaming) return
     setError(null)
-
-    // Bug-Fix: Mikrofon explizit beenden, in-flight Speech-Events ignorieren,
-    // speechBase zurücksetzen. Sonst kann eine verzögerte final-Hypothese aus
-    // dem Web-Speech-Puffer den gerade geleerten Input mit dem alten Satz
-    // wieder befüllen, nachdem die KI bereits geantwortet hat.
-    expectSpeechInputRef.current = false
-    if (speech.listening) speech.stop()
-    speechBaseRef.current = ''
 
     setInput('')
     autosize()
@@ -308,52 +220,6 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
       {error && (
         <div className="px-4 pb-2 max-w-2xl w-full mx-auto text-sm text-[var(--color-danger)]">{error}</div>
       )}
-      {speech.error && (
-        <div className="px-4 pb-2 max-w-2xl w-full mx-auto">
-          <div className="text-xs text-[var(--color-danger)] bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/30 rounded-lg px-3 py-2 flex items-start gap-2">
-            <span className="flex-1 whitespace-pre-line">{speech.error}</span>
-            <button
-              type="button"
-              onClick={() => speech.clearError()}
-              className="text-[var(--color-danger)]/60 hover:text-[var(--color-danger)] shrink-0"
-              aria-label="Hinweis ausblenden"
-              title="Ausblenden"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-      {whisper.error && (() => {
-        // 'blocked'/'no-device' sind keine echten Fehler, sondern erwartbare
-        // Zustände → ruhiger, neutraler Hinweis mit Diktier-Tipp (kein rotes
-        // Alarm-Design). Nur echte Fehler (Transkription/Recording) bleiben rot.
-        const calm = whisper.errorKind === 'blocked' || whisper.errorKind === 'no-device'
-        return (
-          <div className="px-4 pb-2 max-w-2xl w-full mx-auto">
-            <div className={
-              'text-xs rounded-lg px-3 py-2 flex items-start gap-2 ' +
-              (calm
-                ? 'text-[var(--color-ink-2)] bg-[var(--color-surface-2)] border border-[var(--color-border)]'
-                : 'text-[var(--color-danger)] bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/30')
-            }>
-              {calm && <span aria-hidden className="shrink-0">💡</span>}
-              <span className="flex-1 whitespace-pre-line">{whisper.error}</span>
-              <button
-                type="button"
-                onClick={() => whisper.clearError()}
-                className={(calm
-                  ? 'text-[var(--color-muted)] hover:text-[var(--color-ink)]'
-                  : 'text-[var(--color-danger)]/60 hover:text-[var(--color-danger)]') + ' shrink-0'}
-                aria-label="Hinweis ausblenden"
-                title="Ausblenden"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        )
-      })()}
 
       {/* Composer */}
       <div className="border-t border-[var(--color-border)] bg-[var(--color-bg)] safe-bottom">
@@ -364,79 +230,11 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
             value={input}
             onChange={e => { setInput(e.target.value); autosize() }}
             onKeyDown={onKey}
-            placeholder={
-              speech.listening ? 'Sprich jetzt …'
-              : whisper.recording ? 'Aufnahme läuft — klick Stop wenn fertig …'
-              : whisper.transcribing ? 'Transkribiere …'
-              : 'Schreibe oder sprich mit deinem Coach …'
-            }
-            disabled={streaming || whisper.transcribing}
+            placeholder="Schreibe deinem Coach …"
+            disabled={streaming}
             className="!min-h-[48px] !py-3"
             style={{ resize: 'none' }}
           />
-          {/* Mikrofon-Knöpfe — Auswahl-Logik (Server-STT priorisiert):
-              • Server-STT (Speechmatics, EU, push-to-talk) — PRIMÄR, sobald
-                /api/transcribe enabled ist: DSGVO-konform, browserunabhängig,
-                „funktioniert wie bei allen LLM-Anbietern" (aufnehmen → Text).
-              • Web Speech API (Live-Mikro) nur noch Fallback, wenn KEIN Server-STT
-                konfiguriert ist.
-              • Disabled-Hint nur als allerletzte Stufe. */}
-          {speech.supported && !whisper.supported ? (
-            <button
-              type="button"
-              onClick={toggleSpeech}
-              disabled={streaming}
-              className={
-                'btn inline-flex items-center justify-center ' +
-                (speech.listening
-                  ? 'bg-[var(--color-danger)] text-white hover:opacity-90 anim-pulse-soft'
-                  : 'btn-ghost')
-              }
-              aria-label={speech.listening ? 'Spracheingabe stoppen' : 'Spracheingabe starten'}
-              title={speech.listening ? 'Stoppen' : 'Mit dem Coach sprechen (Live-Mikro)'}
-            >
-              {speech.listening ? <IconStop className="w-5 h-5" /> : <IconMic className="w-5 h-5" />}
-            </button>
-          ) : whisper.supported ? (
-            <button
-              type="button"
-              onClick={toggleWhisper}
-              disabled={streaming || whisper.transcribing}
-              className={
-                'btn inline-flex items-center justify-center ' +
-                (whisper.recording
-                  ? 'bg-[var(--color-danger)] text-white hover:opacity-90 anim-pulse-soft'
-                  : 'btn-ghost')
-              }
-              aria-label={
-                whisper.transcribing ? 'Transkription läuft'
-                : whisper.recording ? 'Aufnahme stoppen'
-                : 'Aufnahme starten'
-              }
-              title={
-                whisper.transcribing ? 'Transkribiere …'
-                : whisper.recording ? 'Aufnahme stoppen + transkribieren'
-                : 'Mit dem Coach sprechen (aufnehmen → Text)'
-              }
-            >
-              {whisper.transcribing
-                ? <IconSpinner className="w-5 h-5" />
-                : whisper.recording
-                  ? <IconStop className="w-5 h-5" />
-                  : <IconMic className="w-5 h-5" />}
-            </button>
-          ) : speech.unsupportedReason ? (
-            <button
-              type="button"
-              disabled
-              className="btn btn-ghost opacity-40 cursor-not-allowed inline-flex items-center justify-center"
-              aria-label="Spracheingabe nicht verfügbar"
-              title={speech.unsupportedReason}
-            >
-              <IconMic className="w-5 h-5" />
-            </button>
-          ) : null}
-
           <button
             type="button"
             onClick={send}
