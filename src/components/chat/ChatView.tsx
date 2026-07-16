@@ -2,6 +2,8 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useVoiceInput } from './useVoiceInput'
+import { IconMic, IconStop, IconSpinner } from '@/components/Icons'
 
 interface Message {
   id: string
@@ -52,6 +54,34 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
       el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
     }
   }, [messages, streaming])
+
+  // Spracheingabe: aufnehmen → Server-STT (Speechmatics, EU) → Text ins Feld.
+  // Der Hook prüft die Berechtigung VORAB; bei 'denied' schaltet die UI unten
+  // automatisch auf den Datei-/OS-Recorder-Weg um, der ohne Website-Berechtigung
+  // funktioniert. Niemand landet in einer Sackgasse.
+  const fileRef = useRef<HTMLInputElement>(null)
+  const voice = useVoiceInput({
+    onTranscript: text => {
+      setInput(prev => {
+        const sep = prev && !prev.endsWith(' ') ? ' ' : ''
+        const next = prev + sep + text
+        // Autosize erst nach dem Render des neuen Werts.
+        requestAnimationFrame(() => {
+          const ta = taRef.current
+          if (ta) {
+            ta.style.height = 'auto'
+            ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`
+          }
+        })
+        return next
+      })
+    },
+  })
+
+  function toggleVoice() {
+    if (voice.recording) voice.stop()
+    else if (!voice.transcribing) void voice.start()
+  }
 
   async function send() {
     const text = input.trim()
@@ -220,6 +250,34 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
       {error && (
         <div className="px-4 pb-2 max-w-2xl w-full mx-auto text-sm text-[var(--color-danger)]">{error}</div>
       )}
+      {voice.error && (
+        <div className="px-4 pb-2 max-w-2xl w-full mx-auto">
+          <div className="text-xs text-[var(--color-danger)] bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/30 rounded-lg px-3 py-2 flex items-start gap-2">
+            <span className="flex-1">{voice.error}</span>
+            <button
+              type="button"
+              onClick={voice.clearError}
+              className="text-[var(--color-danger)]/60 hover:text-[var(--color-danger)] shrink-0"
+              aria-label="Hinweis ausblenden"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+      {voice.supported && voice.permission === 'denied' && (
+        <div className="px-4 pb-2 max-w-2xl w-full mx-auto">
+          <div className="text-xs text-[var(--color-ink-2)] bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 flex items-start gap-2">
+            <span aria-hidden className="shrink-0">💡</span>
+            <span className="flex-1">
+              Live-Mikro ist für diese Seite im Browser blockiert — das kann keine Website selbst
+              aufheben. Der 🎙️-Knopf nimmt deshalb über <strong>dein Gerät</strong> auf (Handy) bzw.
+              lädt eine Sprachdatei hoch; das braucht keine Freigabe. Live-Mikro reaktivieren:
+              Adressleiste → Website-Einstellungen → Mikrofon → „Zulassen".
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Composer */}
       <div className="border-t border-[var(--color-border)] bg-[var(--color-bg)] safe-bottom">
@@ -235,6 +293,57 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
             className="!min-h-[48px] !py-3"
             style={{ resize: 'none' }}
           />
+          {voice.supported && (
+            <>
+              {/* Datei-/OS-Recorder-Weg: <input capture> übergibt an den Recorder
+                  des Geräts (Android) bzw. an den Datei-Dialog — braucht die
+                  Website-Mikro-Berechtigung NICHT. Deshalb funktioniert Sprache
+                  auch dann noch, wenn das Live-Mikro hart blockiert ist. */}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="audio/*"
+                capture
+                className="hidden"
+                onChange={e => {
+                  const f = e.target.files?.[0]
+                  if (f) void voice.transcribeFile(f)
+                  e.target.value = ''
+                }}
+              />
+              <button
+                type="button"
+                onClick={voice.permission === 'denied' ? () => fileRef.current?.click() : toggleVoice}
+                disabled={streaming || voice.transcribing}
+                className={
+                  'btn inline-flex items-center justify-center ' +
+                  (voice.recording
+                    ? 'bg-[var(--color-danger)] text-white hover:opacity-90 anim-pulse-soft'
+                    : 'btn-ghost')
+                }
+                aria-label={
+                  voice.transcribing ? 'Transkription läuft'
+                  : voice.recording ? 'Aufnahme stoppen'
+                  : voice.permission === 'denied' ? 'Sprachaufnahme hochladen'
+                  : 'Aufnahme starten'
+                }
+                title={
+                  voice.transcribing ? 'Wird transkribiert …'
+                  : voice.recording ? 'Aufnahme stoppen + transkribieren'
+                  : voice.permission === 'denied'
+                    ? 'Mikro ist im Browser blockiert — hier über dein Gerät aufnehmen bzw. Sprachdatei hochladen'
+                    : 'Mit dem Coach sprechen (aufnehmen → Text)'
+                }
+              >
+                {voice.transcribing
+                  ? <IconSpinner className="w-5 h-5" />
+                  : voice.recording
+                    ? <IconStop className="w-5 h-5" />
+                    : <IconMic className="w-5 h-5" />}
+              </button>
+            </>
+          )}
+
           <button
             type="button"
             onClick={send}
