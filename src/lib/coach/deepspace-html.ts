@@ -52,6 +52,13 @@ interface RenderOpts {
   appUrl?: string
   /** Preis für den Paywall-CTA (nur 'mini'). */
   price?: string
+  /**
+   * Ziel des Paywall-CTA (nur 'mini'). Default: {appUrl}/onboarding — richtig
+   * für Mini-Scan-Leads (die den Vollscan noch machen müssen). Für bereits
+   * onboardete Nutzer stattdessen auf die Bezahlseite zeigen, sonst würde der
+   * Button sie in einen Fragebogen schicken, den sie schon gemacht haben.
+   */
+  ctaUrl?: string
 }
 
 function esc(s: string): string {
@@ -222,7 +229,7 @@ function blindSpotPage(doc: DeepSpaceDoc, variant: DeepSpaceVariant, opts: Rende
        <div class="paywall">
          <div class="pwlabel">Was du noch nicht siehst</div>
          <div class="pwbody">Diese Vorschau zeigt zwei Muster und einen blinden Fleck. Das vollständige Rohprofil enthält deine gesamte Ausweichlogik, dein Entscheidungsleck, deinen Schatten — und wie dein Deepling kalibriert ist, dich <strong>im Moment zu erwischen, nicht danach.</strong></div>
-         <a class="cta" href="${esc(opts.appUrl ?? 'https://deepling.de')}/onboarding">Rohprofil freischalten — ${esc(opts.price ?? '49 €')}</a>
+         <a class="cta" href="${esc(opts.ctaUrl ?? `${opts.appUrl ?? 'https://deepling.de'}/onboarding`)}">Rohprofil freischalten — ${esc(opts.price ?? '49 €')}</a>
          <div class="pwfine">Einmalig · Sofortiger Zugang · Kein Abo</div>
        </div>`
     : (doc.schatten

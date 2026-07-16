@@ -112,10 +112,19 @@ export default async function SettingsPage() {
                 }
               />
             )}
-            {/* Profil-Viewer NUR für Admins sichtbar — normale Kunden
-                bekommen das Profil als PDF nur per E-Mail-Anfrage an Lom
-                oder Michael. Tiefen-Analyse-Button bleibt für alle. */}
+            {/* Kurz-Profil (Deep-Space-Design) für ALLE — bekommt jeder nach
+                dem Fragebogen auch per Mail verlinkt. Der rohe config_md-Viewer
+                bleibt Admin-only. */}
             <div className="mt-4 pt-4 border-t border-[var(--color-border)] space-y-2">
+              <a
+                href="/mein-profil"
+                target="_blank"
+                rel="noopener"
+                className="btn btn-secondary btn-block text-sm"
+                title="Dein Kurz-Profil öffnen — mit Cmd/Strg+P als PDF speichern"
+              >
+                ✦ Dein Kurz-Profil ansehen
+              </a>
               {isAdminEmail(user.email) && (
                 <ProfileViewer profile={{
                   id: cp.id,

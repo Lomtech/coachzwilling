@@ -170,7 +170,7 @@ ${source}`
 export async function loadAndRenderDeepSpace(
   profileId: string,
   variant: DeepSpaceVariant,
-  opts?: { refresh?: boolean; appUrl?: string },
+  opts?: { refresh?: boolean; appUrl?: string; ctaUrl?: string },
 ): Promise<{ html: string } | { error: string; status: number }> {
   const supa = serviceClient()
   const { data: cp } = await supa
@@ -214,6 +214,7 @@ export async function loadAndRenderDeepSpace(
     variant,
     appUrl: opts?.appUrl ?? (process.env.NEXT_PUBLIC_APP_URL || 'https://deepling.de'),
     price: '49 €',
+    ctaUrl: opts?.ctaUrl,
   })
   return { html }
 }

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { serviceClient } from '@/lib/supabase/service'
 import { streamCoachProfile } from '@/lib/coach/profiler'
 import { notifyAdminsNewProfile } from '@/lib/email/admin-notify'
+import { sendUserProfileReady } from '@/lib/email/user-notify'
 import { TOTAL_QUESTIONS, QUESTIONS } from '@/data/questionnaire'
 
 export const runtime = 'nodejs'
@@ -165,22 +166,30 @@ export async function POST(req: NextRequest) {
             .eq('id', user.id),
         ])
 
-        // Betreiber-Benachrichtigung: neues Profil ist fertig → Lom/Michael
-        // können direkt das PDF erstellen + versenden. Best-effort, darf den
-        // Onboarding-Abschluss niemals blockieren oder verzögern-scheitern.
+        // Benachrichtigungen, sobald das Profil steht:
+        //  1) NUTZER bekommt sein Kurz-Profil verlinkt (/mein-profil → PDF).
+        //  2) Betreiber (Lom/Michael) erfahren, dass ein neues Profil da ist.
+        // allSettled: eine fehlschlagende Mail darf die andere nicht killen —
+        // und beides darf den Onboarding-Abschluss niemals blockieren.
         try {
           const { data: p } = await supa
             .from('profiles')
             .select('full_name, email')
             .eq('id', user.id)
             .maybeSingle()
-          await notifyAdminsNewProfile({
-            name: p?.full_name ?? null,
-            email: p?.email ?? user.email ?? 'unbekannt',
-            userId: user.id,
+          const name = p?.full_name ?? null
+          const email = p?.email ?? user.email ?? null
+          const results = await Promise.allSettled([
+            email
+              ? sendUserProfileReady({ email, name, userId: user.id })
+              : Promise.resolve(),
+            notifyAdminsNewProfile({ name, email: email ?? 'unbekannt', userId: user.id }),
+          ])
+          results.forEach(r => {
+            if (r.status === 'rejected') console.error('[finalize] notify failed (ignored)', r.reason)
           })
         } catch (notifyErr) {
-          console.error('[finalize] admin-notify failed (ignored)', notifyErr)
+          console.error('[finalize] notify block failed (ignored)', notifyErr)
         }
 
         sse('done', {
