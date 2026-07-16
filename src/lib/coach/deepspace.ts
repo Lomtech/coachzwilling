@@ -115,15 +115,20 @@ interface BuildOpts {
   kind?: 'profile' | 'scan'
 }
 
-export async function buildDeepSpaceDoc(source: string, opts: BuildOpts): Promise<DeepSpaceDoc> {
+/** Ein einzelner LLM-Versuch. `reinforce` verschärft die Vollständigkeits-Vorgabe. */
+async function attemptDeepSpaceDoc(source: string, opts: BuildOpts, reinforce: boolean): Promise<DeepSpaceDoc> {
   const kind = opts.kind ?? 'profile'
   const sourceNote = kind === 'scan'
     ? `Rohmaterial: KURZE Scan-Antworten (nur wenige Antworten, KEIN volles Profil). Leite vorsichtig 2 plausible Kernmuster (Stärke/Kehrseite) + 1 blinden Fleck ab — es ist eine kostenlose Vorschau, keine Ferndiagnose. Nicht übertreiben; bleib nah an den Worten. schatten/orientierung weglassen.`
     : `Rohmaterial: internes Rohprofil (config_md, Abschnitte A1–A9). Kernmuster aus A1, blinder Fleck aus A5 + A6.${opts.variant === 'full' ? ' Für die VOLLE Variante zusätzlich schatten (A4) + orientierung (A8) mitliefern.' : ''}`
 
+  const reinforceNote = reinforce
+    ? '\n\nWICHTIG: pullQuote, JEDES Kernmuster (Stärke UND Kehrseite, je title + body) und der blinderFleck (wasDuWillst, wasPassiert, eigeneWorte) MÜSSEN gefüllt sein. Lass KEIN Feld leer — leite notfalls sinngemäß aus dem Rohmaterial ab.'
+    : ''
+
   const userMsg = `Vorname der Person (für die Titelseite): ${opts.name || 'Unbekannt'}
 Dokument-Variante: ${opts.variant === 'full' ? 'VOLL' : 'MINI-Vorschau'}
-${sourceNote}
+${sourceNote}${reinforceNote}
 
 ── Rohmaterial ──
 ${source}`
@@ -161,6 +166,42 @@ ${source}`
   return doc
 }
 
+const _ne = (s?: string) => !!s && s.trim().length > 0
+
+/** Sind alle kundenrelevanten Pflichtfelder gefüllt? Sonst gäbe es z.B. ein
+ *  leeres „"-Zitat im PDF (beobachtet: LLM lässt blinderFleck gelegentlich leer). */
+export function isDeepSpaceDocComplete(doc: DeepSpaceDoc): boolean {
+  return _ne(doc.pullQuote)
+    && doc.kernmuster.length >= 1
+    && doc.kernmuster.every(k =>
+        _ne(k.staerke?.title) && _ne(k.staerke?.body) && _ne(k.kehrseite?.title) && _ne(k.kehrseite?.body))
+    && _ne(doc.blinderFleck.wasDuWillst)
+    && _ne(doc.blinderFleck.wasPassiert)
+    && _ne(doc.blinderFleck.eigeneWorte)
+}
+
+/**
+ * Baut das Deep-Space-Dokument robust: ist der erste Versuch unvollständig
+ * (LLM-Nicht-Determinismus lässt v.a. blinderFleck manchmal leer → leeres „"
+ * im Kundendokument), wird EINMAL mit verstärktem Hinweis nachgelegt und der
+ * vollständigere behalten.
+ */
+export async function buildDeepSpaceDoc(source: string, opts: BuildOpts): Promise<DeepSpaceDoc> {
+  const first = await attemptDeepSpaceDoc(source, opts, false)
+  if (isDeepSpaceDocComplete(first)) return first
+  try {
+    const second = await attemptDeepSpaceDoc(source, opts, true)
+    if (isDeepSpaceDocComplete(second)) return second
+    // Beide unvollständig → den mit mehr gefüllten Kernfeldern nehmen.
+    const filled = (d: DeepSpaceDoc) =>
+      [d.pullQuote, d.blinderFleck.wasDuWillst, d.blinderFleck.wasPassiert, d.blinderFleck.eigeneWorte]
+        .filter(s => s?.trim()).length
+    return filled(second) >= filled(first) ? second : first
+  } catch {
+    return first
+  }
+}
+
 /**
  * Lädt ein Coach-Profil, transformiert dessen config_md ins Deep-Space-Dokument
  * (mit Cache in coach_profiles.deepspace_json pro Variante) und rendert das HTML.
@@ -195,18 +236,21 @@ export async function loadAndRenderDeepSpace(
   let doc: DeepSpaceDoc | undefined = opts?.refresh ? undefined : cache[variant]
   if (!doc) {
     doc = await buildDeepSpaceDoc(cp.config_md, { name, variant })
-    // Cache pro Variante aktualisieren (best-effort — Render soll auch bei
-    // Schreib-Fehler klappen).
-    try {
-      await supa
-        .from('coach_profiles')
-        .update({
-          deepspace_json: { ...cache, [variant]: doc } as unknown as never,
-          deepspace_generated_at: new Date().toISOString(),
-        })
-        .eq('id', profileId)
-    } catch (e) {
-      console.error('[deepspace] cache write failed', e)
+    // Cache pro Variante — aber NUR wenn vollständig. Sonst würde ein leeres/
+    // kaputtes Doc dauerhaft hängenbleiben (best-effort; Render klappt auch bei
+    // Schreib-Fehler).
+    if (isDeepSpaceDocComplete(doc)) {
+      try {
+        await supa
+          .from('coach_profiles')
+          .update({
+            deepspace_json: { ...cache, [variant]: doc } as unknown as never,
+            deepspace_generated_at: new Date().toISOString(),
+          })
+          .eq('id', profileId)
+      } catch (e) {
+        console.error('[deepspace] cache write failed', e)
+      }
     }
   }
 

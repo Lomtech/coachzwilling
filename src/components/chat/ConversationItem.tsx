@@ -105,7 +105,11 @@ export function ConversationItem({ id, title, active }: Props) {
     >
       <Link
         href={`/coach?c=${id}`}
-        prefetch={true}
+        // Kein Prefetch: jeder Prefetch triggert einen VOLLEN Coach-Page-
+        // Server-Render (Conversation + Messages + Profil + Gate-Checks). Bei
+        // vielen Gesprächen prefetchen alle gleichzeitig → Server-Überlast →
+        // 503 auf den RSC-Requests. Klick lädt weiterhin on-demand.
+        prefetch={false}
         className={
           'flex-1 min-w-0 px-3 py-2.5 text-sm truncate ' +
           (active ? 'text-white' : 'text-[var(--color-ink-2)]')
