@@ -29,7 +29,7 @@ export function buildCoachSystem(
   memoryMd: string,
   toneOneliner?: string | null,
   languageMirror?: string | null,
-  opts?: { isFreshConversation?: boolean },
+  opts?: { isFreshConversation?: boolean; firstName?: string | null },
 ): CoachSystemBlocks {
   const profileBlock = `=== PROFIL DES NUTZERS (Onboarding-Auswertung, intern, nicht zitieren) ===\n\n${coachProfileMd}\n\n=== ENDE PROFIL ===`
 
@@ -78,6 +78,15 @@ export function buildCoachSystem(
 • Wenn der User explizit sagt "du wiederholst dich" / "du hängst" / "du spinnst" / "du bist behindert" — BEKENNTNIS und Bruch. Nicht stoisch weitermachen. Beispiel: "Stimmt, war Wiederholung. Anderer Winkel: …" und dann ECHT neuer Gedanke.
 • Folge dem primären Modus aus B9 (KONFRONTATION / KONFRONTATION MIT SUBSTANZ / RAUM / RÜCKENWIND). Schatten (B5) und Blinder Fleck (B6) bei RAUM/RÜCKENWIND nicht als Eröffnung und nicht im ersten Gespräch einsetzen.`
   )
+
+  // Ansprache mit Vornamen — steht im Block 4 (höchste Recency), damit es
+  // nicht von Profil-Anweisungen überschrieben wird. Bewusst mit Dosierungs-
+  // Regel: der Name soll Nähe erzeugen, nicht als Verkäufer-Floskel wirken.
+  if (opts?.firstName && opts.firstName.trim()) {
+    tailParts.push(
+      `ANSPRACHE: Die Person heißt ${opts.firstName.trim()}. Sprich sie mit Vornamen an — direkt und natürlich, wie jemand, der sie kennt. Dosiere sparsam: nicht in jeder Nachricht und niemals als Floskel („Hallo ${opts.firstName.trim()}!", „Weißt du, ${opts.firstName.trim()}, …"), sondern dort wo es Gewicht hat — beim Einstieg in ein Gespräch, oder wenn du etwas benennst, das sitzen soll.`
+    )
+  }
 
   if (toneOneliner && toneOneliner.trim()) {
     tailParts.push(`STIMME (B14 Tonprofil-Echo für DIESE Person): ${toneOneliner.trim()}`)

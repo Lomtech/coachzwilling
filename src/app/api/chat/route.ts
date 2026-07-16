@@ -67,15 +67,25 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Coach-Profile laden (inkl. Tonprofil + Sprach-Mirror für 4-Block-System-Prompt)
-  const { data: cp } = await supabase
-    .from('coach_profiles')
-    .select('config_md, tone_oneliner, language_mirror')
-    .eq('user_id', user.id)
-    .eq('is_active', true)
-    .order('generated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  // Coach-Profile + Name parallel laden: Profil für den 4-Block-System-Prompt,
+  // Vorname für die persönliche Ansprache durch den Coach.
+  const [{ data: cp }, { data: prof }] = await Promise.all([
+    supabase
+      .from('coach_profiles')
+      .select('config_md, tone_oneliner, language_mirror')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .order('generated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
+  ])
+  // Fallback auf die Auth-Metadaten: bei OAuth-Signups (Google) landet der Name
+  // nicht zuverlässig in profiles.full_name — ohne Fallback bliebe der Coach
+  // dann namenlos, obwohl der Name bekannt ist.
+  const meta = user.user_metadata as { full_name?: string; name?: string } | undefined
+  const nameSource = ((prof?.full_name ?? '') || meta?.full_name || meta?.name || '').trim()
+  const firstName = nameSource.split(/\s+/)[0] || null
 
   if (!cp?.config_md) {
     return NextResponse.json({ error: 'profile not ready' }, { status: 409 })
@@ -145,7 +155,7 @@ export async function POST(req: NextRequest) {
     memoryMd,
     cp.tone_oneliner,
     cp.language_mirror,
-    { isFreshConversation },
+    { isFreshConversation, firstName },
   )
 
   // SSE-Stream zum Client + parallel im Hintergrund Persistierung
