@@ -16,6 +16,8 @@ export const PRICE_IDS = {
   monthly: () => required('STRIPE_PRICE_MONTHLY'),
   yearly: () => required('STRIPE_PRICE_YEARLY'),
   test: () => required('STRIPE_PRICE_TEST'),
+  /** 149-€-Einmalzahlung: schaltet Teil 2 + Vollprofil frei (mode:'payment'). */
+  full: () => required('STRIPE_PRICE_FULL'),
 }
 
 function required(name: string): string {

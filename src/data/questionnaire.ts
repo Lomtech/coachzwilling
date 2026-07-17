@@ -25,6 +25,12 @@ export interface Question {
    * Nur an den fünf in der Doc markierten Stellen (Q4, Q21, Q30, Q33, Q40).
    */
   followUp?: string
+  /**
+   * In welchem Teil die Nachfrage gestellt wird. Default = Teil der Frage selbst.
+   * Sonderfall Q4: Frage liegt in Teil 1, ihre Nachfrage ist aber der
+   * Pflicht-Einstieg von Teil 2 (Vertiefung) — daher followUpPart: 2.
+   */
+  followUpPart?: 1 | 2
 }
 
 export const SECTIONS = [
@@ -61,6 +67,7 @@ export const QUESTIONS: Question[] = [
     id: 4, section: SECTIONS[0], type: 'open',
     prompt: 'Was genau daran beschäftigt dich wirklich?',
     followUp: 'Was ist der Teil davon, den du dir selbst gegenüber noch nicht ganz zugegeben hast?',
+    followUpPart: 2, // Nachfrage wird als Pflicht-Einstieg von Teil 2 gestellt, nicht in Teil 1
   },
 
   // ─── 2. Ziel vs. Weg vs. Identität ─────────────────────────
@@ -437,6 +444,46 @@ export const QUESTIONS: Question[] = [
 
 export const TOTAL_QUESTIONS = QUESTIONS.length
 
+// ─── Zwei-Stufen-Architektur (Briefing 17.07.2026) ─────────────
+// Teil 1 = kostenloser Scan (22 Fragen), Teil 2 = nach 149€-Kauf (28 Fragen).
+// Die interne 1–50-Nummerierung bleibt erhalten — alle Prompts hängen daran.
+// Verteilung exakt aus dem Briefing (Abschnitt 0.1):
+//   Teil 1 = 1–4, 8–15, 19–24, 36–37, 47, 49
+//   Teil 2 = 5–7, 16–18, 25–35, 38–46, 48, 50
+export const TEIL1_IDS: ReadonlySet<number> = new Set([
+  1, 2, 3, 4, 8, 9, 10, 11, 12, 13, 14, 15, 19, 20, 21, 22, 23, 24, 36, 37, 47, 49,
+])
+export const TEIL2_IDS: ReadonlySet<number> = new Set(
+  QUESTIONS.map(q => q.id).filter(id => !TEIL1_IDS.has(id)),
+)
+
+/** Teil (1|2), zu dem eine Frage gehört. */
+export function partOf(id: number): 1 | 2 {
+  return TEIL1_IDS.has(id) ? 1 : 2
+}
+
+/** Fragen eines Teils in Dateireihenfolge (= interne Nummerierung). */
+export function questionsForPart(part: 1 | 2): Question[] {
+  return QUESTIONS.filter(q => partOf(q.id) === part)
+}
+
+export const TOTAL_TEIL1 = TEIL1_IDS.size // 22
+export const TOTAL_TEIL2 = TEIL2_IDS.size // 28
+
+/**
+ * Pflicht-Einstieg von Teil 2: Vertiefung zur Teil-1-Antwort auf Frage 4.
+ * Die wörtliche Kernformulierung der Q4-Antwort wird eingesetzt; die Antwort
+ * zählt als Nachfrage-Antwort (höchste Priorität) und wird als Nachfrage-Teil
+ * von answers["4"] gespeichert ("hauptantwort | vertiefungsantwort").
+ */
+export const VERTIEFUNG_Q4_FRAGE =
+  'Was ist der Teil davon, den du dir selbst gegenüber noch nicht ganz zugegeben hast?'
+
+export function vertiefungQ4Prompt(q4Answer: string): string {
+  const zitat = (q4Answer ?? '').split(/\s*\|\s*/)[0].trim()
+  return `Du hast vorhin gesagt: „${zitat}". ${VERTIEFUNG_Q4_FRAGE}`
+}
+
 /**
  * IDs jener Fragen, an denen V3-Doc eine feste Nachfrage vorsieht.
  * Quelle der Wahrheit: das `followUp`-Feld in QUESTIONS — diese Liste ist
@@ -456,8 +503,13 @@ export function questionById(id: number): Question | undefined {
  * ausgewiesen, damit der Profiler die Vorrang-Hierarchie korrekt
  * anwenden kann (Nachfrage-Antworten haben höchste Priorität).
  */
-export function answersToScanText(answers: Record<string, string>): string {
+export function answersToScanText(
+  answers: Record<string, string>,
+  opts?: { part?: 1 | 2 },
+): string {
+  const ids = opts?.part === 1 ? TEIL1_IDS : opts?.part === 2 ? TEIL2_IDS : null
   return QUESTIONS
+    .filter(q => !ids || ids.has(q.id))
     .map(q => {
       const raw = answers[String(q.id)]
       if (!raw) return null

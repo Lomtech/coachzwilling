@@ -5,7 +5,7 @@ import 'server-only'
  *
  * Erzeugt ein eigenständiges, druckfertiges HTML-Dokument (A4, print-optimiert)
  * aus einer strukturierten DeepSpaceDoc. Zwei Varianten:
- *   • 'mini' — Vorschau (2 Kernmuster + blinder Fleck + 49-€-Paywall) → Lead-Magnet
+ *   • 'mini' — Vorschau (2 Kernmuster + blinder Fleck + 149-€-CTA, fixe Abschnitts-Liste) → Lead-Magnet
  *   • 'full' — vollständiges Rohprofil (alle Muster, Schatten, kein Paywall)
  *
  * Bewusst self-contained (inline CSS, System-Fonts) → als PDF speicherbar
@@ -161,6 +161,10 @@ const CSS = `
   .cta { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; font-weight: 700;
          font-size: 15px; padding: 13px 24px; border-radius: 10px; }
   .pwfine { font-size: 12px; color: var(--muted); margin-top: 12px; }
+  .pwlist { list-style: none; margin: 0 0 20px; }
+  .pwlist li { font-size: 14px; line-height: 1.5; color: var(--ink2); padding: 5px 0 5px 22px; position: relative; }
+  .pwlist li::before { content: ""; position: absolute; left: 2px; top: 12px; width: 7px; height: 7px; border-radius: 2px; background: var(--accent); }
+  .pwlist li strong { color: var(--ink); }
 
   .foot-note { position: absolute; left: 22mm; right: 22mm; bottom: 20mm; display: flex; justify-content: space-between;
                font-size: 11px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
@@ -225,11 +229,18 @@ function kernmusterPage(doc: DeepSpaceDoc, variant: DeepSpaceVariant): string {
 
 function blindSpotPage(doc: DeepSpaceDoc, variant: DeepSpaceVariant, opts: RenderOpts): string {
   const paywall = variant === 'mini'
-    ? `<div class="teaser">Woher dieses Muster kommt, was es konkret schützt, und wie sich das in weiteren Entscheidungen zeigt — das liegt im vollständigen Rohprofil.</div>
+    ? `<div class="teaser">Woher dieses Muster kommt, was es konkret schützt, und wie es sich in weiteren Entscheidungen zeigt — das liegt im vollständigen Rohprofil.</div>
        <div class="paywall">
          <div class="pwlabel">Was du noch nicht siehst</div>
-         <div class="pwbody">Diese Vorschau zeigt zwei Muster und einen blinden Fleck. Das vollständige Rohprofil enthält deine gesamte Ausweichlogik, dein Entscheidungsleck, deinen Schatten — und wie dein Deepling kalibriert ist, dich <strong>im Moment zu erwischen, nicht danach.</strong></div>
-         <a class="cta" href="${esc(opts.ctaUrl ?? `${opts.appUrl ?? 'https://deepling.de'}/onboarding`)}">Rohprofil freischalten — ${esc(opts.price ?? '49 €')}</a>
+         <div class="pwbody">Diese Vorschau zeigt zwei Muster und einen blinden Fleck. Im vollständigen Rohprofil erfährst du zusätzlich:</div>
+         <ul class="pwlist">
+           <li>dein persönliches Vier-Felder-Stärkenprofil</li>
+           <li>deine individuellen Schatten — und was sie schützen</li>
+           <li>dein Entscheidungsleck</li>
+           <li>deine 90-Tage-Orientierung</li>
+           <li>wie dein Deepling kalibriert wird, dich <strong>im Moment zu erwischen, nicht danach</strong></li>
+         </ul>
+         <a class="cta" href="${esc(opts.ctaUrl ?? `${opts.appUrl ?? 'https://deepling.de'}/onboarding`)}">Rohprofil freischalten — ${esc(opts.price ?? '149 €')}</a>
          <div class="pwfine">Einmalig · Sofortiger Zugang · Kein Abo</div>
        </div>`
     : (doc.schatten

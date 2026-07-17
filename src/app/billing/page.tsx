@@ -51,15 +51,17 @@ export default async function BillingPage() {
   let demoAllowed = false
   let trialUntil: string | null = null
   let trialDaysLeft = 0
+  let fullUnlocked = false
 
   if (user) {
     const [{ data: subData }, { data: profileData }] = await Promise.all([
       supabase.from('subscriptions').select('status, current_period_end, cancel_at_period_end')
         .eq('user_id', user.id).maybeSingle(),
-      supabase.from('profiles').select('trial_until').eq('id', user.id).maybeSingle(),
+      supabase.from('profiles').select('trial_until, full_unlocked').eq('id', user.id).maybeSingle(),
     ])
     sub = subData
     isActive = !!sub && ACTIVE_STATUSES.has(sub.status)
+    fullUnlocked = profileData?.full_unlocked === true
     trialUntil = profileData?.trial_until ?? null
     if (trialUntil) {
       const ms = new Date(trialUntil).getTime() - Date.now()
@@ -93,10 +95,67 @@ export default async function BillingPage() {
           periodEnd={sub.current_period_end}
           cancelAtPeriodEnd={sub.cancel_at_period_end}
         />
+      ) : fullUnlocked ? (
+        <UnlockedCard />
       ) : (
-        <ChooseTier showTestPlan={demoAllowed} isLoggedIn={!!user} />
+        <>
+          <FullUnlockCard isLoggedIn={!!user} />
+          <div className="mt-10 pt-8 border-t border-[var(--color-line)]">
+            <ChooseTier showTestPlan={demoAllowed} isLoggedIn={!!user} />
+          </div>
+        </>
       )}
     </main>
+  )
+}
+
+function FullUnlockCard({ isLoggedIn }: { isLoggedIn: boolean }) {
+  return (
+    <>
+      <h1 className="text-3xl font-semibold tracking-tight mb-2">Dein vollständiges Rohprofil</h1>
+      <p className="text-[var(--color-ink-2)] mb-7">
+        Die Vorschau hat dir zwei Muster und einen blinden Fleck gezeigt. Das
+        vollständige Rohprofil geht tiefer — und schaltet den zweiten Teil des
+        Fragebogens frei, aus dem dein Deepling vollständig kalibriert wird.
+      </p>
+      <div className="card">
+        <div className="text-sm font-semibold text-[var(--color-muted)] uppercase tracking-wider mb-2">
+          Vollprofil freischalten
+        </div>
+        <div className="flex items-baseline gap-1 mb-1">
+          <div className="text-4xl font-semibold tracking-tight">149 €</div>
+          <div className="text-[var(--color-muted)]">einmalig</div>
+        </div>
+        <div className="text-xs text-[var(--color-success)] font-semibold mb-4">
+          ✓ Einmalig · Sofortiger Zugang · Kein Abo
+        </div>
+        <ul className="space-y-2 text-sm text-[var(--color-ink-2)] mb-5">
+          <li className="flex gap-2.5"><span className="text-[var(--color-accent)] shrink-0">•</span><span>dein persönliches Vier-Felder-Stärkenprofil</span></li>
+          <li className="flex gap-2.5"><span className="text-[var(--color-accent)] shrink-0">•</span><span>deine individuellen Schatten — und was sie schützen</span></li>
+          <li className="flex gap-2.5"><span className="text-[var(--color-accent)] shrink-0">•</span><span>dein Entscheidungsleck und deine 90-Tage-Orientierung</span></li>
+          <li className="flex gap-2.5"><span className="text-[var(--color-accent)] shrink-0">•</span><span>der vertiefende zweite Fragebogen-Teil + voll kalibrierter Coach</span></li>
+        </ul>
+        <CheckoutButton plan="full" ctaText="Rohprofil freischalten — 149 €" isLoggedIn={isLoggedIn} />
+        <p className="mt-3 text-center text-xs text-[var(--color-muted)]">Sichere Zahlung über Stripe.</p>
+      </div>
+    </>
+  )
+}
+
+function UnlockedCard() {
+  return (
+    <div className="card">
+      <div className="chip mb-3">Freigeschaltet</div>
+      <h2 className="text-2xl font-semibold tracking-tight mb-2">Dein Vollprofil ist freigeschaltet.</h2>
+      <p className="text-[var(--color-ink-2)]">
+        Mach jetzt den zweiten Teil des Fragebogens — danach erstellt dein Deepling
+        dein vollständiges Rohprofil und kalibriert sich neu.
+      </p>
+      <div className="mt-5 flex flex-col gap-2">
+        <Link href="/onboarding" className="btn btn-primary btn-block">Weiter zu Teil 2 →</Link>
+        <Link href="/coach" className="btn btn-ghost btn-block">Zum Coach</Link>
+      </div>
+    </div>
   )
 }
 

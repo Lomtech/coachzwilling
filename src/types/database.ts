@@ -68,6 +68,7 @@ export type Database = {
           source_response_id: string | null
           ton_profil_md: string | null
           tone_oneliner: string | null
+          tier: string
           user_id: string
           version: number
         }
@@ -89,6 +90,7 @@ export type Database = {
           source_response_id?: string | null
           ton_profil_md?: string | null
           tone_oneliner?: string | null
+          tier?: string
           user_id: string
           version?: number
         }
@@ -110,6 +112,7 @@ export type Database = {
           source_response_id?: string | null
           ton_profil_md?: string | null
           tone_oneliner?: string | null
+          tier?: string
           user_id?: string
           version?: number
         }
@@ -453,6 +456,8 @@ export type Database = {
           followup_frequency_days: number
           followup_unsubscribed_at: string | null
           full_name: string | null
+          full_unlocked: boolean
+          full_unlocked_at: string | null
           grandfathered: boolean
           id: string
           last_followup_at: string | null
@@ -467,6 +472,8 @@ export type Database = {
           followup_frequency_days?: number
           followup_unsubscribed_at?: string | null
           full_name?: string | null
+          full_unlocked?: boolean
+          full_unlocked_at?: string | null
           grandfathered?: boolean
           id: string
           last_followup_at?: string | null
@@ -481,6 +488,8 @@ export type Database = {
           followup_frequency_days?: number
           followup_unsubscribed_at?: string | null
           full_name?: string | null
+          full_unlocked?: boolean
+          full_unlocked_at?: string | null
           grandfathered?: boolean
           id?: string
           last_followup_at?: string | null
@@ -496,6 +505,8 @@ export type Database = {
           completed_at: string | null
           created_at: string
           id: string
+          part1_completed_at: string | null
+          part2_completed_at: string | null
           updated_at: string
           user_id: string
         }
@@ -504,6 +515,8 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          part1_completed_at?: string | null
+          part2_completed_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -512,6 +525,8 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          part1_completed_at?: string | null
+          part2_completed_at?: string | null
           updated_at?: string
           user_id?: string
         }

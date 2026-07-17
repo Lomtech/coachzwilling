@@ -1,4 +1,5 @@
 import { COACH_SYSTEM_PROMPT } from '@/lib/coach/prompts'
+import { MINI_SYSTEM_PROMPT } from '@/lib/coach/prompts-mini'
 
 export interface CoachSystemBlocks {
   blocks: Array<{
@@ -29,15 +30,18 @@ export function buildCoachSystem(
   memoryMd: string,
   toneOneliner?: string | null,
   languageMirror?: string | null,
-  opts?: { isFreshConversation?: boolean; firstName?: string | null },
+  opts?: { isFreshConversation?: boolean; firstName?: string | null; tier?: 'mini' | 'full' },
 ): CoachSystemBlocks {
+  // Gratis-Chat (tier='mini') nutzt den Mini-System-Prompt V1 + Mini-Wissensdatei
+  // (MB0–MB6); der bezahlte Chat den vollen V4.1 + B0–B15.
+  const isMini = opts?.tier === 'mini'
   const profileBlock = `=== PROFIL DES NUTZERS (Onboarding-Auswertung, intern, nicht zitieren) ===\n\n${coachProfileMd}\n\n=== ENDE PROFIL ===`
 
   const blocks: CoachSystemBlocks['blocks'] = [
     // Block 1: Profil ZUERST — dominiert die Aufmerksamkeit
     { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
-    // Block 2: Universal-Regeln danach
-    { type: 'text', text: COACH_SYSTEM_PROMPT },
+    // Block 2: Coach-Regeln danach (voll V4.1 oder Mini-System-Prompt V1)
+    { type: 'text', text: isMini ? MINI_SYSTEM_PROMPT : COACH_SYSTEM_PROMPT },
   ]
 
   // Block 3: Living Memory (optional)
@@ -76,7 +80,9 @@ export function buildCoachSystem(
 • Offene Verabredung (z. B. "morgen Rückmeldungsquote") höchstens 1× kurz erwähnen, dann zum aktuellen Thema. Niemals als Vorbedingung verwenden.
 • Bei Meta-Anfragen ("zeig mir mein Profil", "wie beschreibst du mich", "welcher Beruf passt zu mir") — direkt antworten aus dem Profil. Niemals verweigern mit "Das machen wir nicht" oder Pseudo-Wisdom.
 • Wenn der User explizit sagt "du wiederholst dich" / "du hängst" / "du spinnst" / "du bist behindert" — BEKENNTNIS und Bruch. Nicht stoisch weitermachen. Beispiel: "Stimmt, war Wiederholung. Anderer Winkel: …" und dann ECHT neuer Gedanke.
-• Folge dem primären Modus aus B9 (KONFRONTATION / KONFRONTATION MIT SUBSTANZ / RAUM / RÜCKENWIND). Schatten (B5) und Blinder Fleck (B6) bei RAUM/RÜCKENWIND nicht als Eröffnung und nicht im ersten Gespräch einsetzen.`
+${isMini
+  ? '• Folge dem Grobmodus aus MB4 (KONFRONTATION / KONFRONTATION MIT SUBSTANZ / RAUM / RÜCKENWIND). Schatten und Blinder Fleck (MB3) sind im Gratis-Chat GESPERRT — nie direkt benennen, nur Fragen stellen, die die Person selbst in die Nähe führen. Muster erst nach zweimaligem Auftreten im Gespräch benennen. Kein sekundärer Modus. Nicht verkaufen — kein Hinweis aufs Rohprofil, außer die Person fragt selbst.'
+  : '• Folge dem primären Modus aus B9 (KONFRONTATION / KONFRONTATION MIT SUBSTANZ / RAUM / RÜCKENWIND). Schatten (B5) und Blinder Fleck (B6) bei RAUM/RÜCKENWIND nicht als Eröffnung und nicht im ersten Gespräch einsetzen.'}`
   )
 
   // Ansprache mit Vornamen — steht im Block 4 (höchste Recency), damit es

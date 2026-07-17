@@ -5,7 +5,7 @@ import { useState } from 'react'
 export function CheckoutButton({
   plan, ctaText, isLoggedIn = true,
 }: {
-  plan: 'monthly' | 'yearly' | 'test'
+  plan: 'monthly' | 'yearly' | 'test' | 'full'
   ctaText?: string
   isLoggedIn?: boolean
 }) {
@@ -43,6 +43,7 @@ export function CheckoutButton({
   const defaultCta =
     plan === 'yearly' ? 'Jährlich starten →' :
     plan === 'test'   ? 'Test-Charge (1 €) starten →' :
+    plan === 'full'   ? 'Rohprofil freischalten — 149 €' :
                         'Monatlich starten →'
 
   return (

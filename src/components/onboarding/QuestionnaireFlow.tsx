@@ -1,17 +1,28 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { QUESTIONS, TOTAL_QUESTIONS, FOLLOWUP_QUESTION_IDS, type Question } from '@/data/questionnaire'
+import {
+  questionsForPart,
+  partOf,
+  vertiefungQ4Prompt,
+  type Question,
+} from '@/data/questionnaire'
 
 interface Props {
   initialAnswers: Record<string, string>
   initialIndex: number
+  /** 1 = kostenloser Teil-1-Scan (22 Fragen → Mini-Profil). 2 = Teil 2 nach Kauf (28 Fragen → Vollprofil). */
+  part?: 1 | 2
 }
 
-const TOTAL_FOLLOWUPS = FOLLOWUP_QUESTION_IDS.length // V3-Doc: genau 5 feste Nachfragen
+// Ein Schritt im Flow: entweder eine echte Frage, oder — als Pflicht-Einstieg
+// von Teil 2 — die Vertiefung zur Teil-1-Antwort auf Frage 4.
+type Step =
+  | { kind: 'question'; q: Question }
+  | { kind: 'vertiefung' }
 
-export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
+export function QuestionnaireFlow({ initialAnswers, initialIndex, part = 1 }: Props) {
   const router = useRouter()
   const [answers, setAnswers] = useState<Record<string, string>>(initialAnswers)
   const [index, setIndex] = useState(initialIndex)
@@ -20,21 +31,49 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
   const [profilerChars, setProfilerChars] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
-  // Nachfrage-State pro Frage (V3-Doc: 5 feste Nachfragen an Q4, Q21, Q30, Q33, Q40)
+  // Nachfrage-State (feste Nachfragen: Teil 1 an Q21; Teil 2 an Q30/Q33/Q40).
+  // Dieselbe followUpAnswer-State trägt auch die Vertiefungs-Antwort von Teil 2.
   const [showFollowUp, setShowFollowUp] = useState(false)
   const [followUpAnswer, setFollowUpAnswer] = useState('')
 
-  // Opt-in für Follow-up-Mails — wird auf dem letzten Frage-Screen unter dem
-  // "Profil erstellen"-Button als kleine Karte gezeigt. Default false (DSGVO).
+  // Opt-in für Follow-up-Mails — nur auf dem letzten Screen von Teil 1 (DSGVO, default false).
   const [followupOptIn, setFollowupOptIn] = useState(false)
 
-  const q: Question = QUESTIONS[index]
-  const rawAnswer = answers[String(q.id)] ?? ''
-  // Wenn die Antwort schon einen Probe-Supplement enthält (Format: "X | Y"), nimm nur den ersten Teil als raw
+  // Schritte dieses Teils. Teil 2 beginnt mit der Pflicht-Vertiefung zu Q4.
+  const steps = useMemo<Step[]>(() => {
+    const qs = questionsForPart(part).map(q => ({ kind: 'question' as const, q }))
+    return part === 2 ? [{ kind: 'vertiefung' as const }, ...qs] : qs
+  }, [part])
+  const TOTAL_STEPS = steps.length
+
+  const safeIndex = Math.min(Math.max(0, index), TOTAL_STEPS - 1)
+  const step = steps[safeIndex]
+  const isVertiefung = step.kind === 'vertiefung'
+  const q = step.kind === 'question' ? step.q : null
+
+  // followUp gilt nur, wenn er in DIESEM Teil gestellt wird. Q4 (followUpPart=2)
+  // erscheint in Teil 1 nicht — seine Nachfrage ist der Vertiefungs-Einstieg von Teil 2.
+  const qHasFollowUp = !!q?.followUp && (q.followUpPart ?? partOf(q.id)) === part
+
+  // Q4-Hauptantwort (aus Teil 1) — für das wörtliche Zitat im Vertiefungs-Einstieg.
+  const q4main = (answers['4'] ?? '').split(/\s*\|\s*/)[0] ?? ''
+
+  const rawAnswer = q ? (answers[String(q.id)] ?? '') : ''
   const rawOnly = rawAnswer.split(/\s*\|\s*/)[0]
-  const answered = Boolean(rawAnswer)
-  const progress = Math.round(((index) / TOTAL_QUESTIONS) * 100)
-  const isLast = index === TOTAL_QUESTIONS - 1
+  const answered = isVertiefung ? Boolean(followUpAnswer.trim()) : Boolean(rawAnswer)
+  const progress = Math.round((safeIndex / TOTAL_STEPS) * 100)
+  const isLast = safeIndex === TOTAL_STEPS - 1
+
+  // Feste Nachfragen dieses Teils (für den Hinweis-Zähler).
+  const followUpIdsInPart = useMemo(
+    () =>
+      steps.flatMap(s =>
+        s.kind === 'question' && s.q.followUp && (s.q.followUpPart ?? partOf(s.q.id)) === part
+          ? [s.q.id]
+          : [],
+      ),
+    [steps, part],
+  )
 
   // Auto-save bei jedem Update
   useEffect(() => {
@@ -49,24 +88,40 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
     return () => clearTimeout(t)
   }, [answers])
 
-  // Reset Nachfrage-State bei Frage-Wechsel — falls die nächste Frage selbst
-  // schon eine bestehende Nachfrage-Antwort hat (Resume-Fall), pre-populate.
+  // Bei Schritt-Wechsel den Nachfrage-/Vertiefungs-State zurücksetzen und ggf.
+  // bestehende Antworten (Resume) vorbefüllen.
   useEffect(() => {
-    const raw = answers[String(q.id)] ?? ''
-    const [, existingFollow] = raw.split(/\s*\|\s*/)
     setShowFollowUp(false)
-    setFollowUpAnswer(existingFollow ?? '')
-  }, [index, q.id, answers])
+    if (isVertiefung) {
+      // Vertiefung teilt sich answers["4"] mit der Q4-Hauptantwort ("main | vertiefung").
+      const follow = (answers['4'] ?? '').split(/\s*\|\s*/)[1] ?? ''
+      setFollowUpAnswer(follow)
+    } else if (q) {
+      const [, existingFollow] = (answers[String(q.id)] ?? '').split(/\s*\|\s*/)
+      setFollowUpAnswer(existingFollow ?? '')
+    }
+    // Nur bei echtem Schritt-Wechsel neu initialisieren.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safeIndex])
 
   function setAnswer(value: string) {
+    if (!q) return
     setAnswers(prev => ({ ...prev, [String(q.id)]: value }))
+  }
+
+  // Vertiefungs-Antwort in answers["4"] als Nachfrage-Teil ablegen ("main | vertiefung").
+  function commitVertiefungAndProceed() {
+    const supplement = followUpAnswer.trim()
+    setAnswers(prev => {
+      const main = (prev['4'] ?? '').split(/\s*\|\s*/)[0] ?? ''
+      return { ...prev, '4': supplement ? `${main} | ${supplement}` : main }
+    })
+    proceedToNext()
   }
 
   function commitFollowUpAndProceed() {
     const supplement = followUpAnswer.trim()
-    const combined = supplement
-      ? `${rawOnly.trim()} | ${supplement}`
-      : rawOnly.trim()
+    const combined = supplement ? `${rawOnly.trim()} | ${supplement}` : rawOnly.trim()
     setAnswer(combined)
     setShowFollowUp(false)
     setFollowUpAnswer('')
@@ -75,21 +130,14 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
 
   function proceedToNext() {
     if (isLast) return
-    startTransition(() => setIndex(i => Math.min(TOTAL_QUESTIONS - 1, i + 1)))
+    startTransition(() => setIndex(i => Math.min(TOTAL_STEPS - 1, i + 1)))
   }
 
   function next() {
     if (!answered) return
-    // Wenn Nachfrage gerade aktiv: ergänzen oder überspringen
-    if (showFollowUp) {
-      commitFollowUpAndProceed()
-      return
-    }
-    // V3-Doc: feste Nachfrage nur an den im Fragebogen markierten Stellen
-    if (q.followUp) {
-      setShowFollowUp(true)
-      return
-    }
+    if (isVertiefung) { commitVertiefungAndProceed(); return }
+    if (showFollowUp) { commitFollowUpAndProceed(); return }
+    if (qHasFollowUp) { setShowFollowUp(true); return }
     proceedToNext()
   }
 
@@ -110,16 +158,13 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
       const res = await fetch('/api/onboarding/finalize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-        body: JSON.stringify({ answers, followupOptIn }),
+        body: JSON.stringify({ answers, followupOptIn, part }),
       })
       if (!res.ok || !res.body) {
         const t = await res.text().catch(() => '')
         throw new Error(t || `HTTP ${res.status}`)
       }
 
-      // SSE-Reader. Bei Erfolg endet der Stream mit `event: done`.
-      // Wenn der Stream wegen Netz / Tab-Suspend abreisst, fällt der
-      // catch-Block unten auf Polling /api/onboarding/status zurück.
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buf = ''
@@ -157,8 +202,6 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
 
       if (sawError) throw new Error(sawError)
       if (!sawDone) {
-        // Stream endete ohne `done` → könnte sein, dass die DB-Persistenz
-        // server-seitig trotzdem durchlief. Polling-Fallback.
         const ok = await pollUntilProfiled()
         if (!ok) throw new Error('Profil-Generation hat zu lange gedauert')
       }
@@ -166,8 +209,6 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
       router.push('/coach')
       router.refresh()
     } catch (e: unknown) {
-      // Streckenrest: vielleicht ist das Profil schon da, nur die Verbindung
-      // tot. Vor dem Fehler-Anzeigen einmal pollen.
       const ok = await pollUntilProfiled(3).catch(() => false)
       if (ok) {
         router.push('/coach')
@@ -180,107 +221,120 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
   }
 
   if (finalizing) {
-    return <FinalizingView chars={profilerChars} />
+    return <FinalizingView chars={profilerChars} part={part} />
   }
+
+  const finishLabel = part === 2 ? 'Vollprofil erstellen →' : 'Kurz-Profil erstellen →'
+  const sectionLabel = isVertiefung ? 'Teil 2 · Vertiefung' : q!.section
 
   return (
     <div className="flex flex-col min-h-dvh">
       {/* Progress bar */}
       <div className="px-5 pt-5 pb-3 max-w-xl w-full mx-auto">
         <div className="flex items-center justify-between text-xs text-[var(--color-muted)] mb-2">
-          <span>{q.section}</span>
-          <span>{index + 1} / {TOTAL_QUESTIONS}</span>
+          <span>{sectionLabel}</span>
+          <span>{safeIndex + 1} / {TOTAL_STEPS}</span>
         </div>
         <div className="h-1.5 w-full bg-[var(--color-surface-2)] rounded-full overflow-hidden">
-          <div
-            className="h-full bg-[var(--color-ink)] transition-all"
-            style={{ width: `${progress}%` }}
-          />
+          <div className="h-full bg-[var(--color-ink)] transition-all" style={{ width: `${progress}%` }} />
         </div>
       </div>
 
-      {/* Question */}
+      {/* Question / Vertiefung */}
       <div className="flex-1 px-5 pt-6 pb-32 max-w-xl w-full mx-auto">
-        <h1 className="text-xl sm:text-2xl font-semibold leading-snug tracking-tight">
-          {q.prompt}
-        </h1>
-        {q.helper && (
-          <p className="mt-3 text-sm text-[var(--color-ink-2)]">{q.helper}</p>
-        )}
-
-        <div className="mt-7 space-y-2.5">
-          {q.type === 'open' ? (
-            <>
+        {isVertiefung ? (
+          <>
+            <div className="text-xs text-[var(--color-accent)] font-semibold uppercase tracking-wider mb-2">
+              Der bezahlte Teil beginnt hier — direkt in der Tiefe.
+            </div>
+            <h1 className="text-xl sm:text-2xl font-semibold leading-snug tracking-tight">
+              {vertiefungQ4Prompt(q4main)}
+            </h1>
+            <div className="mt-7">
               <textarea
-                autoFocus={!showFollowUp}
-                value={rawOnly}
-                onChange={e => setAnswer(e.target.value)}
+                autoFocus
+                value={followUpAnswer}
+                onChange={e => setFollowUpAnswer(e.target.value)}
                 placeholder="In eigenen Worten …"
                 rows={5}
-                disabled={showFollowUp}
-                className={showFollowUp ? 'opacity-60' : ''}
               />
-              {/* Feste Nachfrage gemäss V3-Doc: erscheint nach Klick auf "Weiter"
-                  bei Q4, Q21, Q30, Q33, Q40 */}
-              {showFollowUp && q.followUp && (
-                <div className="mt-4 card border-l-4 border-l-[var(--color-accent)] bg-[var(--color-accent-soft)]/30 anim-fade-up">
-                  <div className="flex items-start gap-2 mb-3">
-                    <span className="text-[var(--color-accent)] text-lg leading-none">↳</span>
-                    <p className="text-sm font-medium text-[var(--color-ink)]">
-                      {q.followUp}
-                    </p>
-                  </div>
-                  <textarea
-                    autoFocus
-                    value={followUpAnswer}
-                    onChange={e => setFollowUpAnswer(e.target.value)}
-                    placeholder="Konkreter beschreiben (optional) …"
-                    rows={3}
-                  />
-                  <div className="mt-2 text-xs text-[var(--color-muted)]">
-                    Klick „Weiter" um zu ergänzen oder leer lassen + „Weiter" um zu überspringen.
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            q.options!.map(opt => {
-              const selected = answers[String(q.id)] === opt.value
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setAnswer(opt.value)}
-                  className={
-                    'w-full text-left px-4 py-3.5 rounded-2xl border transition ' +
-                    (selected
-                      ? 'bg-[var(--color-ink)] text-white border-[var(--color-ink)]'
-                      : 'bg-[var(--color-surface)] border-[var(--color-border)] hover:bg-[var(--color-surface-2)]')
-                  }
-                >
-                  {opt.label}
-                </button>
-              )
-            })
-          )}
-        </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <h1 className="text-xl sm:text-2xl font-semibold leading-snug tracking-tight">
+              {q!.prompt}
+            </h1>
+            {q!.helper && <p className="mt-3 text-sm text-[var(--color-ink-2)]">{q!.helper}</p>}
 
-        {error && (
-          <div className="mt-4 text-sm text-[var(--color-danger)]">{error}</div>
+            <div className="mt-7 space-y-2.5">
+              {q!.type === 'open' ? (
+                <>
+                  <textarea
+                    autoFocus={!showFollowUp}
+                    value={rawOnly}
+                    onChange={e => setAnswer(e.target.value)}
+                    placeholder="In eigenen Worten …"
+                    rows={5}
+                    disabled={showFollowUp}
+                    className={showFollowUp ? 'opacity-60' : ''}
+                  />
+                  {/* Feste Nachfrage: erscheint nach „Weiter" an den markierten Stellen dieses Teils */}
+                  {showFollowUp && qHasFollowUp && (
+                    <div className="mt-4 card border-l-4 border-l-[var(--color-accent)] bg-[var(--color-accent-soft)]/30 anim-fade-up">
+                      <div className="flex items-start gap-2 mb-3">
+                        <span className="text-[var(--color-accent)] text-lg leading-none">↳</span>
+                        <p className="text-sm font-medium text-[var(--color-ink)]">{q!.followUp}</p>
+                      </div>
+                      <textarea
+                        autoFocus
+                        value={followUpAnswer}
+                        onChange={e => setFollowUpAnswer(e.target.value)}
+                        placeholder="Konkreter beschreiben (optional) …"
+                        rows={3}
+                      />
+                      <div className="mt-2 text-xs text-[var(--color-muted)]">
+                        Klick „Weiter" um zu ergänzen oder leer lassen + „Weiter" um zu überspringen.
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                q!.options!.map(opt => {
+                  const selected = answers[String(q!.id)] === opt.value
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setAnswer(opt.value)}
+                      className={
+                        'w-full text-left px-4 py-3.5 rounded-2xl border transition ' +
+                        (selected
+                          ? 'bg-[var(--color-ink)] text-white border-[var(--color-ink)]'
+                          : 'bg-[var(--color-surface)] border-[var(--color-border)] hover:bg-[var(--color-surface-2)]')
+                      }
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          </>
         )}
 
-        {/* Hinweis auf feste Nachfragen — nur an den fünf markierten Stellen */}
-        {q.followUp && !showFollowUp && (
+        {error && <div className="mt-4 text-sm text-[var(--color-danger)]">{error}</div>}
+
+        {/* Hinweis auf feste Nachfragen — nur an den markierten Stellen dieses Teils */}
+        {qHasFollowUp && !showFollowUp && (
           <div className="mt-4 text-xs text-[var(--color-muted)] text-right">
-            Eine Nachfrage folgt nach „Weiter" ({FOLLOWUP_QUESTION_IDS.indexOf(q.id) + 1} / {TOTAL_FOLLOWUPS})
+            Eine Nachfrage folgt nach „Weiter" ({followUpIdsInPart.indexOf(q!.id) + 1} / {followUpIdsInPart.length})
           </div>
         )}
 
-        {/* Follow-up-Opt-in nur auf der letzten Frage anzeigen — dezent, kein Modal */}
-        {isLast && !showFollowUp && (
-          <label
-            className="mt-8 flex items-start gap-3 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-2)]/50 cursor-pointer hover:bg-[var(--color-surface-2)] transition"
-          >
+        {/* Follow-up-Opt-in nur auf dem letzten Screen von Teil 1 */}
+        {part === 1 && isLast && !showFollowUp && (
+          <label className="mt-8 flex items-start gap-3 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-2)]/50 cursor-pointer hover:bg-[var(--color-surface-2)] transition">
             <input
               type="checkbox"
               checked={followupOptIn}
@@ -296,26 +350,26 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
         )}
       </div>
 
-      {/* Sticky footer mit Buttons */}
+      {/* Sticky footer */}
       <div className="fixed bottom-0 left-0 right-0 bg-[var(--color-bg)]/90 backdrop-blur border-t border-[var(--color-border)] safe-bottom">
         <div className="max-w-xl mx-auto px-5 py-3 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={prev}
-            disabled={(index === 0 && !showFollowUp) || pending}
+            disabled={(safeIndex === 0 && !showFollowUp) || pending}
             className="btn btn-ghost"
           >
             Zurück
           </button>
 
-          {isLast && !showFollowUp && !q.followUp ? (
+          {isLast && !showFollowUp && !qHasFollowUp ? (
             <button
               type="button"
               onClick={finalize}
               disabled={!answered || pending}
               className="btn btn-primary flex-1"
             >
-              Profil erstellen →
+              {finishLabel}
             </button>
           ) : isLast && showFollowUp ? (
             <button
@@ -348,9 +402,6 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex }: Props) {
  * Polling-Fallback wenn der SSE-Stream wegen Netz / Tab-Suspend abreisst.
  * Pollt `/api/onboarding/status` bis der Server-Profiler durchgelaufen ist
  * (state='profiled') oder ein definitiver Fehler (state='failed') erreicht wird.
- *
- * Auch beim Erfolgspfad als Sicherheitsnetz: wenn der Stream sauber endet aber
- * irgendwo ein Event verschluckt wurde, holt das Polling den Endzustand nach.
  */
 async function pollUntilProfiled(maxAttempts = 60): Promise<boolean> {
   for (let i = 0; i < maxAttempts; i++) {
@@ -368,27 +419,23 @@ async function pollUntilProfiled(maxAttempts = 60): Promise<boolean> {
   return false
 }
 
-function FinalizingView({ chars }: { chars: number }) {
-  // Heuristik: Opus 4.7 schreibt ein typisches Profil mit ca. 18-22k Chars.
-  // Damit eine Progress-Bar plausibel füllt — bei Stagnation (langsamer Stream)
-  // sieht der User trotzdem Bewegung über die Char-Anzeige.
-  const ESTIMATED_TOTAL = 20000
+function FinalizingView({ chars, part }: { chars: number; part: 1 | 2 }) {
+  const ESTIMATED_TOTAL = part === 2 ? 20000 : 8000
   const pct = Math.min(95, Math.round((chars / ESTIMATED_TOTAL) * 100))
+  const title = part === 2 ? 'Dein vollständiges Profil wird erstellt' : 'Dein Kurz-Profil wird erstellt'
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-6 text-center">
       <div className="w-12 h-12 rounded-full border-4 border-[var(--color-surface-2)] border-t-[var(--color-ink)] animate-spin mb-6" />
-      <h2 className="text-xl font-semibold tracking-tight mb-2">Dein Profil wird erstellt</h2>
+      <h2 className="text-xl font-semibold tracking-tight mb-2">{title}</h2>
       <p className="text-[var(--color-ink-2)] max-w-sm">
-        Dein Coach-Profil wird aus deinen Antworten kalibriert.
-        Das dauert in der Regel 1–3 Minuten — bitte den Tab offen lassen.
+        {part === 2
+          ? 'Dein Coach-Profil wird aus allen Antworten neu kalibriert. Das dauert in der Regel 1–3 Minuten — bitte den Tab offen lassen.'
+          : 'Dein Coach-Profil wird aus deinen Antworten kalibriert. Das dauert meist unter einer Minute — bitte den Tab offen lassen.'}
       </p>
       {chars > 0 && (
         <div className="mt-6 w-full max-w-xs">
           <div className="h-1.5 w-full bg-[var(--color-surface-2)] rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[var(--color-ink)] transition-all duration-300"
-              style={{ width: `${pct}%` }}
-            />
+            <div className="h-full bg-[var(--color-ink)] transition-all duration-300" style={{ width: `${pct}%` }} />
           </div>
           <div className="mt-2 text-xs text-[var(--color-muted)] tabular-nums">
             {chars.toLocaleString('de-DE')} Zeichen

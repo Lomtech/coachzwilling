@@ -13,7 +13,6 @@ import {
   detectDeflection,
   buildDeflectionCorrection,
 } from '@/lib/coach/repetition-check'
-import { ACTIVE_STATUSES } from '@/types/database'
 import type Anthropic from '@anthropic-ai/sdk'
 
 export const runtime = 'nodejs'
@@ -29,50 +28,17 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-  // Access-Gate (nur aktiv wenn Billing eingeschaltet).
-  // WICHTIG: dieselben Bypässe wie im Proxy-Gate (proxy.ts), sonst kommt ein
-  // User zwar auf /coach, bekommt aber beim Senden 402. Bestandsnutzer
-  // (grandfathered) UND Org-Member müssen hier genauso durch.
-  if (process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true') {
-    const [{ data: sub }, { data: profile }] = await Promise.all([
-      supabase.from('subscriptions').select('status').eq('user_id', user.id).maybeSingle(),
-      supabase.from('profiles').select('trial_until, grandfathered').eq('id', user.id).maybeSingle(),
-    ])
-    const grandfathered = profile?.grandfathered === true
-    const subActive = !!sub && ACTIVE_STATUSES.has(sub.status)
-    const trialActive = !!profile?.trial_until && new Date(profile.trial_until) > new Date()
-    const demoAllowed =
-      process.env.DEMO_MODE === 'true' &&
-      typeof user.email === 'string' &&
-      (process.env.DEMO_USER_EMAILS ?? '')
-        .split(',')
-        .map(s => s.trim().toLowerCase())
-        .includes(user.email.toLowerCase())
-
-    // B2B-Bypass: Org-Member (die Org hat bezahlt). Fehlte hier bisher — nur
-    // der Proxy hatte ihn, was Org-User beim Chatten ausgesperrt hätte.
-    let isOrgMember = false
-    if (!grandfathered && !subActive && !trialActive && !demoAllowed) {
-      const { data: membership } = await supabase
-        .from('organization_members')
-        .select('org_id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle()
-      isOrgMember = !!membership
-    }
-
-    if (!grandfathered && !subActive && !trialActive && !demoAllowed && !isOrgMember) {
-      return NextResponse.json({ error: 'trial expired' }, { status: 402 })
-    }
-  }
+  // Zwei-Stufen-Modell: Der Gratis-Chat ist für ALLE offen, die Teil 1
+  // abgeschlossen haben (= aktives Coach-Profil vorhanden, s. 409-Check unten).
+  // Monetarisiert wird nicht der Chat, sondern die 149-€-Freischaltung von
+  // Teil 2 + Vollprofil. Deshalb hier KEIN Billing-Gate mehr.
 
   // Coach-Profile + Name parallel laden: Profil für den 4-Block-System-Prompt,
   // Vorname für die persönliche Ansprache durch den Coach.
   const [{ data: cp }, { data: prof }] = await Promise.all([
     supabase
       .from('coach_profiles')
-      .select('config_md, tone_oneliner, language_mirror')
+      .select('config_md, tone_oneliner, language_mirror, tier')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .order('generated_at', { ascending: false })
@@ -155,7 +121,7 @@ export async function POST(req: NextRequest) {
     memoryMd,
     cp.tone_oneliner,
     cp.language_mirror,
-    { isFreshConversation, firstName },
+    { isFreshConversation, firstName, tier: cp.tier === 'mini' ? 'mini' : 'full' },
   )
 
   // SSE-Stream zum Client + parallel im Hintergrund Persistierung

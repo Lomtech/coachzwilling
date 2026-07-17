@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import type Stripe from 'stripe'
 import { stripe } from '@/lib/stripe/client'
 import { syncSubscriptionFromStripe } from '@/lib/stripe/sync'
+import { serviceClient } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
 
@@ -25,7 +26,16 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object
-        if (session.subscription && typeof session.subscription === 'string') {
+        if (session.mode === 'payment' && session.payment_status === 'paid') {
+          // 149-€-Einmalkauf → Teil 2 + Vollprofil freischalten (idempotent).
+          const userId = session.metadata?.user_id
+          if (userId) {
+            await serviceClient()
+              .from('profiles')
+              .update({ full_unlocked: true, full_unlocked_at: new Date().toISOString() })
+              .eq('id', userId)
+          }
+        } else if (session.subscription && typeof session.subscription === 'string') {
           const userId = session.metadata?.user_id ?? undefined
           await syncSubscriptionFromStripe(session.subscription, userId)
         }

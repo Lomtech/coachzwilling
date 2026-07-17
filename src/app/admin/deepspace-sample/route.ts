@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
   const html = renderDeepSpaceHtml(SAMPLE_DEEPSPACE_DOC, {
     variant,
     appUrl: 'https://deepling.de',
-    price: '49 €',
+    price: '149 €',
   })
   return new NextResponse(html, { headers: { 'content-type': 'text/html; charset=utf-8' } })
 }

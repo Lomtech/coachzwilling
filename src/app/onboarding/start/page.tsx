@@ -8,12 +8,9 @@ export default async function OnboardingStartPage() {
   if (!user) redirect('/login?next=/onboarding')
 
   // DEFENSIVE: nicht stumpf auf 'questionnaire' setzen.
-  // Wenn der User bereits ein aktives Coach-Profil hat (also bereits durch
-  // ein Onboarding durch ist), darf er hier nicht aus Versehen seinen State
-  // zurückgesetzt bekommen — sonst fliegt er aus dem Cron-Filter,
-  // bekommt keine Follow-up-Mails mehr, der Coach-Gate könnte ihn rausschmeißen.
-  // Re-Onboarding läuft über /api/onboarding/reset (setzt State explizit auf
-  // 'pending' + räumt Drafts auf) — DAS ist der einzige saubere Pfad.
+  // Wenn der User bereits ein aktives Coach-Profil hat, entscheidet /onboarding
+  // (Teil 2 falls 149 € gezahlt, sonst Gratis-Chat) — hier NICHT den State
+  // zurücksetzen. Re-Onboarding läuft über /api/onboarding/reset.
   const { data: existingProfile } = await supabase
     .from('coach_profiles')
     .select('id')
@@ -23,14 +20,13 @@ export default async function OnboardingStartPage() {
     .maybeSingle()
 
   if (existingProfile) {
-    // User hat schon ein Profil — soll lieber den Re-Onboarding-Button in
-    // /settings nutzen wenn er wirklich neu starten will. Direkt zum Coach.
-    redirect('/coach')
+    redirect('/onboarding')
   }
 
   await supabase.from('profiles')
     .update({ onboarding_state: 'questionnaire' })
     .eq('id', user.id)
 
-  return <QuestionnaireFlow initialAnswers={{}} initialIndex={0} />
+  // Frischer Start = Teil 1 (kostenloser 22-Fragen-Scan).
+  return <QuestionnaireFlow initialAnswers={{}} initialIndex={0} part={1} />
 }

@@ -14,9 +14,9 @@ export const dynamic = 'force-dynamic'
  * Jeder Nutzer bekommt den Link nach dem Fragebogen automatisch per Mail
  * (sendUserProfileReady). Hier ansehen und per Cmd/Strg+P als PDF sichern.
  *
- * Bewusst die 'mini'-Variante: Das VOLLE Rohprofil bleibt hinter Bezahlung.
- * Der Paywall-CTA zeigt deshalb auf /billing — nicht aufs Onboarding, das
- * dieser Nutzer ja bereits gemacht hat.
+ * Mini-Variante (Vorschau, Paywall-CTA auf /billing) für Gratis-Nutzer; nach
+ * dem 149-€-Kauf + Teil 2 (coach_profiles.tier='full') die volle Variante ohne
+ * Paywall. Nicht aufs Onboarding zeigen — das hat dieser Nutzer bereits gemacht.
  */
 export async function GET() {
   const supabase = await createClient()
@@ -27,7 +27,7 @@ export async function GET() {
   // fremdes Profil ziehen.
   const { data: cp } = await supabase
     .from('coach_profiles')
-    .select('id')
+    .select('id, tier')
     .eq('user_id', user.id)
     .eq('is_active', true)
     .order('generated_at', { ascending: false })
@@ -42,7 +42,10 @@ export async function GET() {
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://deepling.de'
-  const result = await loadAndRenderDeepSpace(cp.id, 'mini', { ctaUrl: `${appUrl}/billing` })
+  // Vollprofil (nach 149-€-Kauf + Teil 2) → volle Variante ohne Paywall.
+  // Sonst die Mini-Vorschau mit CTA auf die Bezahlseite.
+  const variant = cp.tier === 'full' ? 'full' : 'mini'
+  const result = await loadAndRenderDeepSpace(cp.id, variant, { ctaUrl: `${appUrl}/billing` })
   if ('error' in result) {
     return new NextResponse(result.error, { status: result.status })
   }

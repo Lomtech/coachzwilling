@@ -1,6 +1,7 @@
 import 'server-only'
 import { anthropic, PROFILER_MODEL } from '@/lib/claude/client'
 import { PROFILER_PROMPT, PROFILE_REFINE_PROMPT, MEMORY_SECTION_LABELS } from '@/lib/coach/prompts'
+import { MINI_PROFILER_PROMPT, profilerPromptV51 } from '@/lib/coach/prompts-mini'
 import { answersToScanText } from '@/data/questionnaire'
 
 /**
@@ -120,31 +121,38 @@ export async function streamCoachProfile(
   onChunk: (chunk: string, totalSoFar: number) => void,
 ): Promise<ProfilerResult> {
   const scanText = answersToScanText(answers)
-  const userMessage = `SCAN-OUTPUT:\n\n${scanText}`
+  return streamProfileCore(
+    { system: PROFILER_PROMPT, userMessage: `SCAN-OUTPUT:\n\n${scanText}`, maxTokens: 8192, label: 'streamCoachProfile' },
+    onChunk,
+  )
+}
 
+/**
+ * Gemeinsamer Streaming-Kern für alle Profiler-Varianten (voll, mini, V5.1).
+ * Retry um den GESAMTEN Stream-Konsum: Der 429 (Vertex RESOURCE_EXHAUSTED) kommt
+ * beim Iterieren, nicht beim .stream()-Aufbau. Bei Retry wird acc zurückgesetzt —
+ * onChunk nutzt totalSoFar (idempotent), die UI streamt einfach von vorne.
+ * max_tokens: V5-Profile (A1–A9 + B1–B15) brauchen ~6–8k Output-Tokens
+ * (verifiziert 2026-06-15, Sonnet 4.6: 6144 reichten nur bis B11).
+ */
+async function streamProfileCore(
+  params: { system: string; userMessage: string; maxTokens: number; label: string },
+  onChunk: (chunk: string, totalSoFar: number) => void,
+): Promise<ProfilerResult> {
   let acc = ''
   let modelId = PROFILER_MODEL
   let inputTokens = 0
   let outputTokens = 0
 
-  // Retry um den GESAMTEN Stream-Konsum: Der 429 (Vertex RESOURCE_EXHAUSTED)
-  // kommt beim Iterieren, nicht beim .stream()-Aufbau. Bei Retry setzen wir
-  // acc zurück — die UI sieht das Profil dann einfach von vorne streamen.
-  // onChunk muss damit umgehen können (ChatView/Finalize nutzen totalSoFar,
-  // nicht inkrementelle Akkumulation auf Client-Seite → idempotent).
   await withRateLimitRetry(async () => {
     acc = ''
     inputTokens = 0
     outputTokens = 0
     const stream = anthropic().messages.stream({
       model: PROFILER_MODEL,
-      // V5-Profile mit A1–A9 + B1–B15 brauchen ~6–8k Output-Tokens. Verifiziert
-      // 2026-06-15 mit Sonnet 4.6: 6144 tokens reichten nur bis B11 — Stream
-      // endete vor B14 (Tonprofil-Echo) und B15 (Sprach-Mirror), wodurch der
-      // Extractor null lieferte und der Coach generisch wurde.
-      max_tokens: 8192,
-      system: PROFILER_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
+      max_tokens: params.maxTokens,
+      system: params.system,
+      messages: [{ role: 'user', content: params.userMessage }],
     })
 
     for await (const ev of stream) {
@@ -159,7 +167,7 @@ export async function streamCoachProfile(
         outputTokens = ev.usage.output_tokens ?? outputTokens
       }
     }
-  }, 'streamCoachProfile')
+  }, params.label)
 
   const cleaned = acc.trim()
   const { tone, language } = extractToneAndLanguage(cleaned)
@@ -172,6 +180,44 @@ export async function streamCoachProfile(
     inputTokens,
     outputTokens,
   }
+}
+
+/**
+ * Mini-Profiler (Teil 1). Läuft nach den 22 Teil-1-Fragen und erzeugt die
+ * Mini-config_md: A-Mini (Doc-Inhalt M1–M3) + "---" + B-Mini (MB0–MB6, Gratis-Chat).
+ * tone/language bleiben i.d.R. null (Mini hat MB4/MB5 statt B14/B15) — die gesamte
+ * Mini-config_md wird ohnehin als Block 1 in den Gratis-Chat gehängt.
+ */
+export async function streamMiniCoachProfile(
+  answers: Record<string, string>,
+  onChunk: (chunk: string, totalSoFar: number) => void,
+): Promise<ProfilerResult> {
+  const scanText = answersToScanText(answers, { part: 1 })
+  return streamProfileCore(
+    { system: MINI_PROFILER_PROMPT, userMessage: `SCAN-OUTPUT (Teil 1 — 22 Fragen):\n\n${scanText}`, maxTokens: 6144, label: 'streamMiniCoachProfile' },
+    onChunk,
+  )
+}
+
+/**
+ * Voll-Auswertung nach Teil 2 (V5.1 + V5) über alle 50 Antworten. Optional wird
+ * die Mini-Kontinuität (2 Kernmuster + Blinder Fleck aus der Mini-Auswertung)
+ * beigelegt, damit das Vollprofil die Vorschau vertieft statt ihr zu widersprechen.
+ */
+export async function streamFullCoachProfileV51(
+  answers: Record<string, string>,
+  onChunk: (chunk: string, totalSoFar: number) => void,
+  opts?: { miniContinuity?: string },
+): Promise<ProfilerResult> {
+  const scanText = answersToScanText(answers)
+  let userMessage = `SCAN-OUTPUT (alle 50 Fragen, Teil 1 + Teil 2):\n\n${scanText}`
+  if (opts?.miniContinuity && opts.miniContinuity.trim()) {
+    userMessage += `\n\n## MINI-KONTINUITÄT (2 Kernmuster + Blinder Fleck aus der Mini-Auswertung)\n\n${opts.miniContinuity.trim()}`
+  }
+  return streamProfileCore(
+    { system: profilerPromptV51(), userMessage, maxTokens: 8192, label: 'streamFullCoachProfileV51' },
+    onChunk,
+  )
 }
 
 /**

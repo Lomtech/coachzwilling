@@ -120,7 +120,10 @@ async function attemptDeepSpaceDoc(source: string, opts: BuildOpts, reinforce: b
   const kind = opts.kind ?? 'profile'
   const sourceNote = kind === 'scan'
     ? `Rohmaterial: KURZE Scan-Antworten (nur wenige Antworten, KEIN volles Profil). Leite vorsichtig 2 plausible Kernmuster (Stärke/Kehrseite) + 1 blinden Fleck ab — es ist eine kostenlose Vorschau, keine Ferndiagnose. Nicht übertreiben; bleib nah an den Worten. schatten/orientierung weglassen.`
-    : `Rohmaterial: internes Rohprofil (config_md, Abschnitte A1–A9). Kernmuster aus A1, blinder Fleck aus A5 + A6.${opts.variant === 'full' ? ' Für die VOLLE Variante zusätzlich schatten (A4) + orientierung (A8) mitliefern.' : ''}`
+    : `Rohmaterial: internes Rohprofil (config_md). Die Struktur variiert:
+• Volle Profile: Abschnitte A1–A9 — Kernmuster aus A1, blinder Fleck aus A5 + A6, Chips-Leitthema aus A2 (Motivstruktur).
+• Mini-Profile (Teil-1-Auswertung): M1 Kopf / M2 Kernmuster / M3 Blinder Fleck — Kernmuster aus M2, blinder Fleck aus M3, Chips aus den M1-Kontext-Tags (Führungsspanne, Handlungsdruck, Jahr). Auf die M-Blöcke folgt eine Mini-Wissensdatei (MB0–MB6) — die ist NUR Hintergrund, NICHT ins Dokument übernehmen.
+Nutze die jeweils vorhandene Struktur; führe immer den Jahres-Chip "2026" mit.${opts.variant === 'full' ? ' Für die VOLLE Variante zusätzlich schatten (A4) + orientierung (A8) mitliefern.' : ''}`
 
   const reinforceNote = reinforce
     ? '\n\nWICHTIG: pullQuote, JEDES Kernmuster (Stärke UND Kehrseite, je title + body) und der blinderFleck (wasDuWillst, wasPassiert, eigeneWorte) MÜSSEN gefüllt sein. Lass KEIN Feld leer — leite notfalls sinngemäß aus dem Rohmaterial ab.'
@@ -257,7 +260,7 @@ export async function loadAndRenderDeepSpace(
   const html = renderDeepSpaceHtml(doc, {
     variant,
     appUrl: opts?.appUrl ?? (process.env.NEXT_PUBLIC_APP_URL || 'https://deepling.de'),
-    price: '49 €',
+    price: '149 €',
     ctaUrl: opts?.ctaUrl,
   })
   return { html }

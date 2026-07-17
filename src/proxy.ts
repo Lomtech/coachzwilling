@@ -88,16 +88,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 5) Coach-Gate: Profil + (Trial ODER Subscription)
+  // 5) Coach-Gate: nur Teil-1-Onboarding (aktives Profil) — der Gratis-Chat ist frei.
   if (path.startsWith(COACH_PREFIX)) {
     // Defensive Onboarding-Check: schau auf REAL-Daten (aktives coach_profile),
     // nicht nur auf den onboarding_state-Flag. Sonst hängen User die in der
     // DB-State-Update verloren haben permanent im Onboarding fest, auch wenn
     // sie längst ein Profil + Chat-Historie haben. (Bug-Report dreadflicker
     // 2026-05-25: State war "questionnaire" trotz 90 Messages + Profile.)
-    const [{ data: profile }, { data: sub }, { data: activeCoachProfile }] = await Promise.all([
-      supabase.from('profiles').select('onboarding_state, trial_until, grandfathered').eq('id', user.id).maybeSingle(),
-      supabase.from('subscriptions').select('status').eq('user_id', user.id).maybeSingle(),
+    const [{ data: profile }, { data: activeCoachProfile }] = await Promise.all([
+      supabase.from('profiles').select('onboarding_state').eq('id', user.id).maybeSingle(),
       supabase
         .from('coach_profiles')
         .select('id')
@@ -119,46 +118,9 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Wenn Billing global deaktiviert ist → kein Sub/Trial-Check, freie Nutzung
-    const billingEnabled = process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true'
-
-    if (billingEnabled) {
-      // Zugang erlaubt wenn: Bestandsnutzer ODER aktive Sub ODER Trial ODER
-      // DEMO_USER ODER Org-Member.
-      // Bestandsnutzer-Bypass: Alle User die VOR dem B2B-Gating registriert
-      // waren (profiles.grandfathered=true) behalten dauerhaft Zugang — sie
-      // sollen durchs Umstellen auf Direktverkauf nicht ausgesperrt werden.
-      // Neuanmeldungen haben grandfathered=false und durchlaufen das Gate.
-      const grandfathered = profile?.grandfathered === true
-      const subActive = sub?.status === 'active' || sub?.status === 'trialing'
-      const trialActive = !!profile?.trial_until && new Date(profile.trial_until) > new Date()
-      const demoAllowed =
-        process.env.DEMO_MODE === 'true' &&
-        typeof user.email === 'string' &&
-        (process.env.DEMO_USER_EMAILS ?? '')
-          .split(',')
-          .map(s => s.trim().toLowerCase())
-          .includes(user.email.toLowerCase())
-
-      // B2B-Bypass: User ist Member einer Organization → Org hat Lom/Michael
-      // bezahlt, dieser User braucht keine eigene Stripe-Sub.
-      let isOrgMember = false
-      if (!grandfathered && !subActive && !trialActive && !demoAllowed) {
-        const { data: membership } = await supabase
-          .from('organization_members')
-          .select('org_id')
-          .eq('user_id', user.id)
-          .limit(1)
-          .maybeSingle()
-        isOrgMember = !!membership
-      }
-
-      if (!grandfathered && !subActive && !trialActive && !demoAllowed && !isOrgMember) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/billing'
-        return NextResponse.redirect(url)
-      }
-    }
+    // Zwei-Stufen-Modell: /coach (Gratis-Chat) ist für alle offen, die Teil 1
+    // abgeschlossen haben (aktives Profil, oben geprüft). Kein Billing-Gate mehr —
+    // monetarisiert wird die 149-€-Freischaltung von Teil 2, nicht der Chat.
   }
 
   return response
