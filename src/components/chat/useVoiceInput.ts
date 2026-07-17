@@ -92,13 +92,19 @@ export function useVoiceInput(args: UseVoiceInputArgs): UseVoiceInputResult {
     const canRecord =
       typeof window.MediaRecorder !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
 
-    // Server-STT aktiv? Ohne Provider hat der Button keinen Sinn.
+    // Der Button zeigt sich, sobald der Browser aufnehmen kann — SOFORT und
+    // synchron. WICHTIG: NICHT vom async /api/transcribe-Ergebnis abhängig
+    // machen. Sonst konnte ein Mount→Cleanup→Mount-Rennen beim Laden (cancelled
+    // wurde true, BEVOR die .then lief) `supported` dauerhaft auf false hängen
+    // lassen → die ganze Mikro-UI fehlte flaky ("Mikro geht mal, geht mal nicht").
+    // Der Server-Check darf nur noch DOWNGRADEN, wenn STT wirklich aus ist.
+    if (canRecord) setSupported(true)
     void fetch('/api/transcribe', { method: 'GET' })
       .then(r => (r.ok ? r.json() : null))
       .then((j: { enabled?: boolean } | null) => {
-        if (!cancelled) setSupported(Boolean(j?.enabled) && canRecord)
+        if (!cancelled && j && j.enabled === false) setSupported(false)
       })
-      .catch(() => { if (!cancelled) setSupported(false) })
+      .catch(() => { /* transient: Button bleibt; ein echter POST-Fehler zeigt sich dann sichtbar */ })
 
     // Berechtigung VORAB lesen. 'microphone' ist nicht überall als
     // PermissionName implementiert (Safari/Firefox) → dann 'unknown', und wir
