@@ -30,6 +30,9 @@ interface UseVoiceInputArgs {
 export interface UseVoiceInputResult {
   /** Server-STT aktiv UND Browser kann aufnehmen. */
   supported: boolean
+  /** Touch-Gerät (Handy/Tablet): dort ist der Datei-Weg der OS-Recorder (sinnvoll);
+   *  am Desktop wäre es ein Datei-Dialog (Sackgasse). Steuert das denied-Verhalten. */
+  isTouch: boolean
   /** Vorab geprüfter Berechtigungs-Zustand (Permissions API). */
   permission: MicPermission
   recording: boolean
@@ -70,6 +73,7 @@ function extFromMime(mime: string): string {
 
 export function useVoiceInput(args: UseVoiceInputArgs): UseVoiceInputResult {
   const [supported, setSupported] = useState(false)
+  const [isTouch, setIsTouch] = useState(false)
   const [permission, setPermission] = useState<MicPermission>('unknown')
   const [recording, setRecording] = useState(false)
   const [transcribing, setTranscribing] = useState(false)
@@ -91,6 +95,13 @@ export function useVoiceInput(args: UseVoiceInputArgs): UseVoiceInputResult {
 
     const canRecord =
       typeof window.MediaRecorder !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
+
+    // Touch-Gerät? Am Handy öffnet der Datei-Weg den OS-Recorder (sinnvoll), am
+    // Desktop nur einen Datei-Dialog (Sackgasse) → dort führen wir zur Freigabe.
+    setIsTouch(
+      (window.matchMedia?.('(pointer: coarse)')?.matches ?? false) ||
+      (navigator.maxTouchPoints ?? 0) > 0,
+    )
 
     // Der Button zeigt sich, sobald der Browser aufnehmen kann — SOFORT und
     // synchron. WICHTIG: NICHT vom async /api/transcribe-Ergebnis abhängig
@@ -222,5 +233,5 @@ export function useVoiceInput(args: UseVoiceInputArgs): UseVoiceInputResult {
 
   const clearError = useCallback(() => setError(null), [])
 
-  return { supported, permission, recording, transcribing, error, start, stop, transcribeFile, clearError }
+  return { supported, isTouch, permission, recording, transcribing, error, start, stop, transcribeFile, clearError }
 }

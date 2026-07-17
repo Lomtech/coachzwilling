@@ -60,6 +60,9 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
   // automatisch auf den Datei-/OS-Recorder-Weg um, der ohne Website-Berechtigung
   // funktioniert. Niemand landet in einer Sackgasse.
   const fileRef = useRef<HTMLInputElement>(null)
+  // Desktop + Mikro blockiert: Klick aufs 🎙️ zeigt den Freigabe-Hinweis (statt
+  // eines nutzlosen Datei-Dialogs). Auf Touch-Geräten bleibt der OS-Recorder-Weg.
+  const [micHelp, setMicHelp] = useState(false)
   const voice = useVoiceInput({
     onTranscript: text => {
       setInput(prev => {
@@ -265,16 +268,23 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
           </div>
         </div>
       )}
-      {voice.supported && voice.permission === 'denied' && (
+      {micHelp && voice.supported && voice.permission === 'denied' && !voice.isTouch && (
         <div className="px-4 pb-2 max-w-2xl w-full mx-auto">
-          <div className="text-xs text-[var(--color-ink-2)] bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 flex items-start gap-2">
-            <span aria-hidden className="shrink-0">💡</span>
+          <div className="text-xs text-[var(--color-ink-2)] bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg px-3 py-2 flex items-start gap-2 anim-fade-up">
+            <span aria-hidden className="shrink-0">🎙️</span>
             <span className="flex-1">
-              Live-Mikro ist für diese Seite im Browser blockiert — das kann keine Website selbst
-              aufheben. Der 🎙️-Knopf nimmt deshalb über <strong>dein Gerät</strong> auf (Handy) bzw.
-              lädt eine Sprachdatei hoch; das braucht keine Freigabe. Live-Mikro reaktivieren:
-              Adressleiste → Website-Einstellungen → Mikrofon → „Zulassen".
+              <strong className="text-[var(--color-ink)]">Mikrofon ist für diese Seite im Browser blockiert.</strong>{' '}
+              Einmalig freigeben: Symbol links in der Adressleiste anklicken → <strong>Mikrofon → „Zulassen"</strong> →
+              Seite neu laden. Danach nimmt der 🎙️-Knopf live auf. (Keine Website kann das selbst aufheben.)
             </span>
+            <button
+              type="button"
+              onClick={() => setMicHelp(false)}
+              className="text-[var(--color-muted)] hover:text-[var(--color-ink)] shrink-0"
+              aria-label="Hinweis ausblenden"
+            >
+              ✕
+            </button>
           </div>
         </div>
       )}
@@ -313,7 +323,11 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
               />
               <button
                 type="button"
-                onClick={voice.permission === 'denied' ? () => fileRef.current?.click() : toggleVoice}
+                onClick={
+                  voice.permission === 'denied'
+                    ? (voice.isTouch ? () => fileRef.current?.click() : () => setMicHelp(true))
+                    : toggleVoice
+                }
                 disabled={streaming || voice.transcribing}
                 className={
                   'btn inline-flex items-center justify-center ' +
@@ -324,14 +338,17 @@ export function ChatView({ conversationId: convIdProp, initialMessages }: Props)
                 aria-label={
                   voice.transcribing ? 'Transkription läuft'
                   : voice.recording ? 'Aufnahme stoppen'
-                  : voice.permission === 'denied' ? 'Sprachaufnahme hochladen'
+                  : voice.permission === 'denied'
+                    ? (voice.isTouch ? 'Sprachaufnahme hochladen' : 'Mikrofon freigeben')
                   : 'Aufnahme starten'
                 }
                 title={
                   voice.transcribing ? 'Wird transkribiert …'
                   : voice.recording ? 'Aufnahme stoppen + transkribieren'
                   : voice.permission === 'denied'
-                    ? 'Mikro ist im Browser blockiert — hier über dein Gerät aufnehmen bzw. Sprachdatei hochladen'
+                    ? (voice.isTouch
+                        ? 'Über dein Gerät aufnehmen bzw. Sprachdatei hochladen'
+                        : 'Mikrofon ist im Browser blockiert — klicken zeigt die Freigabe')
                     : 'Mit dem Coach sprechen (aufnehmen → Text)'
                 }
               >
