@@ -183,6 +183,19 @@ async function streamProfileCore(
 }
 
 /**
+ * Frage 0 (Name, unbewertet) + aktuelles Jahr. Beides kommt NICHT aus dem
+ * Fragebogen, sondern aus der Registrierung (profiles.full_name) bzw. der
+ * Systemzeit — gehört laut Briefing aber in MB0/B0 („Anrede") + M1 („Kopf",
+ * Kontext-Tag Jahr). Ohne diesen Kopf schrieb der Profiler „Name nicht angegeben"
+ * und riet das Jahr (z.B. 2025).
+ */
+function frage0Kopf(name?: string | null): string {
+  const n = (name ?? '').trim()
+  return `Frage 0 (Name der Person, unbewertet — für MB0/B0 „Anrede" und den Kopf M1): ${n || '(nicht angegeben)'}\n` +
+    `Aktuelles Jahr (für den Kontext-Tag): ${new Date().getFullYear()}\n\n`
+}
+
+/**
  * Mini-Profiler (Teil 1). Läuft nach den 22 Teil-1-Fragen und erzeugt die
  * Mini-config_md: A-Mini (Doc-Inhalt M1–M3) + "---" + B-Mini (MB0–MB6, Gratis-Chat).
  * tone/language bleiben i.d.R. null (Mini hat MB4/MB5 statt B14/B15) — die gesamte
@@ -191,10 +204,11 @@ async function streamProfileCore(
 export async function streamMiniCoachProfile(
   answers: Record<string, string>,
   onChunk: (chunk: string, totalSoFar: number) => void,
+  opts?: { name?: string | null },
 ): Promise<ProfilerResult> {
   const scanText = answersToScanText(answers, { part: 1 })
   return streamProfileCore(
-    { system: MINI_PROFILER_PROMPT, userMessage: `SCAN-OUTPUT (Teil 1 — 22 Fragen):\n\n${scanText}`, maxTokens: 6144, label: 'streamMiniCoachProfile' },
+    { system: MINI_PROFILER_PROMPT, userMessage: `${frage0Kopf(opts?.name)}SCAN-OUTPUT (Teil 1 — 22 Fragen):\n\n${scanText}`, maxTokens: 6144, label: 'streamMiniCoachProfile' },
     onChunk,
   )
 }
@@ -207,10 +221,10 @@ export async function streamMiniCoachProfile(
 export async function streamFullCoachProfileV51(
   answers: Record<string, string>,
   onChunk: (chunk: string, totalSoFar: number) => void,
-  opts?: { miniContinuity?: string },
+  opts?: { miniContinuity?: string; name?: string | null },
 ): Promise<ProfilerResult> {
   const scanText = answersToScanText(answers)
-  let userMessage = `SCAN-OUTPUT (alle 50 Fragen, Teil 1 + Teil 2):\n\n${scanText}`
+  let userMessage = `${frage0Kopf(opts?.name)}SCAN-OUTPUT (alle 50 Fragen, Teil 1 + Teil 2):\n\n${scanText}`
   if (opts?.miniContinuity && opts.miniContinuity.trim()) {
     userMessage += `\n\n## MINI-KONTINUITÄT (2 Kernmuster + Blinder Fleck aus der Mini-Auswertung)\n\n${opts.miniContinuity.trim()}`
   }

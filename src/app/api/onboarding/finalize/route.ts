@@ -113,6 +113,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Name (Frage 0) für den Profiler — kommt aus der Registrierung (profiles.full_name),
+  // nicht aus dem Fragebogen. Ohne ihn schreibt der Profiler „Name nicht angegeben" in
+  // MB0/M1. Fallback auf Auth-Metadaten (OAuth-Signups syncen full_name nicht immer).
+  const { data: nameRow } = await supa.from('profiles').select('full_name').eq('id', user.id).maybeSingle()
+  const nameMeta = user.user_metadata as { full_name?: string; name?: string } | undefined
+  const userName = ((nameRow?.full_name ?? '') || nameMeta?.full_name || nameMeta?.name || '').trim() || null
+
   // State auf 'processing' — Polling-Endpoint erkennt das bei SSE-Abriss.
   await supa.from('profiles').update({ onboarding_state: 'processing' }).eq('id', user.id)
 
@@ -141,8 +148,8 @@ export async function POST(req: NextRequest) {
         }
 
         const result = part === 2
-          ? await streamFullCoachProfileV51(answers, onChunk, { miniContinuity })
-          : await streamMiniCoachProfile(answers, onChunk)
+          ? await streamFullCoachProfileV51(answers, onChunk, { miniContinuity, name: userName })
+          : await streamMiniCoachProfile(answers, onChunk, { name: userName })
 
         // Alte aktive Profile deaktivieren. Bei Teil 2 ist das der stille
         // Mini→Full-Swap: ab jetzt lädt der Chat das Vollprofil (V4.1).

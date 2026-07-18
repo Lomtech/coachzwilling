@@ -68,11 +68,11 @@ const DOC_TOOL = {
       },
       blinderFleck: {
         type: 'object',
-        description: 'Aus A5 (blinder Fleck) + A6 (Entscheidungsleck).',
+        description: 'Der blinde Fleck. Bei VOLLEN Profilen aus A5 + A6. Bei MINI-Profilen stehen alle drei Felder WÖRTLICH unter „## M3. Blinder Fleck" (Überschriften „Was du willst" / „Was passiert" / „Aus deinen eigenen Worten") — dann 1:1 übernehmen. Alle drei Felder MÜSSEN gefüllt sein, niemals leer.',
         properties: {
-          wasDuWillst: { type: 'string', description: 'Was die Person bewusst will — Du-Form, 1–2 Sätze.' },
-          wasPassiert: { type: 'string', description: 'Was sie stattdessen tut / vermeidet — Du-Form, 1–2 Sätze.' },
-          eigeneWorte: { type: 'string', description: 'Der zugespitzte Ich/Du-Satz für die dunkle "Aus deinen eigenen Worten"-Box — die unbequeme Wahrheit hinter dem Muster.' },
+          wasDuWillst: { type: 'string', description: 'Was die Person bewusst will. Bei Mini: der Text unter M3 „Was du willst". Du-Form, 1–2 Sätze. NIEMALS leer.' },
+          wasPassiert: { type: 'string', description: 'Was sie stattdessen tut / vermeidet. Bei Mini: der Text unter M3 „Was passiert". Du-Form, 1–2 Sätze. NIEMALS leer.' },
+          eigeneWorte: { type: 'string', description: 'Der zugespitzte Ich/Du-Satz für die dunkle „Aus deinen eigenen Worten"-Box. Bei Mini: das wörtliche Zitat unter M3 „Aus deinen eigenen Worten". NIEMALS leer.' },
         },
         required: ['wasDuWillst', 'wasPassiert', 'eigeneWorte'],
       },
@@ -122,7 +122,7 @@ async function attemptDeepSpaceDoc(source: string, opts: BuildOpts, reinforce: b
     ? `Rohmaterial: KURZE Scan-Antworten (nur wenige Antworten, KEIN volles Profil). Leite vorsichtig 2 plausible Kernmuster (Stärke/Kehrseite) + 1 blinden Fleck ab — es ist eine kostenlose Vorschau, keine Ferndiagnose. Nicht übertreiben; bleib nah an den Worten. schatten/orientierung weglassen.`
     : `Rohmaterial: internes Rohprofil (config_md). Die Struktur variiert:
 • Volle Profile: Abschnitte A1–A9 — Kernmuster aus A1, blinder Fleck aus A5 + A6, Chips-Leitthema aus A2 (Motivstruktur).
-• Mini-Profile (Teil-1-Auswertung): M1 Kopf / M2 Kernmuster / M3 Blinder Fleck — Kernmuster aus M2, blinder Fleck aus M3, Chips aus den M1-Kontext-Tags (Führungsspanne, Handlungsdruck, Jahr). Auf die M-Blöcke folgt eine Mini-Wissensdatei (MB0–MB6) — die ist NUR Hintergrund, NICHT ins Dokument übernehmen.
+• Mini-Profile (Teil-1-Auswertung): M1 Kopf / M2 Kernmuster / M3 Blinder Fleck — Kernmuster aus M2. Den blinden Fleck aus M3: die Felder wasDuWillst/wasPassiert/eigeneWorte stehen dort WÖRTLICH unter den Überschriften „Was du willst" / „Was passiert" / „Aus deinen eigenen Worten" — übernimm sie 1:1, lass KEINES leer. Chips aus den M1-Kontext-Tags (Führungsspanne, Handlungsdruck, Jahr). Auf die M-Blöcke folgt eine Mini-Wissensdatei (MB0–MB6) — die ist NUR Hintergrund, NICHT ins Dokument übernehmen.
 Nutze die jeweils vorhandene Struktur; führe immer den Jahres-Chip "2026" mit.${opts.variant === 'full' ? ' Für die VOLLE Variante zusätzlich schatten (A4) + orientierung (A8) mitliefern.' : ''}`
 
   const reinforceNote = reinforce
