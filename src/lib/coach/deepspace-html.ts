@@ -241,7 +241,7 @@ function blindSpotPage(doc: DeepSpaceDoc, variant: DeepSpaceVariant, opts: Rende
            <li>wie dein Deepling kalibriert wird, dich <strong>im Moment zu erwischen, nicht danach</strong></li>
          </ul>
          <a class="cta" href="${esc(opts.ctaUrl ?? `${opts.appUrl ?? 'https://deepling.de'}/onboarding`)}">Rohprofil freischalten — ${esc(opts.price ?? '149 €')}</a>
-         <div class="pwfine">Einmalig · Sofortiger Zugang · Kein Abo</div>
+         <div class="pwfine">Einmalig · oder mit Freischalt-Code deines Coaches · kein Abo</div>
        </div>`
     : (doc.schatten
         ? `<div class="pcard kehrseite" style="margin-top:4px;"><div class="plabel">Schatten</div><div class="ptitle">${esc(doc.schatten.title)}</div><div class="pbody">${esc(doc.schatten.body)}</div></div>`

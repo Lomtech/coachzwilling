@@ -5,6 +5,7 @@ import { LogoMark } from '@/components/Logo'
 import { isAdminEmail } from '@/lib/admin-auth'
 import { CheckoutButton } from './CheckoutButton'
 import { ManageButton } from './ManageButton'
+import { UnlockCodeForm } from './UnlockCodeForm'
 
 export const dynamic = 'force-dynamic'
 
@@ -137,6 +138,7 @@ function FullUnlockCard({ isLoggedIn }: { isLoggedIn: boolean }) {
         </ul>
         <CheckoutButton plan="full" ctaText="Rohprofil freischalten — 149 €" isLoggedIn={isLoggedIn} />
         <p className="mt-3 text-center text-xs text-[var(--color-muted)]">Sichere Zahlung über Stripe.</p>
+        <UnlockCodeForm isLoggedIn={isLoggedIn} />
       </div>
     </>
   )

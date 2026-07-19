@@ -19,6 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link href="/admin/feedback" className="px-3 py-1.5 rounded-full hover:bg-[var(--color-surface-2)]">Feedback</Link>
             <Link href="/admin/followups" className="px-3 py-1.5 rounded-full hover:bg-[var(--color-surface-2)]">Follow-ups</Link>
             <Link href="/admin/leads" className="px-3 py-1.5 rounded-full hover:bg-[var(--color-surface-2)]">Leads</Link>
+            <Link href="/admin/codes" className="px-3 py-1.5 rounded-full hover:bg-[var(--color-surface-2)]">Codes</Link>
             <Link href="/admin/testimonials" className="px-3 py-1.5 rounded-full hover:bg-[var(--color-surface-2)]">Testimonials</Link>
             <Link href="/admin/compare" className="px-3 py-1.5 rounded-full hover:bg-[var(--color-surface-2)]">Compare</Link>
             <Link href="/coach" className="px-3 py-1.5 rounded-full hover:bg-[var(--color-surface-2)]">→ Coach</Link>
