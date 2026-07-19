@@ -104,8 +104,9 @@ export default async function HomePage({
               und nutze dann Deepling im Chat.
             </p>
             <div className="anim-fade-up-delay2 mt-7 flex flex-col sm:flex-row gap-3">
-              <Link href="/signup" className="btn btn-primary btn-block sm:w-auto">
-                Profil erstellen
+              {/* Eingeloggte gehören in den Chat, nicht auf /signup. */}
+              <Link href={user ? '/coach' : '/signup'} className="btn btn-primary btn-block sm:w-auto">
+                {user ? 'Zum Coach' : 'Profil erstellen'}
               </Link>
               <a href="#wie" className="btn btn-secondary btn-block sm:w-auto">
                 So funktioniert's
