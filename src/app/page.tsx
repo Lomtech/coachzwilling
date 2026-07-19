@@ -204,14 +204,29 @@ export default async function HomePage({
       {/* CTA-Section */}
       <section className="px-5 py-14 max-w-3xl w-full mx-auto text-center border-t border-[var(--color-border)]">
         {process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true' ? (
-          <>
-            <h2 className="text-2xl font-semibold tracking-tight mb-3">Deepling für dein Team</h2>
-            <p className="text-[var(--color-ink-2)] mb-6">Coaching-Zugänge für Führungskräfte — individuell eingerichtet, gebündelt abgerechnet.</p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-              <Link href="/signup" className="btn btn-primary btn-block sm:flex-1">Profil erstellen</Link>
-              <Link href="/billing" className="btn btn-secondary btn-block sm:flex-1">Für Unternehmen</Link>
-            </div>
-          </>
+          user ? (
+            /* Eingeloggte NIE auf /signup oder die B2B-Seite schicken — wer schon
+               ein Profil hat, will hier in seinen Chat. (Bug-Report Tobias: auf
+               dem Handy sind das zwei volle Knöpfe, „Für Unternehmen" landet auf
+               /billing und sieht aus, als wäre der Coach kaputt.) */
+            <>
+              <h2 className="text-2xl font-semibold tracking-tight mb-3">Dein Deepling wartet</h2>
+              <p className="text-[var(--color-ink-2)] mb-6">Weiter im Gespräch — oder dein Profil ansehen.</p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+                <Link href="/coach" className="btn btn-primary btn-block sm:flex-1">Zum Coach</Link>
+                <Link href="/mein-profil" className="btn btn-secondary btn-block sm:flex-1">Dein Profil</Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-semibold tracking-tight mb-3">Deepling für dein Team</h2>
+              <p className="text-[var(--color-ink-2)] mb-6">Coaching-Zugänge für Führungskräfte — individuell eingerichtet, gebündelt abgerechnet.</p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+                <Link href="/signup" className="btn btn-primary btn-block sm:flex-1">Profil erstellen</Link>
+                <Link href="/billing" className="btn btn-secondary btn-block sm:flex-1">Für Unternehmen</Link>
+              </div>
+            </>
+          )
         ) : (
           <>
             <h2 className="text-2xl font-semibold tracking-tight mb-3">Aktuell kostenlos in der Testphase</h2>
