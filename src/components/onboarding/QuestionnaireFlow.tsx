@@ -12,8 +12,15 @@ import {
 interface Props {
   initialAnswers: Record<string, string>
   initialIndex: number
-  /** 1 = kostenloser Teil-1-Scan (22 Fragen → Mini-Profil). 2 = Teil 2 nach Kauf (28 Fragen → Vollprofil). */
-  part?: 1 | 2
+  /**
+   * 1     = kostenloser Teil-1-Scan (22 Fragen → Mini-Profil)
+   * 2     = Teil 2 nach Kauf (Vertiefung + 28 Fragen → Vollprofil)
+   * 'all' = Volltest am Stück (22 + Vertiefung + 28 = alle 50 → direkt Vollprofil,
+   *         OHNE Mini-Zwischenstopp). Für alle, die schon VOR dem Fragebogen
+   *         freigeschaltet haben — per Firmencode oder Kauf. Sonst müssten sie
+   *         mitten im Durchlauf auf ein Kurzprofil warten, das sie nie wollten.
+   */
+  part?: 1 | 2 | 'all'
 }
 
 // Ein Schritt im Flow: entweder eine echte Frage, oder — als Pflicht-Einstieg
@@ -39,9 +46,19 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex, part = 1 }: Pr
   // Opt-in für Follow-up-Mails — nur auf dem letzten Screen von Teil 1 (DSGVO, default false).
   const [followupOptIn, setFollowupOptIn] = useState(false)
 
-  // Schritte dieses Teils. Teil 2 beginnt mit der Pflicht-Vertiefung zu Q4.
+  // Schritte dieses Teils. Teil 2 beginnt mit der Pflicht-Vertiefung zu Q4;
+  // beim Volltest am Stück sitzt sie zwischen Teil 1 und Teil 2 (zitiert dann
+  // die Q4-Antwort aus derselben Sitzung).
   const steps = useMemo<Step[]>(() => {
-    const qs = questionsForPart(part).map(q => ({ kind: 'question' as const, q }))
+    const asStep = (x: Question) => ({ kind: 'question' as const, q: x })
+    if (part === 'all') {
+      return [
+        ...questionsForPart(1).map(asStep),
+        { kind: 'vertiefung' as const },
+        ...questionsForPart(2).map(asStep),
+      ]
+    }
+    const qs = questionsForPart(part).map(asStep)
     return part === 2 ? [{ kind: 'vertiefung' as const }, ...qs] : qs
   }, [part])
   const TOTAL_STEPS = steps.length
@@ -51,9 +68,17 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex, part = 1 }: Pr
   const isVertiefung = step.kind === 'vertiefung'
   const q = step.kind === 'question' ? step.q : null
 
-  // followUp gilt nur, wenn er in DIESEM Teil gestellt wird. Q4 (followUpPart=2)
-  // erscheint in Teil 1 nicht — seine Nachfrage ist der Vertiefungs-Einstieg von Teil 2.
-  const qHasFollowUp = !!q?.followUp && (q.followUpPart ?? partOf(q.id)) === part
+  // Zeigt eine Frage ihre feste Nachfrage inline?
+  //  • Teil 1/2 : nur wenn die Nachfrage zu DIESEM Teil gehört.
+  //  • 'all'    : alle inline — AUSSER Q4, dessen Nachfrage als eigener
+  //               Vertiefungs-Schritt läuft (erkennbar am verschobenen
+  //               followUpPart, das nicht zum Teil der Frage selbst passt).
+  const inlineFollowUp = (x: Question) => {
+    if (!x.followUp) return false
+    const fuPart = x.followUpPart ?? partOf(x.id)
+    return part === 'all' ? fuPart === partOf(x.id) : fuPart === part
+  }
+  const qHasFollowUp = !!q && inlineFollowUp(q)
 
   // Q4-Hauptantwort (aus Teil 1) — für das wörtliche Zitat im Vertiefungs-Einstieg.
   const q4main = (answers['4'] ?? '').split(/\s*\|\s*/)[0] ?? ''
@@ -67,11 +92,12 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex, part = 1 }: Pr
   // Feste Nachfragen dieses Teils (für den Hinweis-Zähler).
   const followUpIdsInPart = useMemo(
     () =>
-      steps.flatMap(s =>
-        s.kind === 'question' && s.q.followUp && (s.q.followUpPart ?? partOf(s.q.id)) === part
-          ? [s.q.id]
-          : [],
-      ),
+      steps.flatMap(s => {
+        if (s.kind !== 'question' || !s.q.followUp) return []
+        const fuPart = s.q.followUpPart ?? partOf(s.q.id)
+        const inline = part === 'all' ? fuPart === partOf(s.q.id) : fuPart === part
+        return inline ? [s.q.id] : []
+      }),
     [steps, part],
   )
 
@@ -158,7 +184,10 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex, part = 1 }: Pr
       const res = await fetch('/api/onboarding/finalize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-        body: JSON.stringify({ answers, followupOptIn, part }),
+        // 'all' wird serverseitig wie Teil 2 ausgewertet (Voll-Auswertung über
+        // alle 50). Das Gate dort prüft full_unlocked — die Mini-Kontinuität ist
+        // optional und fehlt bei diesem Weg schlicht, weil es kein Mini gab.
+        body: JSON.stringify({ answers, followupOptIn, part: part === 'all' ? 2 : part }),
       })
       if (!res.ok || !res.body) {
         const t = await res.text().catch(() => '')
@@ -221,11 +250,14 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex, part = 1 }: Pr
   }
 
   if (finalizing) {
-    return <FinalizingView chars={profilerChars} part={part} />
+    return <FinalizingView chars={profilerChars} part={part === 1 ? 1 : 2} />
   }
 
-  const finishLabel = part === 2 ? 'Vollprofil erstellen →' : 'Kurz-Profil erstellen →'
-  const sectionLabel = isVertiefung ? 'Teil 2 · Vertiefung' : q!.section
+  const isFullRun = part === 2 || part === 'all'
+  const finishLabel = isFullRun ? 'Vollprofil erstellen →' : 'Kurz-Profil erstellen →'
+  const sectionLabel = isVertiefung
+    ? (part === 'all' ? 'Vertiefung' : 'Teil 2 · Vertiefung')
+    : q!.section
 
   return (
     <div className="flex flex-col min-h-dvh">
@@ -332,8 +364,8 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex, part = 1 }: Pr
           </div>
         )}
 
-        {/* Follow-up-Opt-in nur auf dem letzten Screen von Teil 1 */}
-        {part === 1 && isLast && !showFollowUp && (
+        {/* Follow-up-Opt-in auf dem letzten Screen des Durchlaufs (Teil 1 bzw. Volltest) */}
+        {(part === 1 || part === 'all') && isLast && !showFollowUp && (
           <label className="mt-8 flex items-start gap-3 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-2)]/50 cursor-pointer hover:bg-[var(--color-surface-2)] transition">
             <input
               type="checkbox"

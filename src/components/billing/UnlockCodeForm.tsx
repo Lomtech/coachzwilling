@@ -8,9 +8,16 @@ import { useRouter } from 'next/navigation'
  * Der Coach gibt Klienten Einzel-Codes. Erfolg → full_unlocked → weiter in
  * den zweiten Fragebogen-Teil (/onboarding routet dann auf Teil 2).
  */
-export function UnlockCodeForm({ isLoggedIn }: { isLoggedIn: boolean }) {
+export function UnlockCodeForm({
+  isLoggedIn, defaultOpen = false, hint,
+}: {
+  isLoggedIn: boolean
+  /** Auf dem Auswahl-Screen ist die Code-Eingabe gleich sichtbar, auf /billing eingeklappt. */
+  defaultOpen?: boolean
+  hint?: string
+}) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen)
   const [code, setCode] = useState('')
   const [pending, setPending] = useState(false)
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
@@ -43,6 +50,7 @@ export function UnlockCodeForm({ isLoggedIn }: { isLoggedIn: boolean }) {
         const errText: Record<string, string> = {
           'code-not-found': 'Diesen Code kennen wir nicht. Bitte Schreibweise prüfen.',
           'code-inactive': 'Dieser Code wurde deaktiviert.',
+          'code-full': 'Alle Plätze für diesen Code sind bereits vergeben. Frag deinen Coach nach einem neuen.',
           'code-used': 'Dieser Code wurde bereits eingelöst.',
           'code-required': 'Bitte gib einen Code ein.',
           'unauthorized': 'Bitte melde dich zuerst an.',
@@ -71,7 +79,7 @@ export function UnlockCodeForm({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <form onSubmit={submit} className="mt-4 pt-4 border-t border-[var(--color-line)] space-y-3">
       <p className="text-sm text-[var(--color-ink-2)]">
-        Freischalt-Code von deinem Coach? Hier einlösen — dann brauchst du nicht zu bezahlen:
+        {hint ?? 'Freischalt-Code von deinem Coach? Hier einlösen — dann brauchst du nicht zu bezahlen:'}
       </p>
       <input
         type="text"
@@ -80,7 +88,9 @@ export function UnlockCodeForm({ isLoggedIn }: { isLoggedIn: boolean }) {
         onChange={e => setCode(e.target.value.toUpperCase())}
         className="font-mono"
         autoComplete="off"
-        autoFocus
+        // Nur fokussieren, wenn der Nutzer selbst aufgeklappt hat — auf dem
+        // Auswahl-Screen (defaultOpen) würde das sonst die Tastatur aufreißen.
+        autoFocus={!defaultOpen}
       />
       {msg && (
         <p className={'text-sm ' + (msg.kind === 'ok' ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]')}>

@@ -23,9 +23,15 @@ export function CreateCodeForm() {
     >
       <div className="flex-1 min-w-[220px]">
         <label className="block text-xs text-[var(--color-muted)] mb-1">
-          Für welchen Klienten? (optional — nur zur Nachverfolgung)
+          Für wen? (optional — nur zur Nachverfolgung)
         </label>
         <input name="label" type="text" placeholder="z.B. Max Mustermann · Firma XY" autoComplete="off" />
+      </div>
+      <div className="w-28">
+        <label className="block text-xs text-[var(--color-muted)] mb-1">
+          Plätze
+        </label>
+        <input name="seats" type="number" min={1} max={500} defaultValue={1} />
       </div>
       <SubmitBtn />
     </form>

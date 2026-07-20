@@ -23,6 +23,17 @@ export default async function OnboardingStartPage() {
     redirect('/onboarding')
   }
 
+  // Schon freigeschaltet (Firmencode oder Kauf)? Dann gehört dieser Mensch NICHT
+  // in den 22-Fragen-Kurztest — /onboarding schickt ihn in den Volltest am Stück.
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('full_unlocked')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (prof?.full_unlocked === true) {
+    redirect('/onboarding')
+  }
+
   await supabase.from('profiles')
     .update({ onboarding_state: 'questionnaire' })
     .eq('id', user.id)

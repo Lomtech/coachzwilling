@@ -3,11 +3,13 @@
 import { useState } from 'react'
 
 export function CheckoutButton({
-  plan, ctaText, isLoggedIn = true,
+  plan, ctaText, isLoggedIn = true, nextPath = '/billing',
 }: {
   plan: 'monthly' | 'yearly' | 'test' | 'full'
   ctaText?: string
   isLoggedIn?: boolean
+  /** Wohin nach Signup/Login zurück. Vom Auswahl-Screen aus '/onboarding'. */
+  nextPath?: string
 }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -15,7 +17,7 @@ export function CheckoutButton({
   async function go() {
     // Nicht eingeloggt → erst Signup, danach automatisch zurück zu /billing
     if (!isLoggedIn) {
-      window.location.href = `/signup?next=${encodeURIComponent('/billing?plan=' + plan)}`
+      window.location.href = `/signup?next=${encodeURIComponent(nextPath + '?plan=' + plan)}`
       return
     }
     setLoading(true)
@@ -28,7 +30,7 @@ export function CheckoutButton({
       })
       // Unauthorized → wahrscheinlich Session abgelaufen
       if (res.status === 401) {
-        window.location.href = `/login?next=${encodeURIComponent('/billing?plan=' + plan)}`
+        window.location.href = `/login?next=${encodeURIComponent(nextPath + '?plan=' + plan)}`
         return
       }
       const json = (await res.json()) as { url?: string; error?: string }

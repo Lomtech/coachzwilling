@@ -3,9 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { ACTIVE_STATUSES } from '@/types/database'
 import { LogoMark } from '@/components/Logo'
 import { isAdminEmail } from '@/lib/admin-auth'
-import { CheckoutButton } from './CheckoutButton'
+import { CheckoutButton } from '@/components/billing/CheckoutButton'
 import { ManageButton } from './ManageButton'
-import { UnlockCodeForm } from './UnlockCodeForm'
+import { UnlockCodeForm } from '@/components/billing/UnlockCodeForm'
 
 export const dynamic = 'force-dynamic'
 

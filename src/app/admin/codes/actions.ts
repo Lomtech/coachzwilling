@@ -20,6 +20,12 @@ function genCode(): string {
 export async function createUnlockCode(formData: FormData): Promise<void> {
   const admin = await requireAdmin()
   const label = String(formData.get('label') ?? '').trim() || null
+
+  // Plätze: 1 = Einzel-Klient, N = Firmenpaket. Defensiv begrenzen, damit ein
+  // Vertipper nicht 100.000 Plätze anlegt.
+  const seatsRaw = Number(formData.get('seats') ?? 1)
+  const seats = Number.isFinite(seatsRaw) ? Math.min(500, Math.max(1, Math.floor(seatsRaw))) : 1
+
   const supa = serviceClient()
 
   // Bei (sehr seltener) Code-Kollision neu würfeln.
@@ -27,7 +33,7 @@ export async function createUnlockCode(formData: FormData): Promise<void> {
     const code = genCode()
     const { error } = await (supa as any)
       .from('unlock_codes')
-      .insert({ code, label, created_by: admin.id })
+      .insert({ code, label, created_by: admin.id, max_seats: seats })
     if (!error) {
       revalidatePath('/admin/codes')
       return

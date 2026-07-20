@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { QuestionnaireFlow } from '@/components/onboarding/QuestionnaireFlow'
-import { questionsForPart, TOTAL_TEIL1 } from '@/data/questionnaire'
-import { SCAN_INTRO } from '@/lib/coach/prompts'
+import { questionsForPart, TOTAL_TEIL1, TOTAL_QUESTIONS } from '@/data/questionnaire'
+import { UnlockCodeForm } from '@/components/billing/UnlockCodeForm'
+import { CheckoutButton } from '@/components/billing/CheckoutButton'
 
 export default async function OnboardingPage() {
   const supabase = await createClient()
@@ -51,10 +52,23 @@ export default async function OnboardingPage() {
     redirect('/coach')
   }
 
-  // Kein Profil → Teil 1 (kostenloser Scan).
+  // Kein Profil, aber bereits freigeschaltet (Firmencode oder Kauf VOR dem
+  // Fragebogen) → alle 50 Fragen am Stück, direkt aufs Vollprofil. Kein
+  // Kurzprofil-Zwischenstopp, auf den hier niemand warten will.
+  if (fullUnlocked) {
+    return (
+      <QuestionnaireFlow
+        initialAnswers={answers}
+        initialIndex={computeStartIndexAll(answers)}
+        part="all"
+      />
+    )
+  }
+
+  // Kein Profil, nichts freigeschaltet, noch nichts angefangen → Auswahl.
   const initialIndex = computeStartIndex(answers, 1)
   if (initialIndex === 0 && Object.keys(answers).length === 0) {
-    return <Intro />
+    return <StartChoice />
   }
   return <QuestionnaireFlow initialAnswers={answers} initialIndex={initialIndex} part={1} />
 }
@@ -78,7 +92,35 @@ function computeStartIndex(answers: Record<string, string>, part: 1 | 2): number
   return qs.length - 1
 }
 
-function Intro() {
+/**
+ * Resume-Index für den Volltest am Stück: Teil 1 → Vertiefung → Teil 2.
+ * Die Schrittfolge muss exakt der in QuestionnaireFlow (part='all') entsprechen.
+ */
+function computeStartIndexAll(answers: Record<string, string>): number {
+  const t1 = questionsForPart(1)
+  for (let i = 0; i < t1.length; i++) {
+    if (!answers[String(t1[i].id)]) return i
+  }
+  // Teil 1 durch → Vertiefung ist Schritt t1.length.
+  const vertiefungDone = ((answers['4'] ?? '').split(/\s*\|\s*/)[1] ?? '').trim().length > 0
+  if (!vertiefungDone) return t1.length
+
+  const t2 = questionsForPart(2)
+  for (let i = 0; i < t2.length; i++) {
+    if (!answers[String(t2[i].id)]) return t1.length + 1 + i
+  }
+  return t1.length + t2.length // letzter Schritt
+}
+
+/**
+ * Einstiegs-Auswahl: kostenloser Kurztest ODER volle Analyse (Zugangscode oder
+ * Karte). Wer hier freischaltet, läuft danach alle 50 Fragen am Stück durch —
+ * ohne Kurzprofil-Zwischenstopp (siehe Routing oben, part='all').
+ *
+ * Der Upgrade-Weg NACH dem Kurzprofil (/billing) bleibt zusätzlich bestehen —
+ * wer sich erst später entscheidet, verliert nichts.
+ */
+function StartChoice() {
   return (
     <main className="min-h-dvh flex flex-col px-5 max-w-xl w-full mx-auto">
       <header className="py-4">
@@ -87,22 +129,69 @@ function Intro() {
         </a>
       </header>
       <div className="flex-1 py-8">
-        <div className="chip mb-4">Scan-Modus</div>
-        <h1 className="text-3xl font-semibold tracking-tight mb-4">
-          {TOTAL_TEIL1} Fragen. Eine nach der anderen.
+        <h1 className="text-3xl font-semibold tracking-tight mb-3">
+          Wie möchtest du starten?
         </h1>
-        <p className="text-[var(--color-ink-2)] mb-6 whitespace-pre-line">
-          {SCAN_INTRO}
+        <p className="text-[var(--color-ink-2)] mb-8">
+          Beide Wege führen zu deinem Deepling. Vom Kurztest kannst du später
+          jederzeit auf die vollständige Analyse wechseln.
         </p>
-        <ul className="space-y-2 text-sm text-[var(--color-ink-2)]">
-          <li>• Dauer: ca. 10 Minuten</li>
-          <li>• Du kannst pausieren — wir speichern automatisch</li>
-          <li>• Danach bekommst du sofort dein persönliches Kurz-Profil</li>
-        </ul>
-        <div className="mt-8">
+
+        {/* 1 — Kostenloser Kurztest */}
+        <div className="card mb-5">
+          <div className="chip mb-3">Kostenlos</div>
+          <h2 className="text-xl font-semibold tracking-tight mb-2">Kurztest</h2>
+          <p className="text-sm text-[var(--color-ink-2)] mb-4">
+            {TOTAL_TEIL1} Fragen, ca. 10 Minuten. Danach bekommst du sofort dein
+            persönliches Kurz-Profil und kannst mit deinem Deepling sprechen.
+          </p>
+          <ul className="space-y-1.5 text-sm text-[var(--color-ink-2)] mb-5">
+            <li>• zwei Kernmuster + dein blinder Fleck</li>
+            <li>• eine Frage nach der anderen — kein Kommentar, keine Bewertung</li>
+            <li>• du kannst pausieren, wir speichern automatisch</li>
+          </ul>
           <a href="/onboarding/start" className="btn btn-primary btn-block">
-            Los geht&apos;s
+            Kurztest starten — kostenlos
           </a>
+        </div>
+
+        {/* 2 — Vollständige Analyse (Code oder Karte) */}
+        <div className="card">
+          <div className="chip mb-3">Vollständig</div>
+          <h2 className="text-xl font-semibold tracking-tight mb-2">
+            Vollständige Analyse
+          </h2>
+          <p className="text-sm text-[var(--color-ink-2)] mb-4">
+            Alle {TOTAL_QUESTIONS} Fragen am Stück, ca. 25 Minuten. Dein
+            vollständiges Rohprofil — und ein Coach, der vollständig auf dich
+            kalibriert ist.
+          </p>
+          <ul className="space-y-1.5 text-sm text-[var(--color-ink-2)] mb-5">
+            <li>• alles aus dem Kurztest</li>
+            <li>• Vier-Felder-Stärkenprofil + deine Schatten</li>
+            <li>• Entscheidungsleck + 90-Tage-Orientierung</li>
+          </ul>
+
+          <UnlockCodeForm
+            isLoggedIn
+            defaultOpen
+            hint="Du hast einen Zugangscode — von deinem Unternehmen oder deinem Coach? Hier einlösen:"
+          />
+
+          <div className="my-4 flex items-center gap-3 text-xs text-[var(--color-muted)]">
+            <span className="flex-1 h-px bg-[var(--color-line)]" />
+            oder
+            <span className="flex-1 h-px bg-[var(--color-line)]" />
+          </div>
+
+          <CheckoutButton
+            plan="full"
+            ctaText="Mit Karte freischalten — 149 €"
+            nextPath="/onboarding"
+          />
+          <p className="mt-3 text-center text-xs text-[var(--color-muted)]">
+            Einmalig · kein Abo · sichere Zahlung über Stripe.
+          </p>
         </div>
       </div>
     </main>
