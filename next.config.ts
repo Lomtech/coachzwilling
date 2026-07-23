@@ -15,7 +15,14 @@ const config: NextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          // microphone=(self) — NICHT auf () zurücksetzen!
+          // Eine leere Liste verbietet das Mikrofon für ALLE Quellen, auch für
+          // die eigene Seite. Das schaltet getUserMedia hart ab, BEVOR eine
+          // Nutzer-Berechtigung greift: die Permissions-API meldet dann dauerhaft
+          // "denied" und keine Chrome-Einstellung kann das überstimmen. Genau das
+          // hat die Spracheingabe (Aufnahme → /api/transcribe → Text) monatelang
+          // lahmgelegt — für jeden Nutzer, nicht nur lokal.
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' },
         ],
       },
     ]
