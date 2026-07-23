@@ -63,6 +63,56 @@ export async function sendUserProfileReady(args: {
   })
 }
 
+/**
+ * Passwort-zurücksetzen — bewusst über UNSERE Resend-Infrastruktur, nicht über
+ * Supabases eingebauten Mailer. Dessen Standard-Absender + Vorlage sahen für
+ * Empfänger nach Spam aus (Nutzer-Feedback 2026-07-20). Hier kommt die Mail als
+ * „Deepling <no-reply@deepling.de>" (verifizierte Domain, SPF/DKIM/DMARC).
+ *
+ * KEINE Idempotenz-Deduplizierung: wer zweimal auf „zurücksetzen" klickt, muss
+ * auch die zweite Mail bekommen — sonst wartet er auf etwas, das nie kommt.
+ */
+export async function sendPasswordReset(args: {
+  email: string
+  name: string | null
+  actionLink: string
+}): Promise<void> {
+  const first = firstNameOf(args.name)
+  const hello = first ? `Hallo ${first},` : 'Hallo,'
+
+  const bodyText = [
+    hello,
+    ``,
+    `du hast angefordert, dein Deepling-Passwort zurückzusetzen. Über diesen Link vergibst du ein neues:`,
+    ``,
+    args.actionLink,
+    ``,
+    `Der Link gilt 60 Minuten und lässt sich nur einmal verwenden.`,
+    ``,
+    `Du hast das nicht angefordert? Dann ignoriere diese Mail einfach — dein Passwort bleibt unverändert.`,
+    ``,
+    `Deepling`,
+  ].join('\n')
+
+  const bodyHtml = `<div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.65;color:#211f1c;max-width:520px">
+    <p style="margin:0 0 14px">${escapeHtml(hello)}</p>
+    <p style="margin:0 0 14px">du hast angefordert, dein <strong>Deepling</strong>-Passwort zurückzusetzen. Über den Knopf vergibst du ein neues:</p>
+    <p style="margin:0 0 22px">
+      <a href="${args.actionLink}" style="display:inline-block;background:#d0642c;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:700">Neues Passwort vergeben →</a>
+    </p>
+    <p style="margin:0 0 20px;font-size:13px;color:#9a8f80">Der Link gilt 60 Minuten und lässt sich nur einmal verwenden.</p>
+    <p style="margin:0 0 14px;font-size:13px;color:#9a8f80">Du hast das nicht angefordert? Dann ignoriere diese Mail einfach — dein Passwort bleibt unverändert.</p>
+    <p style="margin:24px 0 0;font-size:12px;color:#9a8f80">Vertraulich — nur zwischen euch beiden.</p>
+  </div>`
+
+  await sendEmail({
+    to: args.email,
+    subject: 'Dein Deepling-Passwort zurücksetzen',
+    bodyHtml,
+    bodyText,
+  })
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string,

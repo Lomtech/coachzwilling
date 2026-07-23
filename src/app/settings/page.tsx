@@ -15,6 +15,7 @@ import { ShareProfileSection } from './ShareProfileSection'
 import { TestimonialSection } from './TestimonialSection'
 import { FollowupSection } from './FollowupSection'
 import { OrgSection } from './OrgSection'
+import { QUESTIONS } from '@/data/questionnaire'
 import { RedeemCodeSection } from './RedeemCodeSection'
 import { listMyOrgs } from '@/lib/org/auth'
 import { IconChevronDown, IconSettings, IconCompare } from '@/components/Icons'
@@ -32,7 +33,11 @@ export default async function SettingsPage() {
     supabase.from('subscriptions').select('status, current_period_end, cancel_at_period_end').eq('user_id', user.id).maybeSingle(),
     supabase.from('coach_profiles')
       .select('id, generated_at, model, version, source, memories_used_count, config_md, share_token, share_enabled')
-      .eq('user_id', user.id).eq('is_active', true).maybeSingle(),
+      // order+limit wie in der Chat-Route: .maybeSingle() allein WIRFT, sobald
+      // je mehr als eine aktive Zeile existiert (kam durch eine Refresh-Race
+      // wirklich vor → Seite zeigte fälschlich „kein Coach-Profil").
+      .eq('user_id', user.id).eq('is_active', true)
+      .order('generated_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('coach_memory')
       .select('id, section, observation, importance, created_at')
       .eq('user_id', user.id).eq('is_active', true)
@@ -54,6 +59,20 @@ export default async function SettingsPage() {
       .order('composed_at', { ascending: false })
       .limit(5),
   ])
+
+  // Fehlende Fragebogen-Antworten (der Bogen wuchs nachträglich von 42 auf 50).
+  // Betroffene können die Lücke nachtragen, statt neu anzufangen.
+  const { data: qr } = await supabase
+    .from('questionnaire_responses')
+    .select('answers')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const qrAnswers = (qr?.answers as Record<string, string> | undefined) ?? {}
+  const fehlendeFragen = Object.keys(qrAnswers).length > 0
+    ? QUESTIONS.filter(q => !qrAnswers[String(q.id)]).length
+    : 0
 
   const memoriesSinceRefresh = Math.max(0, (memoryCount ?? 0) - (cp?.memories_used_count ?? 0))
 
@@ -125,6 +144,11 @@ export default async function SettingsPage() {
               >
                 ✦ Dein Kurz-Profil ansehen
               </a>
+              {fehlendeFragen > 0 && (
+                <a href="/onboarding/ergaenzen" className="btn btn-secondary btn-block text-sm">
+                  + {fehlendeFragen} fehlende {fehlendeFragen === 1 ? 'Frage' : 'Fragen'} ergänzen
+                </a>
+              )}
               {isAdminEmail(user.email) && (
                 <ProfileViewer profile={{
                   id: cp.id,

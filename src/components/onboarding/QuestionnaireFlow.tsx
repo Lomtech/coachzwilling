@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
+  QUESTIONS,
   questionsForPart,
   partOf,
   vertiefungQ4Prompt,
@@ -19,8 +20,12 @@ interface Props {
    *         OHNE Mini-Zwischenstopp). Für alle, die schon VOR dem Fragebogen
    *         freigeschaltet haben — per Firmencode oder Kauf. Sonst müssten sie
    *         mitten im Durchlauf auf ein Kurzprofil warten, das sie nie wollten.
+   * 'rest' = nur die noch UNBEANTWORTETEN Fragen. Für Bestandsnutzer, deren
+   *         Fragebogen kürzer war (die 42er haben IDs 43–50 nie gesehen): sie
+   *         ergänzen die Lücke und bekommen ein neues Vollprofil — ohne alles
+   *         noch einmal von vorn zu beantworten.
    */
-  part?: 1 | 2 | 'all'
+  part?: 1 | 2 | 'all' | 'rest'
 }
 
 // Ein Schritt im Flow: entweder eine echte Frage, oder — als Pflicht-Einstieg
@@ -51,6 +56,12 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex, part = 1 }: Pr
   // die Q4-Antwort aus derselben Sitzung).
   const steps = useMemo<Step[]>(() => {
     const asStep = (x: Question) => ({ kind: 'question' as const, q: x })
+    if (part === 'rest') {
+      // Nur Lücken. Bewusst gegen die INITIALEN Antworten gerechnet, nicht gegen
+      // den laufenden State — sonst verschwänden Schritte unter dem Nutzer,
+      // sobald er sie beantwortet.
+      return QUESTIONS.filter(x => !initialAnswers[String(x.id)]).map(asStep)
+    }
     if (part === 'all') {
       return [
         ...questionsForPart(1).map(asStep),
@@ -60,7 +71,7 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex, part = 1 }: Pr
     }
     const qs = questionsForPart(part).map(asStep)
     return part === 2 ? [{ kind: 'vertiefung' as const }, ...qs] : qs
-  }, [part])
+  }, [part, initialAnswers])
   const TOTAL_STEPS = steps.length
 
   const safeIndex = Math.min(Math.max(0, index), TOTAL_STEPS - 1)
@@ -73,10 +84,13 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex, part = 1 }: Pr
   //  • 'all'    : alle inline — AUSSER Q4, dessen Nachfrage als eigener
   //               Vertiefungs-Schritt läuft (erkennbar am verschobenen
   //               followUpPart, das nicht zum Teil der Frage selbst passt).
+  //  • 'rest'   : alle inline — die Q4-Vertiefung entfällt hier ganz (wer nur
+  //               Lücken füllt, hat Q4 längst beantwortet).
   const inlineFollowUp = (x: Question) => {
     if (!x.followUp) return false
     const fuPart = x.followUpPart ?? partOf(x.id)
-    return part === 'all' ? fuPart === partOf(x.id) : fuPart === part
+    if (part === 'all' || part === 'rest') return fuPart === partOf(x.id)
+    return fuPart === part
   }
   const qHasFollowUp = !!q && inlineFollowUp(q)
 
@@ -95,7 +109,9 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex, part = 1 }: Pr
       steps.flatMap(s => {
         if (s.kind !== 'question' || !s.q.followUp) return []
         const fuPart = s.q.followUpPart ?? partOf(s.q.id)
-        const inline = part === 'all' ? fuPart === partOf(s.q.id) : fuPart === part
+        const inline = (part === 'all' || part === 'rest')
+          ? fuPart === partOf(s.q.id)
+          : fuPart === part
         return inline ? [s.q.id] : []
       }),
     [steps, part],
@@ -187,7 +203,14 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex, part = 1 }: Pr
         // 'all' wird serverseitig wie Teil 2 ausgewertet (Voll-Auswertung über
         // alle 50). Das Gate dort prüft full_unlocked — die Mini-Kontinuität ist
         // optional und fehlt bei diesem Weg schlicht, weil es kein Mini gab.
-        body: JSON.stringify({ answers, followupOptIn, part: part === 'all' ? 2 : part }),
+        // 'all' und 'rest' werden serverseitig wie Teil 2 ausgewertet (Voll-
+        // Auswertung über alle 50). Das Gate dort prüft full_unlocked bzw.
+        // grandfathered; die Mini-Kontinuität ist optional.
+        body: JSON.stringify({
+          answers,
+          followupOptIn,
+          part: (part === 'all' || part === 'rest') ? 2 : part,
+        }),
       })
       if (!res.ok || !res.body) {
         const t = await res.text().catch(() => '')
@@ -253,8 +276,10 @@ export function QuestionnaireFlow({ initialAnswers, initialIndex, part = 1 }: Pr
     return <FinalizingView chars={profilerChars} part={part === 1 ? 1 : 2} />
   }
 
-  const isFullRun = part === 2 || part === 'all'
-  const finishLabel = isFullRun ? 'Vollprofil erstellen →' : 'Kurz-Profil erstellen →'
+  const isFullRun = part === 2 || part === 'all' || part === 'rest'
+  const finishLabel = part === 'rest'
+    ? 'Profil aktualisieren →'
+    : isFullRun ? 'Vollprofil erstellen →' : 'Kurz-Profil erstellen →'
   const sectionLabel = isVertiefung
     ? (part === 'all' ? 'Vertiefung' : 'Teil 2 · Vertiefung')
     : q!.section

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -14,13 +13,22 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    const supabase = createClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/api/auth/callback?next=/reset-password`,
-    })
-    setLoading(false)
-    if (error) { setError(error.message); return }
-    setSent(true)
+    try {
+      // Eigene Route statt supabase.auth.resetPasswordForEmail — damit die Mail
+      // von „Deepling <no-reply@deepling.de>" kommt statt von Supabases
+      // Standard-Absender (sah für Empfänger nach Spam aus).
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      if (!res.ok) throw new Error()
+      setSent(true)
+    } catch {
+      setError('Das hat gerade nicht geklappt — bitte versuch es in einem Moment erneut.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

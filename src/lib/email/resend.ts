@@ -23,8 +23,13 @@ interface SendEmailArgs {
   subject: string
   bodyHtml: string
   bodyText: string
-  // Token für /api/followups/unsubscribe/[token] — Gmail postet beim Klick dorthin
-  unsubscribeUrl: string
+  /**
+   * Token für /api/followups/unsubscribe/[token] — Gmail postet beim Klick dorthin.
+   * Weglassen NUR bei transaktionalen Sicherheits-Mails (z.B. Passwort-Reset):
+   * dort ist ein „Abbestellen"-Knopf sinnlos bis schädlich — man kann sich von
+   * einer selbst angeforderten Reset-Mail nicht abmelden.
+   */
+  unsubscribeUrl?: string
   // Idempotenz: gleicher Key innerhalb 24h dedupliziert
   idempotencyKey?: string
   // Reply-To (Default: kein Reply, später ggf. Postmark-Inbox)
@@ -72,11 +77,13 @@ export async function sendEmail(args: SendEmailArgs): Promise<SendResult> {
     html: args.bodyHtml,
     text: args.bodyText,
     reply_to: args.replyTo ?? defaultReplyTo(),
-    headers: {
-      // One-Click-Unsubscribe (RFC 8058) — Gmail/Outlook UI zeigt "Abbestellen"-Button
-      'List-Unsubscribe': `<${args.unsubscribeUrl}>`,
-      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-    },
+    headers: args.unsubscribeUrl
+      ? {
+          // One-Click-Unsubscribe (RFC 8058) — Gmail/Outlook UI zeigt "Abbestellen"-Button
+          'List-Unsubscribe': `<${args.unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        }
+      : undefined,
   }
 
   const res = await fetch(RESEND_ENDPOINT, {
